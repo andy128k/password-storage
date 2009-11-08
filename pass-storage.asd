@@ -15,6 +15,9 @@
   :depends-on (:cffi :trivial-garbage :cl-gtk2-gtk)
   :components ((:file "pass-storage.package")
                (:file "pass-storage.utils" :depends-on ("pass-storage.package"))
-               (:file "pass-storage.main" :depends-on ("pass-storage.utils"))))
-
+               (:file "pass-storage.item" :depends-on ("pass-storage.package"))
+               (:file "pass-storage.item-edit" :depends-on ("pass-storage.item"))
+               (:file "pass-storage.main" :depends-on ("pass-storage.utils"
+						       "pass-storage.item"
+						       "pass-storage.item-edit"))))
 
