@@ -14,53 +14,87 @@
 				 (declare (ignore unused-rest))
 				 (funcall (function ,func) ,@args)))))))
 
-(defun show-modal (dlg)
-  (prog2
-      (gtk:widget-show dlg :all t)
-      (eql (gtk:dialog-run dlg) :ok)
-      (gtk:widget-hide dlg)))
-
 (defun ask (message)
   (eql (gtk:show-message message :buttons :yes-no :message-type :warning)
        :yes))
 
-(defun ask-string (parent-wnd title icon caption)
-  (let ((dialog (make-instance 'gtk:dialog)))
-    (setf (gtk:gtk-window-title dialog) title)
-    (setf (gtk:gtk-window-icon-name dialog) icon)
-    (setf (gtk:gtk-window-modal dialog) t)
-    (setf (gtk:gtk-window-transient-for dialog) parent-wnd)
-    (setf (gtk:gtk-window-window-position dialog) :center-on-parent)
-    (setf (gtk:container-border-width dialog) 8)
+(defun window-run (w)
+  (setf (gtk:gtk-object-user-data w) (cffi:null-pointer))
+  (gtk:widget-show w)
+  (gtk:gtk-main)
+  (gtk:widget-hide w)
+  (not (cffi:null-pointer-p (gtk:gtk-object-user-data w))))
 
-    (gtk:dialog-add-button dialog "gtk-cancel" :cancel)
-    (gtk:dialog-add-button dialog "gtk-ok" :ok)
-    (setf (gtk:dialog-default-response dialog) :ok)
-    (gtk:dialog-set-response-sensitive dialog :ok nil)
+(defun ask-string (parent-window title icon caption)
+  (gtk:let-ui
+   (gtk:gtk-window
+    :var dlg
+    :border-width 8
+    :modal t
+    :resizable t
+    :window-position :center-on-parent
+    :title title
+    :icon-name icon
+    :type-hint :dialog
+    :skip-taskbar_hint t
+    :skip-pager-hint t
+    :gravity :center
+    :transient-for parent-window
 
-    (let ((hbox (make-instance 'gtk:h-box)))
-      (setf (gtk:container-border-width hbox) 8)
-      (setf (gtk:box-spacing hbox) 8)
+    (gtk:v-box
+     :spacing 8
 
-      (gtk:container-add 
-       (gtk:dialog-content-area dialog)
-       hbox)
+     (gtk:h-box
+      ; :border-width 8
+      :spacing 8
+      
+      (gtk:label :label caption) :expand nil
+      (gtk:entry :var entry) :expand t)
+     
+     (gtk:h-button-box
+      :layout-style :end
 
-      (let ((label (make-instance 'gtk:label))
-	    (entry (make-instance 'gtk:entry)))
-	
-	(setf (gtk:label-label label) caption)
-	(gtk:box-pack-start hbox label :expand nil)
+      (gtk:button
+       :var btn_cancel
+       :label "gtk-cancel"
+       :can-focus t
+       :can-default t
+       :receives-default nil
+       :use-stock t)
+      :expand nil :fill nil :position 0
 
-	(gobject:g-signal-connect entry "changed"
-				  (lambda (entry)
-				    (gtk:dialog-set-response-sensitive 
-				     dialog
-				     :ok
+      (gtk:button
+       :var btn_ok
+       :label "gtk-ok"
+       :sensitive nil
+       :can-focus t
+       :can-default t
+       :receives-default nil
+       :use-stock t)
+      :expand nil :fill nil :position 1)
+     :expand nil))
+
+   (gobject:connect-signal dlg "destroy"
+			   (lambda (u)
+			     (declare (ignore u))
+			     (gtk:gtk-main-quit)))
+   
+   (gobject:connect-signal btn_cancel "clicked"
+			   (lambda (u)
+			     (declare (ignore u))
+			     (gtk:gtk-main-quit)))
+   
+   (gobject:connect-signal btn_ok "clicked"
+			   (lambda (u)
+			     (declare (ignore u))
+			     (setf (gtk:gtk-object-user-data dlg) (cffi:make-pointer 1))
+			     (gtk:gtk-main-quit)))
+
+   (gobject:g-signal-connect entry "changed"
+			     (lambda (entry)
+			       (setf (gtk:widget-sensitive btn_ok)
 				     (/= 0 (length (gtk:entry-text entry))))))
 
-	(gtk:box-pack-start hbox entry :expand t)
-
-	(when (show-modal dialog)
-	  (gtk:entry-text entry))))))
+   (when (window-run dlg)
+     (gtk:entry-text entry))))
 

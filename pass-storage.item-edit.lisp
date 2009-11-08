@@ -1,6 +1,6 @@
 (in-package :pass-storage)
 
-(defun make-item-window (parent_window)
+(defun make-item-window (parent-window)
   (gtk:let-ui
    (gtk:gtk-window
     :var dlg
@@ -13,7 +13,7 @@
     :skip-taskbar_hint t
     :skip-pager-hint t
     :gravity :center
-    :transient-for parent_window
+    :transient-for parent-window
     
     (gtk:v-box
      :spacing 8
@@ -108,17 +108,6 @@
 	   entry-email
 	   text-view-comment)))
 
-(defun item-window-run (w)
-  (setf (gtk:gtk-object-user-data w) (cffi:null-pointer))
-  (gtk:widget-show w)
-  (gtk:gtk-main)
-  (gtk:widget-hide w)
-  (not (cffi:null-pointer-p (gtk:gtk-object-user-data w))))
-
-(defun test-edit-window ()
-  (let ((ew (make-item-window nil)))
-    (print (item-window-run ew))))
-
 (defun item-add (parent-window)
   (multiple-value-bind
 	(dlg
@@ -132,7 +121,7 @@
   
     (setf (gtk:gtk-window-title dlg) "Add entry")
 
-    (when (item-window-run dlg)
+    (when (window-run dlg)
       (make-item
        :name (gtk:entry-text entry-name)
        :login (gtk:entry-text entry-login)
@@ -161,7 +150,7 @@
     (setf (gtk:entry-text entry-email) (item-email item))
     (setf (gtk:text-buffer-text (gtk:text-view-buffer text-view-comment)) (item-comment item))
 
-    (when (item-window-run dlg)
+    (when (window-run dlg)
       (setf (item-name item) (gtk:entry-text entry-name))
       (setf (item-login item) (gtk:entry-text entry-login))
       (setf (item-password item) (gtk:entry-text entry-password))
