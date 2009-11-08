@@ -1,7 +1,4 @@
-#+sbcl
-(require 'asdf)
-
-(asdf:oos 'asdf:load-op :cl-gtk2-gtk)
+(in-package :pass-storage)
 
 ;;; test
 
@@ -70,16 +67,6 @@
 				     :ok
 				     (/= 0 (length (gtk:entry-text name_entry)))))
 
-(defun show-modal (dlg)
-  (prog2
-      (gtk:widget-show dlg :all t)
-      (eql (gtk:dialog-run dlg) :ok)
-      (gtk:widget-hide dlg)))
-
-(defun ask (message)
-  (eql (gtk:show-message message :buttons :yes-no :message-type :warning)
-       :yes))
-
 (defun e-close (&rest unused-rest)
   (declare (ignore unused-rest))
   (gtk:gtk-main-quit))
@@ -113,41 +100,10 @@
     (setf (gtk:widget-sensitive edit_button) s)
     (setf (gtk:widget-sensitive edit_menuitem) s)))
 
-(defun ask-string (title icon caption)
-  (let ((dialog (make-instance 'gtk:dialog)))
-    (setf (gtk:gtk-window-title dialog) title)
-    (setf (gtk:gtk-window-icon-name dialog) icon)
-    (setf (gtk:gtk-window-modal dialog) t)
-    (setf (gtk:gtk-window-transient-for dialog) main_window)
-    (setf (gtk:gtk-window-window-position dialog) :center-on-parent)
-    (setf (gtk:container-border-width dialog) 8)
-
-    (gtk:dialog-add-button dialog "gtk-cancel" :cancel)
-    (gtk:dialog-add-button dialog "gtk-ok" :ok)
-    (setf (gtk:dialog-default-response dialog) :ok)
-
-    (let ((hbox (make-instance 'gtk:h-box)))
-      (setf (gtk:container-border-width hbox) 8)
-      (setf (gtk:box-spacing hbox) 8)
-
-      (gtk:container-add 
-       (gtk:dialog-content-area dialog)
-       hbox)
-
-      (let ((label (make-instance 'gtk:label))
-	    (entry (make-instance 'gtk:entry)))
-	
-	(setf (gtk:label-label label) caption)
-	(gtk:box-pack-start hbox label :expand nil)
-	(gtk:box-pack-start hbox entry :expand t)
-
-	(when (show-modal dialog)
-	  (gtk:entry-text entry))))))
-
 (defun add-group (&rest unused-rest)
   (declare (ignore unused-rest))
 
-  (let ((group (ask-string "New group" "gtk-directory" "Group name")))
+  (let ((group (ask-string main_window "New group" "gtk-directory" "Group name")))
     (when (and group (string/= group ""))
       (let ((iter (gtk:tree-store-append data nil)))
 	(setf (gtk:tree-store-value data iter 0) t)
@@ -279,4 +235,6 @@
 
   ;; (save-data lst "./data")
   )
+
+(export 'main)
 
