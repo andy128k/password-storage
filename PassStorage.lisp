@@ -8,8 +8,7 @@
 (defvar builder nil)
 
 ;;; models
-(defvar lst nil)
-(defvar groups nil)
+(defvar data nil)
 
 ;;; main window
 (defvar main_window nil)
@@ -22,7 +21,6 @@
 
 ;;; edit window
 (defvar edit_window nil)
-(defvar group_entry nil)
 (defvar name_entry nil)
 (defvar login_entry nil)
 (defvar password_entry nil)
@@ -31,28 +29,23 @@
 (defvar comment_text nil)
 
 (defun edit-window-clear ()
-  (setf (gtk:entry-text group_entry) "")
   (setf (gtk:entry-text name_entry) "")
   (setf (gtk:entry-text login_entry) "")
   (setf (gtk:entry-text password_entry) "")
   (setf (gtk:entry-text url_entry) "")
   (setf (gtk:entry-text email_entry) "")
   (setf (gtk:text-buffer-text (gtk:text-view-buffer comment_text)) "")
-  (gtk:widget-grab-focus group_entry))
+  (gtk:widget-grab-focus name_entry))
 
-(defun edit-window-load (lst iter)
-  (setf (gtk:list-store-value lst iter 0) (gtk:entry-text group_entry))
-  (setf (gtk:list-store-value lst iter 1) (gtk:entry-text name_entry))
-  (setf (gtk:list-store-value lst iter 2) (gtk:entry-text login_entry))
-  (setf (gtk:list-store-value lst iter 3) (gtk:entry-text password_entry))
-  (setf (gtk:list-store-value lst iter 4) (gtk:entry-text url_entry))
-  (setf (gtk:list-store-value lst iter 5) (gtk:entry-text email_entry))
-  (setf (gtk:list-store-value lst iter 6) (gtk:text-buffer-text (gtk:text-view-buffer comment_text))))
+(defun edit-window-load (model iter)
+  (setf (gtk:tree-store-value model iter 1) (gtk:entry-text name_entry))
+  (setf (gtk:tree-store-value model iter 2) (gtk:entry-text login_entry))
+  (setf (gtk:tree-store-value model iter 3) (gtk:entry-text password_entry))
+  (setf (gtk:tree-store-value model iter 4) (gtk:entry-text url_entry))
+  (setf (gtk:tree-store-value model iter 5) (gtk:entry-text email_entry))
+  (setf (gtk:tree-store-value model iter 6) (gtk:text-buffer-text (gtk:text-view-buffer comment_text))))
 
 (defun edit-window-save (lst iter)
-  (setf (gtk:entry-text group_entry)
-	(gtk:tree-model-value lst iter 0))
-
   (setf (gtk:entry-text name_entry)
 	(gtk:tree-model-value lst iter 1))
 
@@ -91,58 +84,110 @@
   (declare (ignore unused-rest))
   (gtk:gtk-main-quit))
 
+(defun get-selected-iter (view)
+  (let ((selection (gtk:tree-view-selection view)))
+    (when selection
+      (gtk:tree-selection-selected selection))))
+
+(defun get-selected-group-iter (view)
+  (let ((model (gtk:tree-view-model view))
+	(iter (get-selected-iter view)))
+ 
+    (loop
+       while (and iter
+		  (not (gtk:tree-model-value model iter 0)))
+       do (setf iter (gtk:tree-model-iter-parent model iter)))
+
+    iter))
+
 (defun listview-cursor-changed (&rest unused-rest)
   (declare (ignore unused-rest))
+  (let ((s (get-selected-iter listview)))
 
-  (let ((selection (gtk:tree-view-selection listview))
-	(s nil))
-
-    (when selection
-      (let ((iter (gtk:tree-selection-selected selection)))
-	(when iter
-	  (setf s t))))
-
-    (setf (gtk:widget-sensitive edit_button) s)
-    (setf (gtk:widget-sensitive edit_menuitem) s)
     (setf (gtk:widget-sensitive del_button) s)
-    (setf (gtk:widget-sensitive del_menuitem) s)))
+    (setf (gtk:widget-sensitive del_menuitem) s)
+
+    (when (and s (gtk:tree-model-value (gtk:tree-view-model listview) s 0))
+      (setf s nil))
+    
+    (setf (gtk:widget-sensitive edit_button) s)
+    (setf (gtk:widget-sensitive edit_menuitem) s)))
+
+(defun ask-string (title icon caption)
+  (let ((dialog (make-instance 'gtk:dialog)))
+    (setf (gtk:gtk-window-title dialog) title)
+    (setf (gtk:gtk-window-icon-name dialog) icon)
+    (setf (gtk:gtk-window-modal dialog) t)
+    (setf (gtk:gtk-window-transient-for dialog) main_window)
+    (setf (gtk:gtk-window-window-position dialog) :center-on-parent)
+    (setf (gtk:container-border-width dialog) 8)
+
+    (gtk:dialog-add-button dialog "gtk-cancel" :cancel)
+    (gtk:dialog-add-button dialog "gtk-ok" :ok)
+    (setf (gtk:dialog-default-response dialog) :ok)
+
+    (let ((hbox (make-instance 'gtk:h-box)))
+      (setf (gtk:container-border-width hbox) 8)
+      (setf (gtk:box-spacing hbox) 8)
+
+      (gtk:container-add 
+       (gtk:dialog-content-area dialog)
+       hbox)
+
+      (let ((label (make-instance 'gtk:label))
+	    (entry (make-instance 'gtk:entry)))
+	
+	(setf (gtk:label-label label) caption)
+	(gtk:box-pack-start hbox label :expand nil)
+	(gtk:box-pack-start hbox entry :expand t)
+
+	(when (show-modal dialog)
+	  (gtk:entry-text entry))))))
+
+(defun add-group (&rest unused-rest)
+  (declare (ignore unused-rest))
+
+  (let ((group (ask-string "New group" "gtk-directory" "Group name")))
+    (when (and group (string/= group ""))
+      (let ((iter (gtk:tree-store-append data nil)))
+	(setf (gtk:tree-store-value data iter 0) t)
+	(setf (gtk:tree-store-value data iter 1) group)
+	(setf (gtk:tree-store-value data iter 7) "gtk-directory")
+	(setf (gtk:tree-view-model listview) data)))))
 
 (defun add-entry (&rest unused-rest)
   (declare (ignore unused-rest))
+
   (edit-window-clear)
-  ;(setf (gtk:window-title edit_window) "Add entry")
+  (setf (gtk:gtk-window-title edit_window) "Add entry")
   (when (show-modal edit_window)
-    (let ((iter (gtk:list-store-append lst)))
-      (edit-window-load lst iter)
-      (setf (gtk:tree-view-model listview) lst))
-    ;;recreate_groups(mw);
-    ))
+    (let* ((parent (get-selected-group-iter listview))
+	   (iter (gtk:tree-store-append data parent)))
+      (edit-window-load data iter)
+      (setf (gtk:tree-store-value data iter 7) "gtk-file")
+      (setf (gtk:tree-view-model listview) data))))
 
 (defun edit-entry (&rest unused-rest)
   (declare (ignore unused-rest))
-  (let ((selection (gtk:tree-view-selection listview)))
-    (when selection
-      (let ((iter (gtk:tree-selection-selected selection)))
-	(when iter
-	  (edit-window-save lst iter)
-	  ;(setf (gtk:window-title edit_window) "Edit entry")
-	  (when (show-modal edit_window)
-	    (edit-window-load lst iter)
-	    (setf (gtk:tree-view-model listview) lst)
-	    ; recreate_groups(mw);
-	    ))))))
+
+  (let ((iter (get-selected-iter listview)))
+    (when iter
+      (edit-window-save data iter)
+      (setf (gtk:gtk-window-title edit_window) "Edit entry")
+      (when (show-modal edit_window)
+	(edit-window-load data iter)
+	(setf (gtk:tree-view-model listview) data)))))
 
 (defun del-entry (&rest unused-rest)
   (declare (ignore unused-rest))
-  (let ((selection (gtk:tree-view-selection listview)))
-    (when selection
-      (let ((iter (gtk:tree-selection-selected selection)))
-	(when iter
-	  (when (ask "Do you really want to delete selected item?")
-	    (gtk:list-store-remove lst iter)
-	    (setf (gtk:tree-view-model listview) lst)
-	    ;recreate_groups(mw);
-            (listview-cursor-changed)))))))
+
+  (let ((iter (get-selected-iter listview)))
+    (when (and iter
+	       (ask "Do you really want to delete selected item?"))
+      (gtk:tree-store-remove data iter)
+      (setf (gtk:tree-view-model listview) data)
+      (listview-cursor-changed))))
+
 #|
 (defun load-data (lst filename)
   (let ((keyfile (glib:key-file-new)))
@@ -173,49 +218,25 @@
 
 	   (setf (gobject:value-string val) (glib:key-file-get-string keyfile p "comments"))
 	   (gtk:list-store-set lst iter 6 val)))))))
-
-(defun save-data (lst filename)
-  (glib:with-object
-   (keyfile (glib:key-file-new))
-   (let ((index 0))
-     (gtk:tree-model-foreach
-      lst
-      (lambda (iter)
-	(let ((g (format nil "~D" index)))
-	  (glib:with-object
-	   (val (gtk:tree-model-get lst iter 0))
-	   (glib:key-file-set-string keyfile g "group" (gobject:value-string val)))
-	  (glib:with-object
-	   (val (gtk:tree-model-get lst iter 1))
-	   (glib:key-file-set-string keyfile g "name" (gobject:value-string val)))
-	  (glib:with-object
-	   (val (gtk:tree-model-get lst iter 2))
-	   (glib:key-file-set-string keyfile g "login" (gobject:value-string val)))
-	  (glib:with-object
-	   (val (gtk:tree-model-get lst iter 3))
-	   (glib:key-file-set-string keyfile g "password" (gobject:value-string val)))
-	  (glib:with-object
-	   (val (gtk:tree-model-get lst iter 4))
-	   (glib:key-file-set-string keyfile g "url" (gobject:value-string val)))
-	  (glib:with-object
-	   (val (gtk:tree-model-get lst iter 5))
-	   (glib:key-file-set-string keyfile g "email" (gobject:value-string val)))
-	  (glib:with-object
-	   (val (gtk:tree-model-get lst iter 6))
-	   (glib:key-file-set-string keyfile g "comments" (gobject:value-string val)))
-
-			       (incf index)))))
-
-   ; save
-   (let ((data (glib:key-file-to-data keyfile)))
-     (with-open-file (s filename :direction :output :if-exists :supersede)
-		     (format s "~a" data)))))
 |#
 
+(defun save-data (lst filename)
+  (with-open-file (s filename :direction :output :if-exists :supersede)
+    (gtk:do-tree-model lst
+      (lambda (model path iter)
+	(declare (ignore model path))
+	(format s "~s~%" `(item :group ,(gtk:tree-model-value lst iter 0)
+				:name ,(gtk:tree-model-value lst iter 1)
+				:login ,(gtk:tree-model-value lst iter 2)
+				:password ,(gtk:tree-model-value lst iter 3)
+				:url ,(gtk:tree-model-value lst iter 4)
+				:email ,(gtk:tree-model-value lst iter 5)
+				:comments ,(gtk:tree-model-value lst iter 6)))))))
+	
 (defun main ()
   (setf builder (make-instance 'gtk:builder))
   (gtk:builder-add-from-file builder "PassStorage.ui")
-  
+
   (setf main_window (gtk:builder-get-object builder "main_window"))
   (setf listview (gtk:builder-get-object builder "listview"))
   (setf switcher (gtk:builder-get-object builder "group_switcher"))
@@ -225,7 +246,6 @@
   (setf del_menuitem (gtk:builder-get-object builder "del_menuitem"))
 
   (setf edit_window (gtk:builder-get-object builder "edit_window"))
-  (setf group_entry (gtk:builder-get-object builder "group_entry"))
   (setf name_entry (gtk:builder-get-object builder "name_entry"))
   (setf login_entry (gtk:builder-get-object builder "login_entry"))
   (setf password_entry (gtk:builder-get-object builder "password_entry"))
@@ -233,8 +253,7 @@
   (setf email_entry (gtk:builder-get-object builder "email_entry"))
   (setf comment_text (gtk:builder-get-object builder "comment_text"))
 
-  (setf lst (gtk:builder-get-object builder "lst"))
-  (setf groups (gtk:builder-get-object builder "groups"))
+  (setf data (gtk:builder-get-object builder "data"))
 
   #|
   (let ((renderer (gtk:cell-renderer-text-new)))
@@ -246,6 +265,7 @@
   (gtk:builder-connect-signals-simple builder
 				      '(("on_close" e-close)
 					("on_listview_cursor_changed" listview-cursor-changed)
+					("on_add_group" add-group)
 					("on_add_button_clicked" add-entry)
 					("on_edit_button_clicked" edit-entry)
 					("on_del_button_clicked" del-entry)
@@ -254,8 +274,9 @@
   ;;(load-data lst "./data")
   ;;recreate_groups(&mw)
 
+  (gtk:widget-show main_window)
   (gtk:gtk-main)
 
-  ;;(save-data lst "./data")
+  ;; (save-data lst "./data")
   )
 
