@@ -1,5 +1,19 @@
 (in-package :pass-storage)
 
+(defmacro connect (builder &rest connects)
+  `(gtk:builder-connect-signals-simple
+    ,builder
+    (list
+     ,@(loop
+	  for c in connects
+	  for event = (first c)
+	  for func = (second c)
+	  for args = (cddr c)
+	  collect
+	    (list 'list event `(lambda (&rest unused-rest)
+				 (declare (ignore unused-rest))
+				 (funcall (function ,func) ,@args)))))))
+
 (defun show-modal (dlg)
   (prog2
       (gtk:widget-show dlg :all t)
@@ -22,6 +36,7 @@
     (gtk:dialog-add-button dialog "gtk-cancel" :cancel)
     (gtk:dialog-add-button dialog "gtk-ok" :ok)
     (setf (gtk:dialog-default-response dialog) :ok)
+    (gtk:dialog-set-response-sensitive dialog :ok nil)
 
     (let ((hbox (make-instance 'gtk:h-box)))
       (setf (gtk:container-border-width hbox) 8)
@@ -36,6 +51,14 @@
 	
 	(setf (gtk:label-label label) caption)
 	(gtk:box-pack-start hbox label :expand nil)
+
+	(gobject:g-signal-connect entry "changed"
+				  (lambda (entry)
+				    (gtk:dialog-set-response-sensitive 
+				     dialog
+				     :ok
+				     (/= 0 (length (gtk:entry-text entry))))))
+
 	(gtk:box-pack-start hbox entry :expand t)
 
 	(when (show-modal dialog)

@@ -1,13 +1,6 @@
 (in-package :pass-storage)
 
-;;; test
-
-(defvar builder nil)
-
-;;; models
-(defvar data nil)
-
-;;; main window
+;; main window
 (defvar main_window nil)
 (defvar listview nil)
 (defvar switcher nil)
@@ -16,59 +9,69 @@
 (defvar del_button nil)
 (defvar del_menuitem nil)
 
-;;; edit window
-(defvar edit_window nil)
-(defvar name_entry nil)
-(defvar login_entry nil)
-(defvar password_entry nil)
-(defvar url_entry nil)
-(defvar email_entry nil)
-(defvar comment_text nil)
+(defstruct app
+  builder
+  data
+  edit_window)
 
-(defun edit-window-clear ()
-  (setf (gtk:entry-text name_entry) "")
-  (setf (gtk:entry-text login_entry) "")
-  (setf (gtk:entry-text password_entry) "")
-  (setf (gtk:entry-text url_entry) "")
-  (setf (gtk:entry-text email_entry) "")
-  (setf (gtk:text-buffer-text (gtk:text-view-buffer comment_text)) "")
-  (gtk:widget-grab-focus name_entry))
+(defun ew-widgets (app)
+  (let ((builder (app-builder app)))
+    (list
+     (gtk:builder-get-object builder "name_entry")
+     (gtk:builder-get-object builder "login_entry")
+     (gtk:builder-get-object builder "password_entry")
+     (gtk:builder-get-object builder "url_entry")
+     (gtk:builder-get-object builder "email_entry")
+     (gtk:builder-get-object builder "comment_text"))))
 
-(defun edit-window-load (model iter)
-  (setf (gtk:tree-store-value model iter 1) (gtk:entry-text name_entry))
-  (setf (gtk:tree-store-value model iter 2) (gtk:entry-text login_entry))
-  (setf (gtk:tree-store-value model iter 3) (gtk:entry-text password_entry))
-  (setf (gtk:tree-store-value model iter 4) (gtk:entry-text url_entry))
-  (setf (gtk:tree-store-value model iter 5) (gtk:entry-text email_entry))
-  (setf (gtk:tree-store-value model iter 6) (gtk:text-buffer-text (gtk:text-view-buffer comment_text))))
+;; get-text
+(defgeneric get-text (widget))
+(defmethod get-text ((widget gtk:entry))
+  (gtk:entry-text widget))
+(defmethod get-text ((widget gtk:text-view))
+  (gtk:text-buffer-text (gtk:text-view-buffer widget)))
 
-(defun edit-window-save (lst iter)
-  (setf (gtk:entry-text name_entry)
-	(gtk:tree-model-value lst iter 1))
+;; set-text
+(defgeneric set-text (widget text))
+(defmethod set-text ((widget gtk:entry) text)
+  (setf (gtk:entry-text widget) text))
+(defmethod set-text ((widget gtk:text-view) text)
+  (setf (gtk:text-buffer-text (gtk:text-view-buffer widget)) text))
 
-  (setf (gtk:entry-text login_entry)
-	(gtk:tree-model-value lst iter 2))
+(defun ew-name-entry (app)
+  (gtk:builder-get-object (app-builder app) "name_entry"))
 
-  (setf (gtk:entry-text password_entry)
-	(gtk:tree-model-value lst iter 3))
-  
-  (setf (gtk:entry-text url_entry)
-	(gtk:tree-model-value lst iter 4))
+(defun edit-window-clear (app)
+  (loop
+     for w in (ew-widgets app)
+     do (set-text w ""))
+  (gtk:widget-grab-focus (ew-name-entry app)))
 
-  (setf (gtk:entry-text email_entry)
-	(gtk:tree-model-value lst iter 5))
+(defun edit-window-load (app iter)
+  (let ((model (app-data app)))
+    (loop
+       for w in (ew-widgets app)
+       for i from 1
+       do (setf (gtk:tree-store-value model iter i)
+		(get-text w)))))
 
-  (setf (gtk:text-buffer-text (gtk:text-view-buffer comment_text))
-	(gtk:tree-model-value lst iter 6)))
+(defun edit-window-save (app iter)
+  (let ((data (app-data app)))
+    (loop
+       for w in (ew-widgets app)
+       for i from 1
+       do (set-text w
+		    (gtk:tree-model-value data iter i)))))
 
-(defun name-entry-changed (&rest unused-rest)
-  (declare (ignore unused-rest))
-  (gtk:dialog-set-response-sensitive edit_window
-				     :ok
-				     (/= 0 (length (gtk:entry-text name_entry)))))
+(defun name-entry-changed (app)
+  (let* ((edit_window (app-edit_window app))
+	 (name_entry (ew-name-entry app)))
 
-(defun e-close (&rest unused-rest)
-  (declare (ignore unused-rest))
+    (gtk:dialog-set-response-sensitive edit_window
+				       :ok
+				       (/= 0 (length (gtk:entry-text name_entry))))))
+
+(defun e-close ()
   (gtk:gtk-main-quit))
 
 (defun get-selected-iter (view)
@@ -100,49 +103,49 @@
     (setf (gtk:widget-sensitive edit_button) s)
     (setf (gtk:widget-sensitive edit_menuitem) s)))
 
-(defun add-group (&rest unused-rest)
-  (declare (ignore unused-rest))
-
+(defun add-group (app)
   (let ((group (ask-string main_window "New group" "gtk-directory" "Group name")))
-    (when (and group (string/= group ""))
-      (let ((iter (gtk:tree-store-append data nil)))
+    (when group
+      (let* ((data (app-data app))
+	     (iter (gtk:tree-store-append data nil)))
 	(setf (gtk:tree-store-value data iter 0) t)
 	(setf (gtk:tree-store-value data iter 1) group)
 	(setf (gtk:tree-store-value data iter 7) "gtk-directory")
 	(setf (gtk:tree-view-model listview) data)))))
 
-(defun add-entry (&rest unused-rest)
-  (declare (ignore unused-rest))
-
-  (edit-window-clear)
-  (setf (gtk:gtk-window-title edit_window) "Add entry")
-  (when (show-modal edit_window)
-    (let* ((parent (get-selected-group-iter listview))
-	   (iter (gtk:tree-store-append data parent)))
-      (edit-window-load data iter)
-      (setf (gtk:tree-store-value data iter 7) "gtk-file")
-      (setf (gtk:tree-view-model listview) data))))
-
-(defun edit-entry (&rest unused-rest)
-  (declare (ignore unused-rest))
-
-  (let ((iter (get-selected-iter listview)))
-    (when iter
-      (edit-window-save data iter)
-      (setf (gtk:gtk-window-title edit_window) "Edit entry")
-      (when (show-modal edit_window)
-	(edit-window-load data iter)
+(defun add-entry (app)
+  (let* ((data (app-data app))
+	 (edit_window (app-edit_window app)))
+    
+    (edit-window-clear app)
+    (setf (gtk:gtk-window-title edit_window) "Add entry")
+    (when (show-modal edit_window)
+      (let* ((parent (get-selected-group-iter listview))
+	     (iter (gtk:tree-store-append data parent)))
+	(edit-window-load app iter)
+	(setf (gtk:tree-store-value data iter 7) "gtk-file")
 	(setf (gtk:tree-view-model listview) data)))))
 
-(defun del-entry (&rest unused-rest)
-  (declare (ignore unused-rest))
+(defun edit-entry (app)
+  (let* ((data (app-data app))
+	 (edit_window (app-edit_window app)))
 
+    (let ((iter (get-selected-iter listview)))
+      (when iter
+	(edit-window-save app iter)
+	(setf (gtk:gtk-window-title edit_window) "Edit entry")
+	(when (show-modal edit_window)
+	  (edit-window-load app iter)
+	  (setf (gtk:tree-view-model listview) data))))))
+
+(defun del-entry (app)
   (let ((iter (get-selected-iter listview)))
     (when (and iter
 	       (ask "Do you really want to delete selected item?"))
-      (gtk:tree-store-remove data iter)
-      (setf (gtk:tree-view-model listview) data)
-      (listview-cursor-changed))))
+      (let* ((data (app-data app)))
+	(gtk:tree-store-remove data iter)
+	(setf (gtk:tree-view-model listview) data)
+	(listview-cursor-changed)))))
 
 #|
 (defun load-data (lst filename)
@@ -190,51 +193,39 @@
 				:comments ,(gtk:tree-model-value lst iter 6)))))))
 	
 (defun main ()
-  (setf builder (make-instance 'gtk:builder))
-  (gtk:builder-add-from-file builder "PassStorage.ui")
+  (let* ((builder (make-instance 'gtk:builder))
+	 (app (make-app :builder builder)))
 
-  (setf main_window (gtk:builder-get-object builder "main_window"))
-  (setf listview (gtk:builder-get-object builder "listview"))
-  (setf switcher (gtk:builder-get-object builder "group_switcher"))
-  (setf edit_button (gtk:builder-get-object builder "edit_button"))
-  (setf edit_menuitem (gtk:builder-get-object builder "edit_menuitem"))
-  (setf del_button (gtk:builder-get-object builder "del_button"))
-  (setf del_menuitem (gtk:builder-get-object builder "del_menuitem"))
+    (gtk:builder-add-from-file builder "PassStorage.ui")
+    
+    (setf main_window (gtk:builder-get-object builder "main_window"))
+    (setf listview (gtk:builder-get-object builder "listview"))
+    (setf switcher (gtk:builder-get-object builder "group_switcher"))
+    (setf edit_button (gtk:builder-get-object builder "edit_button"))
+    (setf edit_menuitem (gtk:builder-get-object builder "edit_menuitem"))
+    (setf del_button (gtk:builder-get-object builder "del_button"))
+    (setf del_menuitem (gtk:builder-get-object builder "del_menuitem"))
+    
+    (setf (app-edit_window app) (gtk:builder-get-object builder "edit_window"))
+    (setf (app-data app) (gtk:builder-get-object builder "data"))
 
-  (setf edit_window (gtk:builder-get-object builder "edit_window"))
-  (setf name_entry (gtk:builder-get-object builder "name_entry"))
-  (setf login_entry (gtk:builder-get-object builder "login_entry"))
-  (setf password_entry (gtk:builder-get-object builder "password_entry"))
-  (setf url_entry (gtk:builder-get-object builder "url_entry"))
-  (setf email_entry (gtk:builder-get-object builder "email_entry"))
-  (setf comment_text (gtk:builder-get-object builder "comment_text"))
+    (connect builder
+	     ("on_close" e-close)
+    	     ("on_listview_cursor_changed" listview-cursor-changed)
+	     ("on_add_group" add-group app)
+	     ("on_add_button_clicked" add-entry app)
+	     ("on_edit_button_clicked" edit-entry app)
+	     ("on_del_button_clicked" del-entry app)
+	     ("on_name_entry_changed" name-entry-changed app))
+    
+    ;;(load-data lst "./data")
 
-  (setf data (gtk:builder-get-object builder "data"))
+    (gtk:widget-show main_window)
+    (gtk:gtk-main)
 
-  #|
-  (let ((renderer (gtk:cell-renderer-text-new)))
-    (gtk:cell-layout-clear switcher)
-    (gtk:cell-layout-pack-start switcher renderer glib:*true*)
-    (gtk:cell-layout-add-attribute switcher renderer "text" 0))
-  |#
+    ;; (save-data lst "./data")
 
-  (gtk:builder-connect-signals-simple builder
-				      '(("on_close" e-close)
-					("on_listview_cursor_changed" listview-cursor-changed)
-					("on_add_group" add-group)
-					("on_add_button_clicked" add-entry)
-					("on_edit_button_clicked" edit-entry)
-					("on_del_button_clicked" del-entry)
-					("on_name_entry_changed" name-entry-changed)))
-  
-  ;;(load-data lst "./data")
-  ;;recreate_groups(&mw)
-
-  (gtk:widget-show main_window)
-  (gtk:gtk-main)
-
-  ;; (save-data lst "./data")
-  )
+    ))
 
 (export 'main)
 
