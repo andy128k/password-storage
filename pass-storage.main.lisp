@@ -44,16 +44,33 @@
     (setf (gtk:widget-sensitive edit_button) s)
     (setf (gtk:widget-sensitive edit_menuitem) s)))
 
-(defun add-group (app)
-  (let ((group (ask-string main_window "New group" "gtk-directory" "Group name")))
-    (when group
-      (let* ((data (app-data app))
-	     (iter (gtk:tree-store-append data nil)))
+(defun get-groups (app)
+  (let (groups)
+    (gtk:do-tree-model (app-data app)
+      (lambda (model path iter)
+	(declare (ignore path))
+	(when (gtk:tree-store-value model iter 0)
+	  (push (gtk:tree-store-value model iter 1) groups)
+	  nil)))
+    (reverse groups)))
 
-	(setf (gtk:tree-store-value data iter 0) t)
-	(setf (gtk:tree-store-value data iter 1) group)
-	(setf (gtk:tree-store-value data iter 7) "gtk-directory")
-	(setf (gtk:tree-view-model listview) data)))))
+(defun add-group (app)
+  (let ((groups (get-groups app)))
+    (let ((group (ask-string main_window "New group" "gtk-directory" "Group name"
+			     :validate (lambda (text)
+					 (cond
+					   ((= 0 (length text))
+					    "Enter group name")
+					   ((find text groups :test 'string=)
+					    "Group with this name already exists"))))))
+      (when group
+	(let* ((data (app-data app))
+	       (iter (gtk:tree-store-append data nil)))
+
+	  (setf (gtk:tree-store-value data iter 0) t)
+	  (setf (gtk:tree-store-value data iter 1) group)
+	  (setf (gtk:tree-store-value data iter 7) "gtk-directory")
+	  (setf (gtk:tree-view-model listview) data))))))
 
 (defun item->model (model iter item)
   (setf (gtk:tree-store-value model iter 0) nil)
@@ -66,6 +83,8 @@
   (setf (gtk:tree-store-value model iter 7) "gtk-file"))
 
 (defun add-entry (app)
+  (get-groups app)
+
   (let ((item (item-add main_window)))
     (when item
       (let* ((data (app-data app))
