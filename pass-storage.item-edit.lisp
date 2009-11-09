@@ -4,7 +4,7 @@
   (gtk:let-ui
    (gtk:table
     :var table
-    :border-width 0
+    :border-width 5
     :n-rows 6
     :n-columns 2
     :column-spacing 8
@@ -40,13 +40,14 @@
        (gtk:text-view :var text-view-comment :can-focus t :accepts-tab nil))
       :left 1 :right 2 :top 5 :bottom 6)
      
-   (multiple-value-bind (dlg btn_ok)
-       (make-std-dialog parent-window title "gtk-file" table)
+   (let ((dlg (make-std-dialog parent-window title "gtk-file" table)))
 
      (gobject:connect-signal entry-name "changed"
 			     (lambda (entry)
-			       (setf (gtk:widget-sensitive btn_ok)
-				     (/= 0 (length (gtk:entry-text entry))))))
+			       (gtk:dialog-set-response-sensitive 
+				dlg
+				:ok 
+				(/= 0 (length (gtk:entry-text entry))))))
 
      (values dlg
 	     entry-name
