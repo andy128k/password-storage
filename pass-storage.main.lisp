@@ -55,22 +55,20 @@
     (reverse groups)))
 
 (defun add-group (app)
-  (let ((groups (get-groups app)))
-    (let ((group (ask-string main_window "New group" "gtk-directory" "Group name"
-			     :validate (lambda (text)
-					 (cond
-					   ((= 0 (length text))
-					    "Enter group name")
-					   ((find text groups :test 'string=)
-					    "Group with this name already exists"))))))
-      (when group
-	(let* ((data (app-data app))
-	       (iter (gtk:tree-store-append data nil)))
+  (let ((group (ask-string main_window "New group" "gtk-directory" "Group name"
+			   :validate (lambda (text)
+				       (when (= 0 (length text))
+					 "Enter group name")))))
 
-	  (setf (gtk:tree-store-value data iter 0) t)
-	  (setf (gtk:tree-store-value data iter 1) group)
-	  (setf (gtk:tree-store-value data iter 7) "gtk-directory")
-	  (setf (gtk:tree-view-model listview) data))))))
+    (when group
+      (let* ((data (app-data app))
+	     (parent (get-selected-group-iter listview))
+	     (iter (gtk:tree-store-append data parent)))
+
+	(setf (gtk:tree-store-value data iter 0) t)
+	(setf (gtk:tree-store-value data iter 1) group)
+	(setf (gtk:tree-store-value data iter 7) "gtk-directory")
+	(setf (gtk:tree-view-model listview) data)))))
 
 (defun item->model (model iter item)
   (setf (gtk:tree-store-value model iter 0) nil)
@@ -83,8 +81,6 @@
   (setf (gtk:tree-store-value model iter 7) "gtk-file"))
 
 (defun add-entry (app)
-  (get-groups app)
-
   (let ((item (item-add main_window)))
     (when item
       (let* ((data (app-data app))
@@ -180,6 +176,7 @@
     (connect builder
 	     ("on_close" e-close)
     	     ("on_listview_cursor_changed" listview-cursor-changed)
+    	     ;; ("on_listview_drag_data_received" listview-drag-data-received)
 	     ("on_add_group" add-group app)
 	     ("on_add_button_clicked" add-entry app)
 	     ("on_edit_button_clicked" edit-entry app)
