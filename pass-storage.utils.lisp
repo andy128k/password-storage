@@ -40,6 +40,7 @@
     (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
     (gtk:dialog-add-button dlg "gtk-ok" :ok)
     (setf (gtk:dialog-default-response dlg) :ok)
+    (gtk:dialog-set-response-sensitive dlg :ok nil)
     
     (gtk:container-add (gtk:dialog-content-area dlg) content)
     
