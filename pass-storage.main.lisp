@@ -173,10 +173,22 @@
     
     (setf (app-data app) (gtk:builder-get-object builder "data"))
 
+    (gobject:g-signal-connect listview "drag-motion"
+			      (lambda (widget drag-context x y time)
+				(multiple-value-bind (path pos)
+				    (gtk:tree-view-get-dest-row-at-pos widget x y)
+				  
+				  (when (and path (or (eq pos :into-or-before) (eq pos :into-or-after)))
+				    (let* ((model (gtk:tree-view-model widget))
+					   (iter (gtk:tree-model-iter-by-path model path)))
+
+				      (if (gtk:tree-store-value model iter 0)
+					  (progn (gdk:drag-status drag-context :move time) nil)
+					  (progn (gdk:drag-status drag-context 0 time) t)))))))
+
     (connect builder
 	     ("on_close" e-close)
     	     ("on_listview_cursor_changed" listview-cursor-changed)
-    	     ;; ("on_listview_drag_data_received" listview-drag-data-received)
 	     ("on_add_group" add-group app)
 	     ("on_add_button_clicked" add-entry app)
 	     ("on_edit_button_clicked" edit-entry app)

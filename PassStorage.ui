@@ -214,11 +214,9 @@
                 <property name="can_focus">True</property>
                 <property name="model">data</property>
                 <property name="headers_visible">False</property>
-                <property name="headers_clickable">False</property>
                 <property name="reorderable">True</property>
                 <property name="search_column">1</property>
                 <signal name="cursor_changed" handler="on_listview_cursor_changed"/>
-                <signal name="drag_data_received" handler="on_listview_drag_data_received"/>
                 <child>
                   <object class="GtkTreeViewColumn" id="col_name">
                     <property name="sizing">autosize</property>
