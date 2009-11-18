@@ -69,13 +69,13 @@
       (make-item-window parent-window "Add entry")
 
     (when (std-dialog-run dlg)
-      (make-item
-       :name (gtk:entry-text entry-name)
-       :login (gtk:entry-text entry-login)
-       :password (gtk:entry-text entry-password)
-       :url (gtk:entry-text entry-url)
-       :email (gtk:entry-text entry-email)
-       :comment (gtk:text-buffer-text (gtk:text-view-buffer text-view-comment))))))
+      (make-instance 'item
+		     :name (gtk:entry-text entry-name)
+		     :login (gtk:entry-text entry-login)
+		     :password (gtk:entry-text entry-password)
+		     :url (gtk:entry-text entry-url)
+		     :email (gtk:entry-text entry-email)
+		     :comment (gtk:text-buffer-text (gtk:text-view-buffer text-view-comment))))))
 
 (defun item-edit (parent-window item)
   (multiple-value-bind

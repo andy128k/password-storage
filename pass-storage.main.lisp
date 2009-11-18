@@ -26,9 +26,9 @@
  
     (loop
        while (and iter
-		  (not (gtk:tree-model-value model iter 0)))
+		  (is-item (gtk:tree-model-value model iter 0)))
        do (setf iter (gtk:tree-model-iter-parent model iter)))
-
+    
     iter))
 
 (defun listview-cursor-changed (&rest unused-rest)
@@ -37,72 +37,50 @@
 
     (setf (gtk:widget-sensitive del_button) s)
     (setf (gtk:widget-sensitive del_menuitem) s)
-
-    (when (and s (gtk:tree-model-value (gtk:tree-view-model listview) s 0))
-      (setf s nil))
-    
     (setf (gtk:widget-sensitive edit_button) s)
     (setf (gtk:widget-sensitive edit_menuitem) s)))
 
-(defun get-groups (app)
-  (let (groups)
-    (gtk:do-tree-model (app-data app)
-      (lambda (model path iter)
-	(declare (ignore path))
-	(when (gtk:tree-store-value model iter 0)
-	  (push (gtk:tree-store-value model iter 1) groups)
-	  nil)))
-    (reverse groups)))
+(defgeneric update-row (app iter o))
+(defmethod update-row (app iter (o group))
+  (let ((data (app-data app)))
+    (setf (gtk:tree-store-value data iter 0) o)
+    (setf (gtk:tree-store-value data iter 1) (group-name o))
+    (setf (gtk:tree-store-value data iter 2) "gtk-directory")
+    (setf (gtk:tree-view-model listview) data)))
+(defmethod update-row (app iter (o item))
+  (let ((data (app-data app)))
+    (setf (gtk:tree-store-value data iter 0) o)
+    (setf (gtk:tree-store-value data iter 1) (item-name o))
+    (setf (gtk:tree-store-value data iter 2) "gtk-file")
+    (setf (gtk:tree-view-model listview) data)))
 
 (defun add-group (app)
-  (let ((group (ask-string main_window "New group" "gtk-directory" "Group name"
-			   :validate (lambda (text)
-				       (when (= 0 (length text))
-					 "Enter group name")))))
-
+  (let ((group (group-add main_window)))
     (when group
-      (let* ((data (app-data app))
-	     (parent (get-selected-group-iter listview))
-	     (iter (gtk:tree-store-append data parent)))
+      (let ((iter (gtk:tree-store-append (app-data app)
+					 (get-selected-group-iter listview))))
+	(update-row app iter group)))))
 
-	(setf (gtk:tree-store-value data iter 0) t)
-	(setf (gtk:tree-store-value data iter 1) group)
-	(setf (gtk:tree-store-value data iter 7) "gtk-directory")
-	(setf (gtk:tree-view-model listview) data)))))
-
-(defun item->model (model iter item)
-  (setf (gtk:tree-store-value model iter 0) nil)
-  (setf (gtk:tree-store-value model iter 1) (item-name item))
-  (setf (gtk:tree-store-value model iter 2) (item-login item))
-  (setf (gtk:tree-store-value model iter 3) (item-password item))
-  (setf (gtk:tree-store-value model iter 4) (item-url item))
-  (setf (gtk:tree-store-value model iter 5) (item-email item))
-  (setf (gtk:tree-store-value model iter 6) (item-comment item))
-  (setf (gtk:tree-store-value model iter 7) "gtk-file"))
-
-(defun add-entry (app)
+(defun add-item (app)
   (let ((item (item-add main_window)))
     (when item
-      (let* ((data (app-data app))
-	     (parent (get-selected-group-iter listview))
-	     (iter (gtk:tree-store-append data parent)))
-	(item->model data iter item)
-	(setf (gtk:tree-view-model listview) data)))))
+      (let ((iter (gtk:tree-store-append (app-data app)
+					 (get-selected-group-iter listview))))
+	(update-row app iter item)))))
+
+(defgeneric ui-edit (parent-window o))
+(defmethod ui-edit (parent-window (o group))
+  (group-edit parent-window o))
+(defmethod ui-edit (parent-window (o item))
+  (item-edit main_window o))
 
 (defun edit-entry (app)
   (let ((data (app-data app))
 	(iter (get-selected-iter listview)))
     (when iter
-      (let ((item (make-item
-		   :name (gtk:tree-store-value data iter 1)
-		   :login (gtk:tree-store-value data iter 2)
-		   :password (gtk:tree-store-value data iter 3)
-		   :url (gtk:tree-store-value data iter 4)
-		   :email (gtk:tree-store-value data iter 5)
-		   :comment (gtk:tree-store-value data iter 6))))
-	(when (item-edit main_window item)
-	  (item->model data iter item)
-	  (setf (gtk:tree-view-model listview) data))))))
+      (let ((entry (gtk:tree-store-value data iter 0)))
+	(when (ui-edit main_window entry)
+	  (update-row app iter entry))))))
 
 (defun del-entry (app)
   (let ((iter (get-selected-iter listview)))
@@ -113,38 +91,46 @@
 	(setf (gtk:tree-view-model listview) data)
 	(listview-cursor-changed)))))
 
+(defun load-data (app filename password)
+  (let ((xml (load-revelation-file filename password))
+	(data (app-data app)))
+    (labels ((parse (elem parent-iter)
+	       (when (and (typep elem 's-xml::xml-element)
+			  (or (eq (s-xml:xml-element-name elem) :|entry|)
+			      (eq (s-xml:xml-element-name elem) :|revelationdata|)))
+
+		 (let ((typ (cdr (assoc :|type| (s-xml:xml-element-attributes elem) :test 'eq))))
+		   
+		   (cond
+		     ;; toplevel
+		     ((eq (s-xml:xml-element-name elem) :|revelationdata|)
+		      (loop
+			 for ch in (s-xml:xml-element-children elem)
+			 do (parse ch nil)))
+		     
+		     ;; folder
+		     ((string= typ "folder")
+
+		      (let ((iter (gtk:tree-store-append data parent-iter))
+			    (name (car (s-xml:xml-element-children
+					(find-if (lambda (ch)
+						   (eq (s-xml:xml-element-name ch) :|name|))
+						 (s-xml:xml-element-children elem))))))
+		      
+			(update-row app iter (make-instance 'group :name name))
+		      
+			(loop
+			   for ch in (s-xml:xml-element-children elem)
+			   do (parse ch iter))))
+
+		     ;; leaf
+		     (t
+		      (let ((iter (gtk:tree-store-append data parent-iter)))
+			(update-row app iter (make-instance 'item :name "1")))))))))
+      
+      (parse xml nil))))
+
 #|
-(defun load-data (lst filename)
-  (let ((keyfile (glib:key-file-new)))
-    (when
-	(glib:key-file-load-from-file keyfile filename 0)
-      (let ((groups (glib:key-file-get-groups keyfile)))
-	(dolist (p groups)
-	  (let ((iter (gtk:list-store-append lst))
-		(val (gobject:value-new gobject:*type-string*)))
-	      
-	      (setf (gobject:value-string val) (glib:key-file-get-string keyfile p "group"))
-	      (gtk:list-store-set lst iter 0 val)
-	      
-	      (setf (gobject:value-string val) (glib:key-file-get-string keyfile p "name"))
-	      (gtk:list-store-set lst iter 1 val)
-	      
-	      (setf (gobject:value-string val) (glib:key-file-get-string keyfile p "login"))
-	      (gtk:list-store-set lst iter 2 val)
-	      
-	      (setf (gobject:value-string val) (glib:key-file-get-string keyfile p "password"))
-	      (gtk:list-store-set lst iter 3 val)
-
-	   (setf (gobject:value-string val) (glib:key-file-get-string keyfile p "url"))
-	   (gtk:list-store-set lst iter 4 val)
-
-	   (setf (gobject:value-string val) (glib:key-file-get-string keyfile p "email"))
-	   (gtk:list-store-set lst iter 5 val)
-
-	   (setf (gobject:value-string val) (glib:key-file-get-string keyfile p "comments"))
-	   (gtk:list-store-set lst iter 6 val)))))))
-|#
-
 (defun save-data (lst filename)
   (with-open-file (s filename :direction :output :if-exists :supersede)
     (gtk:do-tree-model lst
@@ -157,6 +143,7 @@
 				:url ,(gtk:tree-model-value lst iter 4)
 				:email ,(gtk:tree-model-value lst iter 5)
 				:comments ,(gtk:tree-model-value lst iter 6)))))))
+|#
 
 (defun main ()
   (let* ((builder (make-instance 'gtk:builder))
@@ -182,7 +169,7 @@
 				    (let* ((model (gtk:tree-view-model widget))
 					   (iter (gtk:tree-model-iter-by-path model path)))
 
-				      (if (gtk:tree-store-value model iter 0)
+				      (if (is-group (gtk:tree-store-value model iter 0))
 					  (progn (gdk:drag-status drag-context :move time) nil)
 					  (progn (gdk:drag-status drag-context 0 time) t)))))))
 
@@ -190,11 +177,11 @@
 	     ("on_close" e-close)
     	     ("on_listview_cursor_changed" listview-cursor-changed)
 	     ("on_add_group" add-group app)
-	     ("on_add_button_clicked" add-entry app)
+	     ("on_add_button_clicked" add-item app)
 	     ("on_edit_button_clicked" edit-entry app)
 	     ("on_del_button_clicked" del-entry app))
     
-    ;;(load-data lst "./data")
+    (load-data app "./data" "Nd3e")
 
     (gtk:widget-show main_window)
     (gtk:gtk-main)

@@ -52,7 +52,7 @@
       (eql (gtk:dialog-run dlg) :ok)
       (gtk:widget-hide dlg)))
 
-(defun ask-string (parent-window title icon caption &key (validate nil))
+(defun ask-string (parent-window title icon caption &key (validate nil) (start-value ""))
   (gtk:let-ui
    (gtk:h-box
     :var box
@@ -60,27 +60,29 @@
     :spacing 8
     
     (gtk:label :label caption) :expand nil
-    (gtk:entry :var entry :activates-default t) :expand t)
+    (gtk:entry :var entry :activates-default t :text start-value) :expand t)
    
    (let ((dlg (make-std-dialog parent-window title icon box)))
-     
-     (gobject:g-signal-connect entry "changed"
-			       (lambda (entry)
-				 (let ((text (gtk:entry-text entry)))
-				   (when validate
-				     (let ((msg (funcall validate text)))
-				       (cond
-					 (msg
-					  (setf (gtk:entry-secondary-icon-stock entry) "gtk-no"
-						(gtk:entry-secondary-icon-tooltip-text entry) msg)
-					  (gtk:dialog-set-response-sensitive dlg :ok nil))
-					 (t
-					  (setf (gtk:entry-secondary-icon-stock entry) "gtk-yes"
-						(gtk:entry-secondary-icon-tooltip-text entry) "")
-					  (gtk:dialog-set-response-sensitive dlg :ok t))))))))
 
-     (prog1
-	 (when (std-dialog-run dlg)
-	   (gtk:entry-text entry))
-       (gtk:object-destroy dlg)))))
+     (flet ((validator (entry)
+	      (when validate
+		(let ((msg (funcall validate (gtk:entry-text entry))))
+		  (cond
+		    (msg
+		     (setf (gtk:entry-secondary-icon-stock entry) "gtk-no"
+			   (gtk:entry-secondary-icon-tooltip-text entry) msg)
+		     (gtk:dialog-set-response-sensitive dlg :ok nil))
+		    (t
+		     (setf (gtk:entry-secondary-icon-stock entry) "gtk-yes"
+			   (gtk:entry-secondary-icon-tooltip-text entry) "")
+		     (gtk:dialog-set-response-sensitive dlg :ok t)))))))
+     
+       (gobject:g-signal-connect entry "changed" #'validator)
+
+       (validator entry)
+       
+       (prog1
+	   (when (std-dialog-run dlg)
+	     (gtk:entry-text entry))
+	   (gtk:object-destroy dlg))))))
 

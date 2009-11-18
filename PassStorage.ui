@@ -4,19 +4,9 @@
   <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkTreeStore" id="data">
     <columns>
-      <!-- column-name is_group -->
-      <column type="gboolean"/>
+      <!-- column-name item -->
+      <column type="GObject"/>
       <!-- column-name name -->
-      <column type="gchararray"/>
-      <!-- column-name login -->
-      <column type="gchararray"/>
-      <!-- column-name password -->
-      <column type="gchararray"/>
-      <!-- column-name url -->
-      <column type="gchararray"/>
-      <!-- column-name email -->
-      <column type="gchararray"/>
-      <!-- column-name comment -->
       <column type="gchararray"/>
       <!-- column-name icon -->
       <column type="gchararray"/>
@@ -224,7 +214,7 @@
                     <child>
                       <object class="GtkCellRendererPixbuf" id="cellrendererpixbuf1"/>
                       <attributes>
-                        <attribute name="stock-id">7</attribute>
+                        <attribute name="stock-id">2</attribute>
                       </attributes>
                     </child>
                     <child>
