@@ -92,76 +92,71 @@
 	(listview-cursor-changed)))))
 
 (defun load-data (app filename password)
-  (let ((xml (load-revelation-file filename password))
-	(data (app-data app)))
+  (labels ((is-tag (x)
+	     (consp x))
 
-    (labels ((is-tag (x)
-	       (consp x))
+	   (tag-name (x)
+	     (if (consp (car x))
+		 (caar x)
+		 (car x)))
 
-	     (tag-name (x)
-	       (if (consp (car x))
-		   (caar x)
-		   (car x)))
+	   (tag-attributes (x)
+	     (if (consp (car x))
+		 (cdar x)
+		 nil))
 
-	     (tag-attributes (x)
-	       (if (consp (car x))
-		   (cdar x)
-		   nil))
+	   (tag-children (x)
+	     (cdr x))
 
-	     (tag-children (x)
-	       (cdr x))
+	   (tag-get-attr (x attr)
+	     (iter (for (k v) on (tag-attributes x) by #'cddr)
+		   (finding v such-that (eq k attr))))
 
-	     (tag-get-attr (x attr)
-	       (iter (for (k v) on (tag-attributes x) by #'cddr)
-		     (finding v such-that (eq k attr))))
+	   (entry-node-get-value (entry tag-name &optional (id nil))
+	     (or
+	      (iter (for ch in (tag-children entry))
+		    (finding (car (tag-children ch))
+			     such-that (and (is-tag ch)
+					    (eq (tag-name ch) tag-name)
+					    (or (not id)
+						(string= (tag-get-attr ch :|id|) id)))))
+	      ""))
 
-	     (entry-node-get-value (entry tag-name &optional (id nil))
-	       (or
-		(iter (for ch in (tag-children entry))
-		      (finding (car (tag-children ch))
-			       such-that (and (is-tag ch)
-					      (eq (tag-name ch) tag-name)
-					      (or (not id)
-						  (string= (tag-get-attr ch :|id|) id)))))
-		""))
+	   (parse (elem parent-iter)
+	     (cond
+	       ;; toplevel
+	       ((and (is-tag elem)
+		     (eq (tag-name elem) :|revelationdata|))
+		
+		(iter (for ch in (tag-children elem))
+		      (parse ch nil)))
+	       
+	       ;; folder
+	       ((and (is-tag elem)
+		     (eq (tag-name elem) :|entry|)
+		     (string= (tag-get-attr elem :|type|) "folder"))
+		
+		(let ((iter (gtk:tree-store-append (app-data app) parent-iter)))
+		  (update-row app iter (make-instance 'group
+						      :name (entry-node-get-value elem :|name|)))
+		  
+		  (iter (for ch in (tag-children elem))
+			(parse ch iter))))
+	       
+	       ;; leaf
+	       ((and (is-tag elem)
+		     (eq (tag-name elem) :|entry|))
+		
+		(let ((iter (gtk:tree-store-append (app-data app) parent-iter)))
+		  (update-row app iter (make-instance 'item
+						      :name (entry-node-get-value elem :|name|)
+						      :login (entry-node-get-value elem :|field| "generic-username")
+						      :password (entry-node-get-value elem :|field| "generic-password")
+						      :url (entry-node-get-value elem :|field| "generic-hostname")
+						      :email (entry-node-get-value elem :|field| "generic-email")
+						      :comment (entry-node-get-value elem :|description|))))))))
 
-	     (parse (elem parent-iter)
-	       (when (and (is-tag elem)
-			  (or (eq (tag-name elem) :|entry|)
-			      (eq (tag-name elem) :|revelationdata|)))
-
-		 (let ((typ (tag-get-attr elem :|type|)))
-		   
-		   (cond
-		     ;; toplevel
-		     ((eq (tag-name elem) :|revelationdata|)
-		      (iter (for ch in (tag-children elem))
-			    (parse ch nil)))
-		     
-		     ;; folder
-		     ((string= typ "folder")
-
-		      (let ((iter (gtk:tree-store-append data parent-iter)))
-			(update-row app iter (make-instance 'group
-							    :name (entry-node-get-value elem :|name|)))
-		      
-			(loop
-			   for ch in (tag-children elem)
-			   do (parse ch iter))))
-
-		     ;; leaf
-		     (t
-		      (let ((iter (gtk:tree-store-append data parent-iter)))
-			(update-row app iter (make-instance 'item
-							    :name (entry-node-get-value elem :|name|)
-							    :login (entry-node-get-value elem :|field| "generic-username")
-							    :password (entry-node-get-value elem :|field| "generic-password")
-							    :url (entry-node-get-value elem :|field| "generic-hostname")
-							    :email (entry-node-get-value elem :|field| "generic-email")
-							    :comment (entry-node-get-value elem :|description|)
-							    )))))))))
-      
-      (parse xml nil))))
+    (parse (load-revelation-file filename password) nil)))
 
 #|
 (defun save-data (lst filename)
