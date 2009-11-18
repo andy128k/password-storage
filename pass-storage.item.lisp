@@ -1,19 +1,19 @@
 (in-package :pass-storage)
 
 (defclass item (gobject:g-object)
-  ((name :accessor item-name :initarg :name)
-   (login :accessor item-login :initarg :login)
-   (password :accessor item-password :initarg :password)
-   (url :accessor item-url :initarg :url)
-   (email :accessor item-email :initarg :email)
-   (comment :accessor item-comment :initarg :comment))
+  ((name :accessor item-name :initarg :name :initform "")
+   (login :accessor item-login :initarg :login :initform "")
+   (password :accessor item-password :initarg :password :initform "")
+   (url :accessor item-url :initarg :url :initform "")
+   (email :accessor item-email :initarg :email :initform "")
+   (comment :accessor item-comment :initarg :comment :initform ""))
   (:metaclass gobject:gobject-class)
   (:g-type-name . "PassStorageItem"))
 
 (gobject:register-object-type-implementation "PassStorageItem" item "GObject" nil nil)
 
 (defclass group (gobject:g-object)
-  ((name :accessor group-name :initarg :name))
+  ((name :accessor group-name :initarg :name :initform ""))
   (:metaclass gobject:gobject-class)
   (:g-type-name . "PassStorageGroup"))
 

@@ -94,39 +94,72 @@
 (defun load-data (app filename password)
   (let ((xml (load-revelation-file filename password))
 	(data (app-data app)))
-    (labels ((parse (elem parent-iter)
-	       (when (and (typep elem 's-xml::xml-element)
-			  (or (eq (s-xml:xml-element-name elem) :|entry|)
-			      (eq (s-xml:xml-element-name elem) :|revelationdata|)))
 
-		 (let ((typ (cdr (assoc :|type| (s-xml:xml-element-attributes elem) :test 'eq))))
+    (labels ((is-tag (x)
+	       (consp x))
+
+	     (tag-name (x)
+	       (if (consp (car x))
+		   (caar x)
+		   (car x)))
+
+	     (tag-attributes (x)
+	       (if (consp (car x))
+		   (cdar x)
+		   nil))
+
+	     (tag-children (x)
+	       (cdr x))
+
+	     (tag-get-attr (x attr)
+	       (iter (for (k v) on (tag-attributes x) by #'cddr)
+		     (finding v such-that (eq k attr))))
+
+	     (entry-node-get-value (entry tag-name &optional (id nil))
+	       (or
+		(iter (for ch in (tag-children entry))
+		      (finding (car (tag-children ch))
+			       such-that (and (is-tag ch)
+					      (eq (tag-name ch) tag-name)
+					      (or (not id)
+						  (string= (tag-get-attr ch :|id|) id)))))
+		""))
+
+	     (parse (elem parent-iter)
+	       (when (and (is-tag elem)
+			  (or (eq (tag-name elem) :|entry|)
+			      (eq (tag-name elem) :|revelationdata|)))
+
+		 (let ((typ (tag-get-attr elem :|type|)))
 		   
 		   (cond
 		     ;; toplevel
-		     ((eq (s-xml:xml-element-name elem) :|revelationdata|)
-		      (loop
-			 for ch in (s-xml:xml-element-children elem)
-			 do (parse ch nil)))
+		     ((eq (tag-name elem) :|revelationdata|)
+		      (iter (for ch in (tag-children elem))
+			    (parse ch nil)))
 		     
 		     ;; folder
 		     ((string= typ "folder")
 
-		      (let ((iter (gtk:tree-store-append data parent-iter))
-			    (name (car (s-xml:xml-element-children
-					(find-if (lambda (ch)
-						   (eq (s-xml:xml-element-name ch) :|name|))
-						 (s-xml:xml-element-children elem))))))
-		      
-			(update-row app iter (make-instance 'group :name name))
+		      (let ((iter (gtk:tree-store-append data parent-iter)))
+			(update-row app iter (make-instance 'group
+							    :name (entry-node-get-value elem :|name|)))
 		      
 			(loop
-			   for ch in (s-xml:xml-element-children elem)
+			   for ch in (tag-children elem)
 			   do (parse ch iter))))
 
 		     ;; leaf
 		     (t
 		      (let ((iter (gtk:tree-store-append data parent-iter)))
-			(update-row app iter (make-instance 'item :name "1")))))))))
+			(update-row app iter (make-instance 'item
+							    :name (entry-node-get-value elem :|name|)
+							    :login (entry-node-get-value elem :|field| "generic-username")
+							    :password (entry-node-get-value elem :|field| "generic-password")
+							    :url (entry-node-get-value elem :|field| "generic-hostname")
+							    :email (entry-node-get-value elem :|field| "generic-email")
+							    :comment (entry-node-get-value elem :|description|)
+							    )))))))))
       
       (parse xml nil))))
 

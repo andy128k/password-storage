@@ -57,7 +57,7 @@
    (babel:octets-to-string 
     (decrypt-file (read-file filename) password)
     :encoding :utf-8)
-   :output-type :xml-struct))
+   :output-type :lxml))
 
 ; (write-file "output"
 ; 	    (decrypt-file (read-file "passwords") "Nd3e"))
