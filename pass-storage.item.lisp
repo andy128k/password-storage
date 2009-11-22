@@ -45,24 +45,35 @@
 (defmethod is-group ((o entry-group)) t)
 (defmethod is-group (o) nil)
 
+(defgeneric entry-title (o))
+(defmethod entry-title ((o entry-group))
+  "group")
+(defmethod entry-title ((o entry-generic))
+  "generic entry")
+
 (defgeneric entry-icon (o))
 (defmethod entry-icon ((o entry-group))
   "gtk-directory")
 (defmethod entry-icon ((o entry-generic))
   "gtk-file")
 
-(defgeneric edit-entry (entry parent-window title))
+(defgeneric entry-slots (entry))
 
-(defmethod edit-entry ((entry entry-group) parent-window title)
-  (edit-object entry parent-window title (entry-icon entry)
-	       '((name "Name" :entry :required)
-		 (description "Description" :area))))
+(defmethod entry-slots ((entry entry-group))
+  '((name "Name" :entry :required)
+    (description "Description" :area)))
 
-(defmethod edit-entry ((entry entry-generic) parent-window title)
-  (edit-object entry parent-window title (entry-icon entry)
-	       '((name "Name" :entry :required)
-		 (username "Username" :entry)
-		 (password "Password" :entry)
-		 (hostname "Hostname" :entry)
-		 (description "Description" :area))))
+(defmethod entry-slots ((entry entry-generic))
+  '((name "Name" :entry :required)
+    (username "Username" :entry)
+    (password "Password" :entry)
+    (hostname "Hostname" :entry)
+    (description "Description" :area)))
+
+(defun edit-entry (entry parent-window title)
+  (edit-object entry
+	       parent-window
+	       title
+	       (entry-icon entry)
+	       (entry-slots entry)))
 
