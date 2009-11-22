@@ -48,11 +48,11 @@
     (setf (gtk:tree-view-model listview) data)))
 
 (defun cb-add-group (app)
-  (let ((group (group-add main_window)))
-    (when group
+  (let ((entry (make-instance 'entry-group)))
+    (when (edit-entry entry main_window "Add group")
       (let ((iter (gtk:tree-store-append (app-data app)
 					 (get-selected-group-iter listview))))
-	(update-row app iter group)))))
+	(update-row app iter entry)))))
 
 (defun cb-add-item (app)
   (let ((entry (make-instance 'entry-generic)))
@@ -61,18 +61,12 @@
 					 (get-selected-group-iter listview))))
 	(update-row app iter entry)))))
 
-(defgeneric ui-edit (parent-window o))
-(defmethod ui-edit (parent-window (o entry-group))
-  (group-edit parent-window o))
-(defmethod ui-edit (parent-window (o entry-generic))
-  (edit-entry o main_window "Edit entry"))
-
 (defun cb-edit-entry (app)
   (let ((data (app-data app))
 	(iter (get-selected-iter listview)))
     (when iter
       (let ((entry (gtk:tree-store-value data iter 0)))
-	(when (ui-edit main_window entry)
+	(when (edit-entry entry main_window "Edit entry")
 	  (update-row app iter entry))))))
 
 (defun cb-del-entry (app)

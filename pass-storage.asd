@@ -18,7 +18,6 @@
                (:file "pass-storage.item" :depends-on ("pass-storage.package"))
                (:file "pass-storage.load" :depends-on ("pass-storage.package"))
                (:file "pass-storage.item-edit" :depends-on ("pass-storage.item"))
-               (:file "pass-storage.group-edit" :depends-on ("pass-storage.item"))
                (:file "pass-storage.main" :depends-on ("pass-storage.utils"
 						       "pass-storage.item"
 						       "pass-storage.item-edit"))))

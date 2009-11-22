@@ -53,3 +53,16 @@
 
 (defgeneric edit-entry (entry parent-window title))
 
+(defmethod edit-entry ((entry entry-group) parent-window title)
+  (edit-object entry parent-window title (entry-icon entry)
+	       '((name "Name" :entry :required)
+		 (description "Description" :area))))
+
+(defmethod edit-entry ((entry entry-generic) parent-window title)
+  (edit-object entry parent-window title (entry-icon entry)
+	       '((name "Name" :entry :required)
+		 (username "Username" :entry)
+		 (password "Password" :entry)
+		 (hostname "Hostname" :entry)
+		 (description "Description" :area))))
+

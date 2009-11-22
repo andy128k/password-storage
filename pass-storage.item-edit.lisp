@@ -1,78 +1,87 @@
 (in-package :pass-storage)
 
-(defun make-item-window (parent-window title)
-  (gtk:let-ui
-   (gtk:table
-    :var table
-    :border-width 5
-    :n-rows 5
-    :n-columns 2
-    :column-spacing 8
-    :row-spacing 8
+(defun make-table (conf)
+  (let ((table (make-instance 'gtk:table
+			      :n-rows (length conf)
+			      :n-columns 2
+			      :border-width 5
+			      :column-spacing 8
+			      :row-spacing 8)))
+
+    (values
+     table
+     (iter (for item in conf)
+	   (for i from 0)
+	   (let ((slot-name (first item))
+		 (title (second item))
+		 (kind (third item))
+		 (params (cdddr item)))
+	     
+	     (gtk:table-attach table
+			       (make-instance 'gtk:label
+					      :label title
+					      :xalign 0 :yalign 0)
+			       0 1 i (+ i 1) :x-options :fill :y-options :fill)
+
+	     (let ((widget (case kind
+			     (:entry
+			      (let ((widget (make-instance 'gtk:entry
+							   :can-focus t
+							   :activates-default t)))
+				(gtk:table-attach table
+						  widget
+						  1 2 i (+ i 1) :y-options :fill)
+				widget))
+			     (:area
+			      (let ((sw (make-instance 'gtk:scrolled-window
+						       :can-focus t
+						       :hscrollbar-policy :automatic
+						       :vscrollbar-policy :automatic
+						       :shadow-type :in))
+				    (widget (make-instance 'gtk:text-view
+							   :can-focus t
+							   :accepts-tab nil)))
+				(gtk:container-add sw widget)
+				
+				(gtk:table-attach table
+						  sw
+						  1 2 i (+ i 1))
+				widget)))))
+
+	       (collect
+		(list* slot-name widget params))))))))
+
+(defgeneric widget-get-text (widget))
+(defmethod widget-get-text ((widget gtk:entry))
+  (gtk:entry-text widget))
+(defmethod widget-get-text ((widget gtk:text-view))
+  (gtk:text-buffer-text (gtk:text-view-buffer widget)))
+
+(defgeneric widget-set-text (widget value))
+(defmethod widget-set-text ((widget gtk:entry) value)
+  (setf (gtk:entry-text widget) value))
+(defmethod widget-set-text ((widget gtk:text-view) value)
+  (setf (gtk:text-buffer-text (gtk:text-view-buffer widget)) value))
+
+(defun edit-object (obj parent-window title icon conf)
+  (multiple-value-bind (table ws)
+      (make-table conf)
     
-      ;; name
-      (gtk:label :label "Name" :xalign 0 :yalign 0) :left 0 :right 1 :top 0 :bottom 1 :x-options :fill :y-options :fill
-      (gtk:entry :var entry-name :can-focus t :activates-default t) :left 1 :right 2 :top 0 :bottom 1 :y-options :fill
+    (let ((dlg (make-std-dialog parent-window title icon table)))
 
-      ;; login
-      (gtk:label :label "Login" :xalign 0 :yalign 0) :left 0 :right 1 :top 1 :bottom 2 :x-options :fill :y-options :fill
-      (gtk:entry :var entry-login :can-focus t :activates-default t) :left 1 :right 2 :top 1 :bottom 2 :y-options :fill
+      (iter (for (slot widget . params) in ws)
+	    (when (find :required params)
+	      (gobject:connect-signal widget "changed"
+				      (lambda (entry)
+					(gtk:dialog-set-response-sensitive 
+					 dlg
+					 :ok 
+					 (/= 0 (length (widget-get-text entry)))))))
 
-      ;; password
-      (gtk:label :label "Password" :xalign 0 :yalign 0) :left 0 :right 1 :top 2 :bottom 3 :x-options :fill :y-options :fill
-      (gtk:entry :var entry-password :can-focus t :activates-default t) :left 1 :right 2 :top 2 :bottom 3 :y-options :fill
+	    (widget-set-text widget (slot-value obj slot)))
 
-      ;; url
-      (gtk:label :label "URL" :xalign 0 :yalign 0) :left 0 :right 1 :top 3 :bottom 4 :x-options :fill :y-options :fill
-      (gtk:entry :var entry-url :can-focus t :activates-default t) :left 1 :right 2 :top 3 :bottom 4 :y-options :fill
-
-      ;; comment
-      (gtk:label :label "Comment" :xalign 0 :yalign 0) :left 0 :right 1 :top 4 :bottom 5 :x-options :fill :y-options :fill
-      (gtk:scrolled-window
-       :can-focus t
-       :hscrollbar-policy :automatic
-       :vscrollbar-policy :automatic
-       :shadow-type :in
-       (gtk:text-view :var text-view-comment :can-focus t :accepts-tab nil))
-      :left 1 :right 2 :top 4 :bottom 5)
-     
-   (let ((dlg (make-std-dialog parent-window title "gtk-file" table)))
-
-     (gobject:connect-signal entry-name "changed"
-			     (lambda (entry)
-			       (gtk:dialog-set-response-sensitive 
-				dlg
-				:ok 
-				(/= 0 (length (gtk:entry-text entry))))))
-
-     (values dlg
-	     entry-name
-	     entry-login
-	     entry-password
-	     entry-url
-	     text-view-comment))))
-
-(defmethod edit-entry ((entry entry-generic) parent-window title)
-  (multiple-value-bind
-	(dlg
-	 entry-name
-	 entry-login
-	 entry-password
-	 entry-url
-	 text-view-comment)
-      (make-item-window parent-window title)
-    
-    (setf (gtk:entry-text entry-name) (entry-name entry))
-    (setf (gtk:entry-text entry-login) (generic-username entry))
-    (setf (gtk:entry-text entry-password) (generic-password entry))
-    (setf (gtk:entry-text entry-url) (generic-hostname entry))
-    (setf (gtk:text-buffer-text (gtk:text-view-buffer text-view-comment)) (entry-description entry))
-
-    (when (std-dialog-run dlg)
-      (setf (entry-name entry) (gtk:entry-text entry-name))
-      (setf (generic-username entry) (gtk:entry-text entry-login))
-      (setf (generic-password entry) (gtk:entry-text entry-password))
-      (setf (generic-hostname entry) (gtk:entry-text entry-url))
-      (setf (entry-description entry) (gtk:text-buffer-text (gtk:text-view-buffer text-view-comment)))
-      t)))
+      (when (std-dialog-run dlg)
+	(iter (for (slot widget) in ws)
+	      (setf (slot-value obj slot) (widget-get-text widget)))
+	t))))
 
