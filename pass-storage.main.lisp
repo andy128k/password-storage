@@ -26,7 +26,7 @@
  
     (loop
        while (and iter
-		  (is-item (gtk:tree-model-value model iter 0)))
+		  (not (is-group (gtk:tree-model-value model iter 0))))
        do (setf iter (gtk:tree-model-iter-parent model iter)))
     
     iter))
@@ -40,41 +40,34 @@
     (setf (gtk:widget-sensitive edit_button) s)
     (setf (gtk:widget-sensitive edit_menuitem) s)))
 
-(defgeneric update-row (app iter o))
-(defmethod update-row (app iter (o group))
+(defun update-row (app iter entry)
   (let ((data (app-data app)))
-    (setf (gtk:tree-store-value data iter 0) o)
-    (setf (gtk:tree-store-value data iter 1) (group-name o))
-    (setf (gtk:tree-store-value data iter 2) "gtk-directory")
-    (setf (gtk:tree-view-model listview) data)))
-(defmethod update-row (app iter (o item))
-  (let ((data (app-data app)))
-    (setf (gtk:tree-store-value data iter 0) o)
-    (setf (gtk:tree-store-value data iter 1) (item-name o))
-    (setf (gtk:tree-store-value data iter 2) "gtk-file")
+    (setf (gtk:tree-store-value data iter 0) entry)
+    (setf (gtk:tree-store-value data iter 1) (entry-name entry))
+    (setf (gtk:tree-store-value data iter 2) (entry-icon entry))
     (setf (gtk:tree-view-model listview) data)))
 
-(defun add-group (app)
+(defun cb-add-group (app)
   (let ((group (group-add main_window)))
     (when group
       (let ((iter (gtk:tree-store-append (app-data app)
 					 (get-selected-group-iter listview))))
 	(update-row app iter group)))))
 
-(defun add-item (app)
-  (let ((item (item-add main_window)))
-    (when item
+(defun cb-add-item (app)
+  (let ((entry (make-instance 'entry-generic)))
+    (when (edit-entry entry main_window "Add entry")
       (let ((iter (gtk:tree-store-append (app-data app)
 					 (get-selected-group-iter listview))))
-	(update-row app iter item)))))
+	(update-row app iter entry)))))
 
 (defgeneric ui-edit (parent-window o))
-(defmethod ui-edit (parent-window (o group))
+(defmethod ui-edit (parent-window (o entry-group))
   (group-edit parent-window o))
-(defmethod ui-edit (parent-window (o item))
-  (item-edit main_window o))
+(defmethod ui-edit (parent-window (o entry-generic))
+  (edit-entry o main_window "Edit entry"))
 
-(defun edit-entry (app)
+(defun cb-edit-entry (app)
   (let ((data (app-data app))
 	(iter (get-selected-iter listview)))
     (when iter
@@ -82,7 +75,7 @@
 	(when (ui-edit main_window entry)
 	  (update-row app iter entry))))))
 
-(defun del-entry (app)
+(defun cb-del-entry (app)
   (let ((iter (get-selected-iter listview)))
     (when (and iter
 	       (ask "Do you really want to delete selected item?"))
@@ -122,40 +115,42 @@
 						(string= (tag-get-attr ch :|id|) id)))))
 	      ""))
 
-	   (parse (elem parent-iter)
-	     (cond
-	       ;; toplevel
-	       ((and (is-tag elem)
-		     (eq (tag-name elem) :|revelationdata|))
-		
-		(iter (for ch in (tag-children elem))
-		      (parse ch nil)))
+	   (load-entry (elem parent-iter)
+	     (let ((type (tag-get-attr elem :|type|))
+		   (iter (gtk:tree-store-append (app-data app) parent-iter)))
 	       
-	       ;; folder
-	       ((and (is-tag elem)
-		     (eq (tag-name elem) :|entry|)
-		     (string= (tag-get-attr elem :|type|) "folder"))
-		
-		(let ((iter (gtk:tree-store-append (app-data app) parent-iter)))
-		  (update-row app iter (make-instance 'group
-						      :name (entry-node-get-value elem :|name|)))
+	       (cond
+		 ((string= type "folder")
+		  (update-row app
+			      iter
+			      (make-instance 'group :name (entry-node-get-value elem :|name|)))
+		  (iter (for ch in (tag-children elem))
+			(parse ch iter)))
+		 
+		 ((string= type "generic")
+		  (update-row app
+			      iter
+			      (make-instance 'item
+					     :name (entry-node-get-value elem :|name|)
+					     :login (entry-node-get-value elem :|field| "generic-username")
+					     :password (entry-node-get-value elem :|field| "generic-password")
+					     :url (entry-node-get-value elem :|field| "generic-hostname")
+					     :email (entry-node-get-value elem :|field| "generic-email")
+					     :comment (entry-node-get-value elem :|description|)))))))
+	   
+	   (parse (elem parent-iter)
+	     (when (is-tag elem)
+	       (cond
+		 ;; toplevel
+		 ((eq (tag-name elem) :|revelationdata|)
 		  
 		  (iter (for ch in (tag-children elem))
-			(parse ch iter))))
-	       
-	       ;; leaf
-	       ((and (is-tag elem)
-		     (eq (tag-name elem) :|entry|))
-		
-		(let ((iter (gtk:tree-store-append (app-data app) parent-iter)))
-		  (update-row app iter (make-instance 'item
-						      :name (entry-node-get-value elem :|name|)
-						      :login (entry-node-get-value elem :|field| "generic-username")
-						      :password (entry-node-get-value elem :|field| "generic-password")
-						      :url (entry-node-get-value elem :|field| "generic-hostname")
-						      :email (entry-node-get-value elem :|field| "generic-email")
-						      :comment (entry-node-get-value elem :|description|))))))))
-
+			(parse ch nil)))
+		 
+		 ((eq (tag-name elem) :|entry|)
+		  
+		  (load-entry elem parent-iter))))))
+    
     (parse (load-revelation-file filename password) nil)))
 
 #|
@@ -204,12 +199,12 @@
     (connect builder
 	     ("on_close" e-close)
     	     ("on_listview_cursor_changed" listview-cursor-changed)
-	     ("on_add_group" add-group app)
-	     ("on_add_button_clicked" add-item app)
-	     ("on_edit_button_clicked" edit-entry app)
-	     ("on_del_button_clicked" del-entry app))
+	     ("on_add_group" cb-add-group app)
+	     ("on_add_button_clicked" cb-add-item app)
+	     ("on_edit_button_clicked" cb-edit-entry app)
+	     ("on_del_button_clicked" cb-del-entry app))
     
-    (load-data app "./data" "Nd3e")
+    ;; (load-data app "./data" "Nd3e")
 
     (gtk:widget-show main_window)
     (gtk:gtk-main)

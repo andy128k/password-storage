@@ -10,11 +10,11 @@
 (defun group-add (parent-window)
   (let ((name (edit-group-dlg parent-window "Add group")))
     (when name
-      (make-instance 'group :name name))))
+      (make-instance 'entry-group :name name))))
     
 (defun group-edit (parent-window group)
-  (let ((name (edit-group-dlg parent-window "Edit group" :value (group-name group))))
+  (let ((name (edit-group-dlg parent-window "Edit group" :value (entry-name group))))
     (when name
-      (setf (group-name group) name)
+      (setf (entry-name group) name)
       t)))
 
