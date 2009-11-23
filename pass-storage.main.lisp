@@ -11,6 +11,9 @@
   action-quit
   action-add-group
   action-add-generic
+  action-add-creditcard
+  action-add-cryptokey
+  action-add-database
   action-edit
   action-delete
   action-about)
@@ -48,14 +51,14 @@
 
 (defun cb-add-group (app)
   (let ((entry (make-instance 'entry-group)))
-    (when (edit-entry entry (app-main-window app) "Add group")
+    (when (edit-entry entry (app-main-window app) "Add")
       (let ((iter (gtk:tree-store-append (app-data app)
 					 (get-selected-group-iter (app-view app)))))
 	(update-row app iter entry)))))
 
-(defun cb-add-item (app)
-  (let ((entry (make-instance 'entry-generic)))
-    (when (edit-entry entry (app-main-window app) "Add entry")
+(defun cb-add-item (app type)
+  (let ((entry (make-instance type)))
+    (when (edit-entry entry (app-main-window app) "Add")
       (let ((iter (gtk:tree-store-append (app-data app)
 					 (get-selected-group-iter (app-view app)))))
 	(update-row app iter entry)))))
@@ -65,7 +68,7 @@
 	(iter (get-selected-iter (app-view app))))
     (when iter
       (let ((entry (gtk:tree-store-value data iter 0)))
-	(when (edit-entry entry (app-main-window app) "Edit entry")
+	(when (edit-entry entry (app-main-window app) "Edit")
 	  (update-row app iter entry))))))
 
 (defun cb-del-entry (app)
@@ -170,17 +173,20 @@
 
 (defun main ()
   (let ((app (make-app
-	      :data 	          (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
-	      :action-new         (make-instance 'gtk:action :stock-id "gtk-new")
-	      :action-open        (make-instance 'gtk:action :stock-id "gtk-open")
-	      :action-save        (make-instance 'gtk:action :stock-id "gtk-save")
-	      :action-save-as     (make-instance 'gtk:action :stock-id "gtk-save-as")
-	      :action-quit        (make-instance 'gtk:action :stock-id "gtk-quit")
-	      :action-add-group   (make-instance 'gtk:action :stock-id "gtk-directory" :label "_Add group")
-	      :action-add-generic (make-instance 'gtk:action :stock-id "gtk-file" :label "Add generic _entry")
-	      :action-edit        (make-instance 'gtk:action :stock-id "gtk-edit" :sensitive nil)
-	      :action-delete      (make-instance 'gtk:action :stock-id "gtk-delete" :sensitive nil)
-	      :action-about       (make-instance 'gtk:action :stock-id "gtk-about"))))
+	      :data 	             (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
+	      :action-new            (make-instance 'gtk:action :stock-id "gtk-new")
+	      :action-open           (make-instance 'gtk:action :stock-id "gtk-open")
+	      :action-save           (make-instance 'gtk:action :stock-id "gtk-save")
+	      :action-save-as        (make-instance 'gtk:action :stock-id "gtk-save-as")
+	      :action-quit           (make-instance 'gtk:action :stock-id "gtk-quit")
+	      :action-add-group      (make-instance 'gtk:action :stock-id "gtk-directory" :label "_Add group")
+	      :action-add-generic    (make-instance 'gtk:action :stock-id "gtk-file" :label "Add generic _entry")
+	      :action-add-creditcard (make-instance 'gtk:action :icon-name "stock_creditcard" :label "Add _credit card")
+	      :action-add-cryptokey  (make-instance 'gtk:action :icon-name "stock_keyring" :label "Add c_rypto key")
+	      :action-add-database   (make-instance 'gtk:action :icon-name "stock_data-sources" :label "Add _database")
+	      :action-edit           (make-instance 'gtk:action :stock-id "gtk-edit" :sensitive nil)
+	      :action-delete         (make-instance 'gtk:action :stock-id "gtk-delete" :sensitive nil)
+	      :action-about          (make-instance 'gtk:action :stock-id "gtk-about"))))
 
     (gtk:let-ui
 
@@ -212,7 +218,11 @@
 	 :use-underline t
 	 :submenu (make-menu
 		   (app-action-add-group app)
+		   nil
 		   (app-action-add-generic app)
+		   (app-action-add-creditcard app)
+		   (app-action-add-cryptokey app)
+		   (app-action-add-database app)
 		   nil
 		   (app-action-edit app)
 		   (app-action-delete app)))
@@ -233,7 +243,10 @@
 	 :menu (make-menu
 		(app-action-add-group app)
 		nil
-		(app-action-add-generic app)))
+		(app-action-add-generic app)
+		(app-action-add-creditcard app)
+		(app-action-add-cryptokey app)
+		(app-action-add-database app)))
 
 	(:expr (gtk:action-create-tool-item (app-action-edit app)))
 	(:expr (gtk:action-create-tool-item (app-action-delete app))))
@@ -256,10 +269,10 @@
 	:position 2)))
 
      (let ((col (make-instance 'gtk:tree-view-column :sizing :autosize))
-	   (rnd1 (make-instance 'gtk:cell-renderer-pixbuf))
+	   (rnd1 (make-instance 'gtk:cell-renderer-pixbuf :stock-size 1))
 	   (rnd2 (make-instance 'gtk:cell-renderer-text)))
        (gtk:tree-view-column-pack-start col rnd1 :expand nil)
-       (gtk:tree-view-column-add-attribute col rnd1 "stock-id" 2)
+       (gtk:tree-view-column-add-attribute col rnd1 "icon-name" 2)
        (gtk:tree-view-column-pack-start col rnd2 :expand t)
        (gtk:tree-view-column-add-attribute col rnd2 "text" 1)
        (gtk:tree-view-append-column view col))
@@ -283,12 +296,16 @@
 				    (if (is-group (gtk:tree-store-value model iter 0))
 					(progn (gdk:drag-status drag-context :move time) nil)
 					(progn (gdk:drag-status drag-context 0 time) t)))))))
-    (gobject:connect-signal (app-action-add-group app) "activate" (lambda-u (cb-add-group app)))
-    (gobject:connect-signal (app-action-add-generic app) "activate" (lambda-u (cb-add-item app)))
-    (gobject:connect-signal (app-action-edit app) "activate" (lambda-u (cb-edit-entry app)))
-    (gobject:connect-signal (app-action-delete app) "activate" (lambda-u (cb-del-entry app)))
 
-    (load-data app "./data" "Nd3e")
+    (gobject:connect-signal (app-action-add-group app)      "activate" (lambda-u (cb-add-group app)))
+    (gobject:connect-signal (app-action-add-generic app)    "activate" (lambda-u (cb-add-item app 'entry-generic)))
+    (gobject:connect-signal (app-action-add-creditcard app) "activate" (lambda-u (cb-add-item app 'entry-creditcard)))
+    (gobject:connect-signal (app-action-add-cryptokey app)  "activate" (lambda-u (cb-add-item app 'entry-cryptokey)))
+    (gobject:connect-signal (app-action-add-database app)   "activate" (lambda-u (cb-add-item app 'entry-database))) 
+    (gobject:connect-signal (app-action-edit app)           "activate" (lambda-u (cb-edit-entry app)))
+    (gobject:connect-signal (app-action-delete app)         "activate" (lambda-u (cb-del-entry app)))
+
+    ;; (load-data app "./data" "Nd3e")
 
     (gtk:widget-show (app-main-window app))
     (gtk:gtk-main)
