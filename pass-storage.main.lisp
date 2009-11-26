@@ -171,7 +171,35 @@
 	      (gtk:menu-shell-append menu (make-instance 'gtk:menu-item :visible t))))
     menu))
 
+(defun make-icon-set (&rest paths)
+  (let ((set (make-instance 'gtk:icon-set)))
+    (iter (for path in paths)
+	  (let ((source (make-instance 'gtk:icon-source)))
+	    (setf (gtk:icon-source-filename source) path)
+	    (gtk:icon-set-add-source set source)))
+    set))
+
 (defun main ()
+  ;; sbcl bug workaround
+  ; (trivial-garbage:gc :full t)
+
+  (let ((factory (make-instance 'gtk:icon-factory)))
+    (gtk:icon-factory-add factory
+			  "ps-stock-entry-creditcard"
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-creditcard.png"
+					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-creditcard.png"))
+
+    (gtk:icon-factory-add factory
+			  "ps-stock-entry-keyring"
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-keyring.png"
+					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-keyring.png"))
+
+    (gtk:icon-factory-add factory
+			  "ps-stock-entry-database"
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-database.png"))
+
+    (gtk:icon-factory-add-default factory))
+
   (let ((app (make-app
 	      :data 	             (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
 	      :action-new            (make-instance 'gtk:action :stock-id "gtk-new")
@@ -181,9 +209,9 @@
 	      :action-quit           (make-instance 'gtk:action :stock-id "gtk-quit")
 	      :action-add-group      (make-instance 'gtk:action :stock-id "gtk-directory" :label "_Add group")
 	      :action-add-generic    (make-instance 'gtk:action :stock-id "gtk-file" :label "Add generic _entry")
-	      :action-add-creditcard (make-instance 'gtk:action :icon-name "stock_creditcard" :label "Add _credit card")
-	      :action-add-cryptokey  (make-instance 'gtk:action :icon-name "stock_keyring" :label "Add c_rypto key")
-	      :action-add-database   (make-instance 'gtk:action :icon-name "stock_data-sources" :label "Add _database")
+	      :action-add-creditcard (make-instance 'gtk:action :stock-id "ps-stock-entry-creditcard" :label "Add _credit card")
+	      :action-add-cryptokey  (make-instance 'gtk:action :stock-id "ps-stock-entry-keyring" :label "Add c_rypto key")
+	      :action-add-database   (make-instance 'gtk:action :stock-id "ps-stock-entry-database" :label "Add _database")
 	      :action-edit           (make-instance 'gtk:action :stock-id "gtk-edit" :sensitive nil)
 	      :action-delete         (make-instance 'gtk:action :stock-id "gtk-delete" :sensitive nil)
 	      :action-about          (make-instance 'gtk:action :stock-id "gtk-about"))))
@@ -272,7 +300,7 @@
 	   (rnd1 (make-instance 'gtk:cell-renderer-pixbuf :stock-size 1))
 	   (rnd2 (make-instance 'gtk:cell-renderer-text)))
        (gtk:tree-view-column-pack-start col rnd1 :expand nil)
-       (gtk:tree-view-column-add-attribute col rnd1 "icon-name" 2)
+       (gtk:tree-view-column-add-attribute col rnd1 "stock-id" 2)
        (gtk:tree-view-column-pack-start col rnd2 :expand t)
        (gtk:tree-view-column-add-attribute col rnd2 "text" 1)
        (gtk:tree-view-append-column view col))

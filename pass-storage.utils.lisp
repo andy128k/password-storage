@@ -22,7 +22,7 @@
   (eql (gtk:show-message message :buttons :yes-no :message-type :warning)
        :yes))
 
-(defun make-std-dialog (parent-window title icon content)
+(defun make-std-dialog (parent-window title stock-icon content)
   (let ((dlg (make-instance 'gtk:dialog
 			    :border-width 8
 			    :modal t
@@ -30,12 +30,14 @@
 			    :window-position :center-on-parent
 			    :title title
 			    :has-separator nil
-			    :icon-name icon
 			    :type-hint :dialog
 			    :skip-taskbar_hint t
 			    :skip-pager-hint t
 			    :gravity :center
 			    :transient-for parent-window)))
+
+    (setf (gtk:gtk-window-icon dlg)
+	  (gtk:widget-render-icon dlg stock-icon :dialog ""))
 
     (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
     (gtk:dialog-add-button dlg "gtk-ok" :ok)

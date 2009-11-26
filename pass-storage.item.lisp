@@ -106,11 +106,11 @@
 (defmethod entry-icon ((o entry-generic))
   "gtk-file")
 (defmethod entry-icon ((o entry-creditcard))
-  "stock_creditcard")
+  "ps-stock-entry-creditcard")
 (defmethod entry-icon ((o entry-cryptokey))
-  "stock_keyring")
+  "ps-stock-entry-keyring")
 (defmethod entry-icon ((o entry-database))
-  "stock_data-sources")
+  "ps-stock-entry-database")
 
 (defgeneric entry-slots (entry))
 
