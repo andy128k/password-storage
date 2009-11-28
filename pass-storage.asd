@@ -12,7 +12,7 @@
   :version "0.2"
   :author "Andrey Kutejko <andy128k@gmail.com>"
   :licence "LGPL"
-  :depends-on (:cffi :trivial-garbage :cl-gtk2-gtk :babel :ironclad :zlib :s-xml)
+  :depends-on (:cffi :trivial-garbage :cl-gtk2-gtk :babel :ironclad :zlib :s-xml :cl-binary-location :cl-fad)
   :components ((:file "pass-storage.package")
                (:file "pass-storage.utils" :depends-on ("pass-storage.package"))
                (:file "pass-storage.item" :depends-on ("pass-storage.package"))

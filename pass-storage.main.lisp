@@ -159,11 +159,11 @@
 	      (gtk:menu-shell-append menu (make-instance 'gtk:menu-item :visible t))))
     menu))
 
-(defun make-icon-set (&rest paths)
+(defun make-icon-set (paths)
   (let ((set (make-instance 'gtk:icon-set)))
     (iter (for path in paths)
 	  (let ((source (make-instance 'gtk:icon-source)))
-	    (setf (gtk:icon-source-filename source) path)
+	    (setf (gtk:icon-source-filename source) (namestring path))
 	    (gtk:icon-set-add-source set source)))
     set))
 
@@ -178,65 +178,36 @@
 
 (defun main ()
 
-  (let ((factory (make-instance 'gtk:icon-factory)))
-    (gtk:icon-factory-add factory
-			  "ps-stock-pass-storage"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/48x48/pass-storage.png"
-					 "/home/andy/projects/PassStorage/icons/scalable/pass-storage.svg"))
-
-    (gtk:icon-factory-add factory
-			  "ps-stock-entry-creditcard"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-creditcard.png"
-					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-creditcard.png"))
-
-    (gtk:icon-factory-add factory
-			  "ps-stock-entry-keyring"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-keyring.png"
-					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-keyring.png"))
-
-    (gtk:icon-factory-add factory
-			  "ps-stock-entry-database"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-database.png"
-					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-database.png"))
-
-    (gtk:icon-factory-add factory
-			  "ps-stock-entry-door"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-door.png"
-					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-door.png"))
-
-    (gtk:icon-factory-add factory
-			  "ps-stock-entry-email"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-email.png"
-					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-email.png"))
-
-    (gtk:icon-factory-add factory
-			  "ps-stock-entry-ftp"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-ftp.png"))
-
-    (gtk:icon-factory-add factory
-			  "ps-stock-entry-phone"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-phone.png"))
-
-    (gtk:icon-factory-add factory
-			  "ps-stock-entry-shell"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-shell.png"))
-
-    (gtk:icon-factory-add factory
-			  "ps-stock-entry-website"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-website.png"))
-
-    (gtk:icon-factory-add-default factory))
+  ;; stock icons
+  (let ((icons (make-hash-table :test 'equal))
+	(icons-directory (make-pathname
+			  :defaults (directory-namestring cl-binary-location:*location*)
+			  :directory (append (pathname-directory (directory-namestring cl-binary-location:*location*)) '("icons")))))
+    ;; find all icons
+    (fad:walk-directory
+     icons-directory
+     (lambda (fn)
+       (push fn (gethash (pathname-name fn) icons))))
+      
+    ;; register stock icons
+    (let ((factory (make-instance 'gtk:icon-factory)))
+      (iter (for (icon-name files) in-hashtable icons)
+	    (gtk:icon-factory-add factory
+				  (concatenate 'string "ps-" icon-name)
+				  (make-icon-set files)))
+   
+      (gtk:icon-factory-add-default factory)))
 
   (let* ((app (make-app
-	       :data 	             (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
-	       :action-new            (make-instance 'gtk:action :stock-id "gtk-new")
-	       :action-open           (make-instance 'gtk:action :stock-id "gtk-open")
-	       :action-save           (make-instance 'gtk:action :stock-id "gtk-save")
-	       :action-save-as        (make-instance 'gtk:action :stock-id "gtk-save-as")
-	       :action-quit           (make-instance 'gtk:action :stock-id "gtk-quit")
-	       :action-edit           (make-instance 'gtk:action :stock-id "gtk-edit" :sensitive nil)
-	       :action-delete         (make-instance 'gtk:action :stock-id "gtk-delete" :sensitive nil)
-	       :action-about          (make-instance 'gtk:action :stock-id "gtk-about")))
+	       :data 	       (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
+	       :action-new     (make-instance 'gtk:action :stock-id "gtk-new")
+	       :action-open    (make-instance 'gtk:action :stock-id "gtk-open")
+	       :action-save    (make-instance 'gtk:action :stock-id "gtk-save")
+	       :action-save-as (make-instance 'gtk:action :stock-id "gtk-save-as")
+	       :action-quit    (make-instance 'gtk:action :stock-id "gtk-quit")
+	       :action-edit    (make-instance 'gtk:action :stock-id "gtk-edit" :sensitive nil)
+	       :action-delete  (make-instance 'gtk:action :stock-id "gtk-delete" :sensitive nil)
+	       :action-about   (make-instance 'gtk:action :stock-id "gtk-about")))
 
 	 (add-actions (mapcar (lambda (class)
 				(when class
