@@ -180,8 +180,6 @@
     set))
 
 (defun main ()
-  ;; sbcl bug workaround
-  ; (trivial-garbage:gc :full t)
 
   (let ((factory (make-instance 'gtk:icon-factory)))
     (gtk:icon-factory-add factory
