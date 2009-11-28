@@ -81,6 +81,85 @@
 (gobject:register-object-type-implementation "PassStorageEntryDatabase" entry-database "GObject" nil nil)
 
 ;;
+;; door
+;;
+
+(defclass entry-door (entry)
+  ((location :accessor door-location :initarg :location :initform "")
+   (code :accessor door-code :initarg :code :initform ""))
+  (:metaclass gobject:gobject-class)
+  (:g-type-name . "PassStorageEntryDoor"))
+
+(gobject:register-object-type-implementation "PassStorageEntryDoor" entry-door "GObject" nil nil)
+
+;;
+;; email
+;;
+
+(defclass entry-email (entry)
+  ((email :accessor email-email :initarg :email :initform "")
+   (hostname :accessor email-hostname :initarg :hostname :initform "")
+   (username :accessor email-username :initarg :username :initform "")
+   (password :accessor email-password :initarg :password :initform ""))
+  (:metaclass gobject:gobject-class)
+  (:g-type-name . "PassStorageEntryEmail"))
+
+(gobject:register-object-type-implementation "PassStorageEntryEmail" entry-email "GObject" nil nil)
+
+;;
+;; ftp
+;;
+
+(defclass entry-ftp (entry)
+  ((hostname :accessor ftp-hostname :initarg :hostname :initform "")
+   (port :accessor ftp-port :initarg :port :initform "")
+   (username :accessor ftp-username :initarg :username :initform "")
+   (password :accessor ftp-password :initarg :password :initform ""))
+  (:metaclass gobject:gobject-class)
+  (:g-type-name . "PassStorageEntryFtp"))
+
+(gobject:register-object-type-implementation "PassStorageEntryFtp" entry-ftp "GObject" nil nil)
+
+;;
+;; phone
+;;
+
+(defclass entry-phone (entry)
+  ((phonenumber :accessor phone-phonenumber :initarg :phonenumber :initform "")
+   (pin :accessor phone-pin :initarg :pin :initform ""))
+  (:metaclass gobject:gobject-class)
+  (:g-type-name . "PassStorageEntryPhone"))
+
+(gobject:register-object-type-implementation "PassStorageEntryPhone" entry-phone "GObject" nil nil)
+
+;;
+;; shell
+;;
+
+(defclass entry-shell (entry)
+  ((hostname :accessor shell-hostname :initarg :hostname :initform "")
+   (domain :accessor shell-domain :initarg :domain :initform "")
+   (username :accessor shell-username :initarg :username :initform "")
+   (password :accessor shell-password :initarg :password :initform ""))
+  (:metaclass gobject:gobject-class)
+  (:g-type-name . "PassStorageEntryShell"))
+
+(gobject:register-object-type-implementation "PassStorageEntryShell" entry-shell "GObject" nil nil)
+
+;;
+;; website
+;;
+
+(defclass entry-website (entry)
+  ((url :accessor website-url :initarg :url :initform "")
+   (username :accessor website-username :initarg :username :initform "")
+   (password :accessor websize-password :initarg :password :initform ""))
+  (:metaclass gobject:gobject-class)
+  (:g-type-name . "PassStorageEntryWebsite"))
+
+(gobject:register-object-type-implementation "PassStorageEntryWebsite" entry-website "GObject" nil nil)
+
+;;
 ;; functions
 ;;
 
@@ -99,6 +178,18 @@
   "crypto key")
 (defmethod entry-title ((o entry-database))
   "database")
+(defmethod entry-title ((o entry-door))
+  "door")
+(defmethod entry-title ((o entry-email))
+  "e-mail")
+(defmethod entry-title ((o entry-ftp))
+  "FTP")
+(defmethod entry-title ((o entry-phone))
+  "phone")
+(defmethod entry-title ((o entry-shell))
+  "shell")
+(defmethod entry-title ((o entry-website))
+  "website")
 
 (defgeneric entry-icon (o))
 (defmethod entry-icon ((o entry-group))
@@ -111,6 +202,18 @@
   "ps-stock-entry-keyring")
 (defmethod entry-icon ((o entry-database))
   "ps-stock-entry-database")
+(defmethod entry-icon ((o entry-door))
+  "ps-stock-entry-door")
+(defmethod entry-icon ((o entry-email))
+  "ps-stock-entry-email")
+(defmethod entry-icon ((o entry-ftp))
+  "ps-stock-entry-ftp")
+(defmethod entry-icon ((o entry-phone))
+  "ps-stock-entry-phone")
+(defmethod entry-icon ((o entry-shell))
+  "ps-stock-entry-shell")
+(defmethod entry-icon ((o entry-website))
+  "ps-stock-entry-website")
 
 (defgeneric entry-slots (entry))
 
@@ -148,6 +251,49 @@
     (password "Password" :entry)
     (hostname "Hostname" :entry)
     (database "Database" :entry)
+    (description "Description" :area)))
+
+(defmethod entry-slots ((entry entry-door))
+  '((name "Name" :entry :required)
+    (location "Location" :entry)
+    (code "Code" :entry)
+    (description "Description" :area)))
+
+(defmethod entry-slots ((entry entry-email))
+  '((name "Name" :entry :required)
+    (email "E-mail" :entry)
+    (hostname "Hostname" :entry)
+    (username "Username" :entry)
+    (password "Password" :entry)
+    (description "Description" :area)))
+
+(defmethod entry-slots ((entry entry-ftp))
+  '((name "Name" :entry :required)
+    (hostname "Hostname" :entry)
+    (port "Port" :entry)
+    (username "Username" :entry)
+    (password "Password" :entry)
+    (description "Description" :area)))
+
+(defmethod entry-slots ((entry entry-phone))
+  '((name "Name" :entry :required)
+    (phonenumber "Number" :entry)
+    (pin "PIN" :entry)
+    (description "Description" :area)))
+
+(defmethod entry-slots ((entry entry-shell))
+  '((name "Name" :entry :required) 
+    (hostname "Hostname" :entry)
+    (domain "Domain" :entry)
+    (username "Username" :entry)
+    (password "Password" :entry)
+    (description "Description" :area)))
+
+(defmethod entry-slots ((entry entry-website))
+  '((name "Name" :entry :required) 
+    (url "URL" :entry)
+    (username "Username" :entry)
+    (password "Password" :entry)
     (description "Description" :area)))
 
 (defun edit-entry (entry parent-window title)

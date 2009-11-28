@@ -14,6 +14,12 @@
   action-add-creditcard
   action-add-cryptokey
   action-add-database
+  action-add-door
+  action-add-email
+  action-add-ftp
+  action-add-phone
+  action-add-shell
+  action-add-website
   action-edit
   action-delete
   action-about)
@@ -183,6 +189,11 @@
 
   (let ((factory (make-instance 'gtk:icon-factory)))
     (gtk:icon-factory-add factory
+			  "ps-stock-pass-storage"
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/48x48/pass-storage.png"
+					 "/home/andy/projects/PassStorage/icons/scalable/pass-storage.svg"))
+
+    (gtk:icon-factory-add factory
 			  "ps-stock-entry-creditcard"
 			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-creditcard.png"
 					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-creditcard.png"))
@@ -194,7 +205,34 @@
 
     (gtk:icon-factory-add factory
 			  "ps-stock-entry-database"
-			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-database.png"))
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-database.png"
+					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-database.png"))
+
+    (gtk:icon-factory-add factory
+			  "ps-stock-entry-door"
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-door.png"
+					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-door.png"))
+
+    (gtk:icon-factory-add factory
+			  "ps-stock-entry-email"
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-email.png"
+					 "/home/andy/projects/PassStorage/icons/48x48/stock-entry-email.png"))
+
+    (gtk:icon-factory-add factory
+			  "ps-stock-entry-ftp"
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-ftp.png"))
+
+    (gtk:icon-factory-add factory
+			  "ps-stock-entry-phone"
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-phone.png"))
+
+    (gtk:icon-factory-add factory
+			  "ps-stock-entry-shell"
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-shell.png"))
+
+    (gtk:icon-factory-add factory
+			  "ps-stock-entry-website"
+			  (make-icon-set "/home/andy/projects/PassStorage/icons/16x16/stock-entry-website.png"))
 
     (gtk:icon-factory-add-default factory))
 
@@ -202,7 +240,7 @@
 	      :data 	             (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
 	      :action-new            (make-instance 'gtk:action :stock-id "gtk-new")
 	      :action-open           (make-instance 'gtk:action :stock-id "gtk-open")
-	      :action-save           (make-instance 'gtk:action :stock-id "gtk-save")
+ 	      :action-save           (make-instance 'gtk:action :stock-id "gtk-save")
 	      :action-save-as        (make-instance 'gtk:action :stock-id "gtk-save-as")
 	      :action-quit           (make-instance 'gtk:action :stock-id "gtk-quit")
 	      :action-add-group      (make-instance 'gtk:action :stock-id "gtk-directory" :label "_Add group")
@@ -210,6 +248,12 @@
 	      :action-add-creditcard (make-instance 'gtk:action :stock-id "ps-stock-entry-creditcard" :label "Add _credit card")
 	      :action-add-cryptokey  (make-instance 'gtk:action :stock-id "ps-stock-entry-keyring" :label "Add c_rypto key")
 	      :action-add-database   (make-instance 'gtk:action :stock-id "ps-stock-entry-database" :label "Add _database")
+	      :action-add-door       (make-instance 'gtk:action :stock-id "ps-stock-entry-door" :label "Add d_oor")
+	      :action-add-email      (make-instance 'gtk:action :stock-id "ps-stock-entry-email" :label "Add _e-mail")
+	      :action-add-ftp        (make-instance 'gtk:action :stock-id "ps-stock-entry-ftp" :label "Add _ftp")
+	      :action-add-phone      (make-instance 'gtk:action :stock-id "ps-stock-entry-phone" :label "Add _phone")
+	      :action-add-shell      (make-instance 'gtk:action :stock-id "ps-stock-entry-shell" :label "Add _shell")
+	      :action-add-website    (make-instance 'gtk:action :stock-id "ps-stock-entry-website" :label "Add _website")
 	      :action-edit           (make-instance 'gtk:action :stock-id "gtk-edit" :sensitive nil)
 	      :action-delete         (make-instance 'gtk:action :stock-id "gtk-delete" :sensitive nil)
 	      :action-about          (make-instance 'gtk:action :stock-id "gtk-about"))))
@@ -249,6 +293,12 @@
 		   (app-action-add-creditcard app)
 		   (app-action-add-cryptokey app)
 		   (app-action-add-database app)
+		   (app-action-add-door app)
+		   (app-action-add-email app)
+		   (app-action-add-ftp app)
+		   (app-action-add-phone app)
+		   (app-action-add-shell app)
+		   (app-action-add-website app)
 		   nil
 		   (app-action-edit app)
 		   (app-action-delete app)))
@@ -272,7 +322,13 @@
 		(app-action-add-generic app)
 		(app-action-add-creditcard app)
 		(app-action-add-cryptokey app)
-		(app-action-add-database app)))
+		(app-action-add-database app)
+		(app-action-add-door app)
+		(app-action-add-email app)
+		(app-action-add-ftp app)
+		(app-action-add-phone app)
+		(app-action-add-shell app)
+		(app-action-add-website app)))
 
 	(:expr (gtk:action-create-tool-item (app-action-edit app)))
 	(:expr (gtk:action-create-tool-item (app-action-delete app))))
@@ -303,6 +359,9 @@
        (gtk:tree-view-column-add-attribute col rnd2 "text" 1)
        (gtk:tree-view-append-column view col))
 
+     (setf (gtk:gtk-window-icon main-window)
+	   (gtk:widget-render-icon main-window "ps-stock-pass-storage" :dialog ""))
+
      (setf (app-main-window app) main-window)
      (setf (app-view app) view))
 
@@ -327,7 +386,13 @@
     (gobject:connect-signal (app-action-add-generic app)    "activate" (lambda-u (cb-add-item app 'entry-generic)))
     (gobject:connect-signal (app-action-add-creditcard app) "activate" (lambda-u (cb-add-item app 'entry-creditcard)))
     (gobject:connect-signal (app-action-add-cryptokey app)  "activate" (lambda-u (cb-add-item app 'entry-cryptokey)))
-    (gobject:connect-signal (app-action-add-database app)   "activate" (lambda-u (cb-add-item app 'entry-database))) 
+    (gobject:connect-signal (app-action-add-database app)   "activate" (lambda-u (cb-add-item app 'entry-database)))
+    (gobject:connect-signal (app-action-add-door app)       "activate" (lambda-u (cb-add-item app 'entry-door)))
+    (gobject:connect-signal (app-action-add-email app)      "activate" (lambda-u (cb-add-item app 'entry-email)))
+    (gobject:connect-signal (app-action-add-ftp app)        "activate" (lambda-u (cb-add-item app 'entry-ftp)))
+    (gobject:connect-signal (app-action-add-phone app)      "activate" (lambda-u (cb-add-item app 'entry-phone)))
+    (gobject:connect-signal (app-action-add-shell app)      "activate" (lambda-u (cb-add-item app 'entry-shell)))
+    (gobject:connect-signal (app-action-add-website app)    "activate" (lambda-u (cb-add-item app 'entry-website)))
     (gobject:connect-signal (app-action-edit app)           "activate" (lambda-u (cb-edit-entry app)))
     (gobject:connect-signal (app-action-delete app)         "activate" (lambda-u (cb-del-entry app)))
 
