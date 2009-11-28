@@ -167,6 +167,12 @@
 	    (gtk:icon-set-add-source set source)))
     set))
 
+(defmacro lambda-u (&body body)
+  (let ((p (gensym)))
+    `(lambda (&rest ,p)
+       (declare (ignore ,p))
+       ,@body)))
+
 (defun make-add-entry-action (func class)
   (let* ((dummy-entry (make-instance class))
 	 (action (make-instance 'gtk:action
