@@ -9,17 +9,6 @@
   action-save
   action-save-as
   action-quit
-  action-add-group
-  action-add-generic
-  action-add-creditcard
-  action-add-cryptokey
-  action-add-database
-  action-add-door
-  action-add-email
-  action-add-ftp
-  action-add-phone
-  action-add-shell
-  action-add-website
   action-edit
   action-delete
   action-about)
@@ -54,13 +43,6 @@
     (setf (gtk:tree-store-value data iter 1) (entry-name entry))
     (setf (gtk:tree-store-value data iter 2) (entry-icon entry))
     (setf (gtk:tree-view-model (app-view app)) data)))
-
-(defun cb-add-group (app)
-  (let ((entry (make-instance 'entry-group)))
-    (when (edit-entry entry (app-main-window app) "Add")
-      (let ((iter (gtk:tree-store-append (app-data app)
-					 (get-selected-group-iter (app-view app)))))
-	(update-row app iter entry)))))
 
 (defun cb-add-item (app type)
   (let ((entry (make-instance type)))
@@ -185,6 +167,15 @@
 	    (gtk:icon-set-add-source set source)))
     set))
 
+(defun make-add-entry-action (func class)
+  (let* ((dummy-entry (make-instance class))
+	 (action (make-instance 'gtk:action
+				:stock-id (entry-icon dummy-entry)
+				:label (format nil "Add ~A" (entry-title dummy-entry)))))
+    
+    (gobject:connect-signal action "activate" (lambda-u (funcall func class)))
+    action))
+
 (defun main ()
 
   (let ((factory (make-instance 'gtk:icon-factory)))
@@ -236,27 +227,34 @@
 
     (gtk:icon-factory-add-default factory))
 
-  (let ((app (make-app
-	      :data 	             (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
-	      :action-new            (make-instance 'gtk:action :stock-id "gtk-new")
-	      :action-open           (make-instance 'gtk:action :stock-id "gtk-open")
- 	      :action-save           (make-instance 'gtk:action :stock-id "gtk-save")
-	      :action-save-as        (make-instance 'gtk:action :stock-id "gtk-save-as")
-	      :action-quit           (make-instance 'gtk:action :stock-id "gtk-quit")
-	      :action-add-group      (make-instance 'gtk:action :stock-id "gtk-directory" :label "_Add group")
-	      :action-add-generic    (make-instance 'gtk:action :stock-id "gtk-file" :label "Add generic _entry")
-	      :action-add-creditcard (make-instance 'gtk:action :stock-id "ps-stock-entry-creditcard" :label "Add _credit card")
-	      :action-add-cryptokey  (make-instance 'gtk:action :stock-id "ps-stock-entry-keyring" :label "Add c_rypto key")
-	      :action-add-database   (make-instance 'gtk:action :stock-id "ps-stock-entry-database" :label "Add _database")
-	      :action-add-door       (make-instance 'gtk:action :stock-id "ps-stock-entry-door" :label "Add d_oor")
-	      :action-add-email      (make-instance 'gtk:action :stock-id "ps-stock-entry-email" :label "Add _e-mail")
-	      :action-add-ftp        (make-instance 'gtk:action :stock-id "ps-stock-entry-ftp" :label "Add _ftp")
-	      :action-add-phone      (make-instance 'gtk:action :stock-id "ps-stock-entry-phone" :label "Add _phone")
-	      :action-add-shell      (make-instance 'gtk:action :stock-id "ps-stock-entry-shell" :label "Add _shell")
-	      :action-add-website    (make-instance 'gtk:action :stock-id "ps-stock-entry-website" :label "Add _website")
-	      :action-edit           (make-instance 'gtk:action :stock-id "gtk-edit" :sensitive nil)
-	      :action-delete         (make-instance 'gtk:action :stock-id "gtk-delete" :sensitive nil)
-	      :action-about          (make-instance 'gtk:action :stock-id "gtk-about"))))
+  (let* ((app (make-app
+	       :data 	             (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
+	       :action-new            (make-instance 'gtk:action :stock-id "gtk-new")
+	       :action-open           (make-instance 'gtk:action :stock-id "gtk-open")
+	       :action-save           (make-instance 'gtk:action :stock-id "gtk-save")
+	       :action-save-as        (make-instance 'gtk:action :stock-id "gtk-save-as")
+	       :action-quit           (make-instance 'gtk:action :stock-id "gtk-quit")
+	       :action-edit           (make-instance 'gtk:action :stock-id "gtk-edit" :sensitive nil)
+	       :action-delete         (make-instance 'gtk:action :stock-id "gtk-delete" :sensitive nil)
+	       :action-about          (make-instance 'gtk:action :stock-id "gtk-about")))
+
+	 (add-actions (mapcar (lambda (class)
+				(when class
+				  (make-add-entry-action
+				   (lambda (class) (cb-add-item app class))
+				   class)))
+			      (list 'entry-group
+				    nil
+				    'entry-generic
+				    'entry-creditcard
+				    'entry-cryptokey
+				    'entry-database
+				    'entry-door
+				    'entry-email
+				    'entry-ftp
+				    'entry-phone
+				    'entry-shell
+				    'entry-website))))
 
     (gtk:let-ui
 
@@ -286,22 +284,10 @@
 	 :visible t
 	 :label "_Edit"
 	 :use-underline t
-	 :submenu (make-menu
-		   (app-action-add-group app)
-		   nil
-		   (app-action-add-generic app)
-		   (app-action-add-creditcard app)
-		   (app-action-add-cryptokey app)
-		   (app-action-add-database app)
-		   (app-action-add-door app)
-		   (app-action-add-email app)
-		   (app-action-add-ftp app)
-		   (app-action-add-phone app)
-		   (app-action-add-shell app)
-		   (app-action-add-website app)
-		   nil
-		   (app-action-edit app)
-		   (app-action-delete app)))
+	 :submenu (apply #'make-menu `(,@add-actions
+				       nil
+				       ,(app-action-edit app)
+				       ,(app-action-delete app))))
 
 	(gtk:menu-item
 	 :visible t
@@ -315,20 +301,8 @@
 	(gtk:menu-tool-button
 	 :stock-id "gtk-add"
 	 :label "Add entry"
-	 :related-action (app-action-add-generic app)
-	 :menu (make-menu
-		(app-action-add-group app)
-		nil
-		(app-action-add-generic app)
-		(app-action-add-creditcard app)
-		(app-action-add-cryptokey app)
-		(app-action-add-database app)
-		(app-action-add-door app)
-		(app-action-add-email app)
-		(app-action-add-ftp app)
-		(app-action-add-phone app)
-		(app-action-add-shell app)
-		(app-action-add-website app)))
+	 :related-action (third add-actions) ; add-generic
+	 :menu (apply #'make-menu add-actions))
 
 	(:expr (gtk:action-create-tool-item (app-action-edit app)))
 	(:expr (gtk:action-create-tool-item (app-action-delete app))))
@@ -382,19 +356,8 @@
 					(progn (gdk:drag-status drag-context :move time) nil)
 					(progn (gdk:drag-status drag-context 0 time) t)))))))
 
-    (gobject:connect-signal (app-action-add-group app)      "activate" (lambda-u (cb-add-group app)))
-    (gobject:connect-signal (app-action-add-generic app)    "activate" (lambda-u (cb-add-item app 'entry-generic)))
-    (gobject:connect-signal (app-action-add-creditcard app) "activate" (lambda-u (cb-add-item app 'entry-creditcard)))
-    (gobject:connect-signal (app-action-add-cryptokey app)  "activate" (lambda-u (cb-add-item app 'entry-cryptokey)))
-    (gobject:connect-signal (app-action-add-database app)   "activate" (lambda-u (cb-add-item app 'entry-database)))
-    (gobject:connect-signal (app-action-add-door app)       "activate" (lambda-u (cb-add-item app 'entry-door)))
-    (gobject:connect-signal (app-action-add-email app)      "activate" (lambda-u (cb-add-item app 'entry-email)))
-    (gobject:connect-signal (app-action-add-ftp app)        "activate" (lambda-u (cb-add-item app 'entry-ftp)))
-    (gobject:connect-signal (app-action-add-phone app)      "activate" (lambda-u (cb-add-item app 'entry-phone)))
-    (gobject:connect-signal (app-action-add-shell app)      "activate" (lambda-u (cb-add-item app 'entry-shell)))
-    (gobject:connect-signal (app-action-add-website app)    "activate" (lambda-u (cb-add-item app 'entry-website)))
-    (gobject:connect-signal (app-action-edit app)           "activate" (lambda-u (cb-edit-entry app)))
-    (gobject:connect-signal (app-action-delete app)         "activate" (lambda-u (cb-del-entry app)))
+    (gobject:connect-signal (app-action-edit app)   "activate" (lambda-u (cb-edit-entry app)))
+    (gobject:connect-signal (app-action-delete app) "activate" (lambda-u (cb-del-entry app)))
 
     ;; (load-data app "./data" "Nd3e")
 
