@@ -69,57 +69,17 @@
 	(listview-cursor-changed app)))))
 
 (defun load-data (app filename password)
-  (labels ((is-tag (x)
-	     (consp x))
-
-	   (tag-name (x)
-	     (if (consp (car x))
-		 (caar x)
-		 (car x)))
-
-	   (tag-attributes (x)
-	     (if (consp (car x))
-		 (cdar x)
-		 nil))
-
-	   (tag-children (x)
-	     (cdr x))
-
-	   (tag-get-attr (x attr)
-	     (iter (for (k v) on (tag-attributes x) by #'cddr)
-		   (finding v such-that (eq k attr))))
-
-	   (entry-node-get-value (entry tag-name &optional (id nil))
-	     (or
-	      (iter (for ch in (tag-children entry))
-		    (finding (car (tag-children ch))
-			     such-that (and (is-tag ch)
-					    (eq (tag-name ch) tag-name)
-					    (or (not id)
-						(string= (tag-get-attr ch :|id|) id)))))
-	      ""))
-
-	   (load-entry (elem parent-iter)
-	     (let ((type (tag-get-attr elem :|type|))
+  (labels ((load-entry2 (elem parent-iter)
+	     (let ((type (intern (tag-get-attr elem :|type|) 'keyword))
 		   (iter (gtk:tree-store-append (app-data app) parent-iter)))
 
-	       (cond
-		 ((string= type "folder")
-		  (update-row app
-			      iter
-			      (make-instance 'entry-group :name (entry-node-get-value elem :|name|)))
-		  (iter (for ch in (tag-children elem))
-			(parse ch iter)))
+	       (update-row app
+			   iter
+			   (load-entry type elem))
 
-		 ((string= type "generic")
-		  (update-row app
-			      iter
-			      (make-instance 'entry-generic
-					     :name (entry-node-get-value elem :|name|)
-					     :description (entry-node-get-value elem :|description|)
-					     :username (entry-node-get-value elem :|field| "generic-username")
-					     :password (entry-node-get-value elem :|field| "generic-password")
-					     :hostname (entry-node-get-value elem :|field| "generic-hostname")))))))
+	       (when (eql type :|folder|)
+		 (iter (for ch in (tag-children elem))
+		       (parse ch iter)))))
 
 	   (parse (elem parent-iter)
 	     (when (is-tag elem)
@@ -132,7 +92,7 @@
 
 		 ((eq (tag-name elem) :|entry|)
 
-		  (load-entry elem parent-iter))))))
+		  (load-entry2 elem parent-iter))))))
 
     (parse (load-revelation-file filename password) nil)))
 
@@ -336,7 +296,7 @@
     (gobject:connect-signal (app-action-edit app)   "activate" (lambda-u (cb-edit-entry app)))
     (gobject:connect-signal (app-action-delete app) "activate" (lambda-u (cb-del-entry app)))
 
-    ;; (load-data app "./data" "Nd3e")
+    (load-data app "./data" "Nd3e")
 
     (gtk:widget-show (app-main-window app))
     (gtk:gtk-main)

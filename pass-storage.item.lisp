@@ -18,11 +18,13 @@
   '((name "Name" :entry :required) 
     (description "Description" :area)))
 
+(defgeneric load-entry (xml-name xml-node))
+
 ;;
 ;; helpers
 ;;
 
-(defmacro define-entry (name g-name title icon &rest slots)
+(defmacro define-entry (name g-name xml-name title icon &rest slots)
   `(progn
      (defclass ,name (entry)
        (,@(iter (for (slot title type) in slots)
@@ -36,90 +38,99 @@
 
      (defmethod entry-slots ((entry ,name))
        (append (call-next-method entry)
-	       (quote ,slots)))))
+	       (quote ,slots)))
+
+     (defmethod load-entry ((xml-name (eql ,(intern xml-name 'keyword))) xml-node)
+       (let ((entry (make-instance (quote ,name)
+				   :name (entry-node-get-value xml-node :|name|)
+				   :description (entry-node-get-value xml-node :|description|))))
+	 ,@(iter (for (slot title type field-name) in slots)
+		 (collect `(setf (slot-value entry (quote ,slot))
+				 (entry-node-get-value xml-node :|field| ,field-name))))
+	 entry))))
 
 ;;
 ;; subtypes
 ;;
 
-(define-entry entry-group "PassStorageEntryGroup"
+(define-entry entry-group "PassStorageEntryGroup" "folder"
   "group"
   "gtk-directory")
 
-(define-entry entry-generic "PassStorageEntryGeneric"
+(define-entry entry-generic "PassStorageEntryGeneric" "generic"
   "generic entry"
   "gtk-file"
-  (hostname "Hostname" :entry)
-  (username "Username" :entry)
-  (password "Password" :entry))
+  (hostname    "Hostname"    :entry "generic-hostname")
+  (username    "Username"    :entry "generic-username")
+  (password    "Password"    :entry "generic-password"))
 
-(define-entry entry-creditcard "PassStorageEntryCreditcard"
+(define-entry entry-creditcard "PassStorageEntryCreditcard" "creditcard"
   "credit card"
   "ps-stock-entry-creditcard"
-  (cardtype "Card type" :entry)
-  (cardnumber "Card number" :entry)
-  (expirydate "Expiry date" :entry)
-  (ccv "CCV number" :entry)
-  (pin "PIN" :entry))
+  (cardtype    "Card type"   :entry "creditcard-cardtype")
+  (cardnumber  "Card number" :entry "creditcard-cardnumber")
+  (expirydate  "Expiry date" :entry "creditcard-expirydate")
+  (ccv         "CCV number"  :entry "creditcard-ccv")
+  (pin         "PIN"         :entry "generic-pin"))
 
-(define-entry entry-cryptokey "PassStorageEntryCryptokey"
+(define-entry entry-cryptokey "PassStorageEntryCryptokey" "cryptokey"
   "crypto key"
   "ps-stock-entry-keyring"
-  (hostname "Hostname" :entry)
-  (certificate "Certificate" :entry)
-  (keyfile "Key file" :entry)
-  (password "Password" :entry))
+  (hostname    "Hostname"    :entry "generic-hostname")
+  (certificate "Certificate" :entry "generic-certificate")
+  (keyfile     "Key file"    :entry "generic-keyfile")
+  (password    "Password"    :entry "generic-password"))
 
-(define-entry entry-database "PassStorageEntryDatabase"
+(define-entry entry-database "PassStorageEntryDatabase" "database"
   "database"
   "ps-stock-entry-database"
-  (hostname "Hostname" :entry)
-  (username "Username" :entry)
-  (password "Password" :entry)
-  (database "Database" :entry))
+  (hostname    "Hostname"    :entry "generic-hostname")
+  (username    "Username"    :entry "generic-username")
+  (password    "Password"    :entry "generic-password")
+  (database    "Database"    :entry "generic-database"))
 
-(define-entry entry-door "PassStorageEntryDoor"
+(define-entry entry-door "PassStorageEntryDoor" "door"
   "door"
   "ps-stock-entry-door"
-  (location "Location" :entry)
-  (code "Code" :entry))
+  (location    "Location"    :entry "generic-location")
+  (code        "Code"        :entry "generic-code"))
 
-(define-entry entry-email "PassStorageEntryEmail"
+(define-entry entry-email "PassStorageEntryEmail" "email"
   "e-mail"
   "ps-stock-entry-email"
-  (email "E-mail" :entry)
-  (hostname "Hostname" :entry)
-  (username "Username" :entry)
-  (password "Password" :entry))
+  (email       "E-mail"      :entry "generic-email")
+  (hostname    "Hostname"    :entry "generic-hostname")
+  (username    "Username"    :entry "generic-username")
+  (password    "Password"    :entry "generic-password"))
 
-(define-entry entry-ftp "PassStorageEntryFtp"
+(define-entry entry-ftp "PassStorageEntryFtp" "ftp"
   "FTP"
   "ps-stock-entry-ftp"
-  (hostname "Hostname" :entry)
-  (port "Port" :entry)
-  (username "Username" :entry)
-  (password "Password" :entry))
+  (hostname    "Hostname"    :entry "generic-hostname")
+  (port        "Port"        :entry "generic-port")
+  (username    "Username"    :entry "generic-username")
+  (password    "Password"    :entry "generic-password"))
 
-(define-entry entry-phone "PassStorageEntryPhone"
+(define-entry entry-phone "PassStorageEntryPhone" "phone"
   "phone"
   "ps-stock-entry-phone"
-  (phonenumber "Number" :entry)
-  (pin "PIN" :entry))
+  (phonenumber "Number"      :entry "phone-phonenumber")
+  (pin         "PIN"         :entry "generic-pin"))
 
-(define-entry entry-shell "PassStorageEntryShell"
+(define-entry entry-shell "PassStorageEntryShell" "shell"
   "shell"
   "ps-stock-entry-shell"
-  (hostname "Hostname" :entry)
-  (domain "Domain" :entry)
-  (username "Username" :entry)
-  (password "Password" :entry))
+  (hostname    "Hostname"    :entry "generic-hostname")
+  (domain      "Domain"      :entry "generic-domain")
+  (username    "Username"    :entry "generic-username")
+  (password    "Password"    :entry "generic-password"))
 
-(define-entry entry-website "PassStorageEntryWebsite"
+(define-entry entry-website "PassStorageEntryWebsite" "website"
   "website"
   "ps-stock-entry-website"
-  (url "URL" :entry)
-  (username "Username" :entry)
-  (password "Password" :entry))
+  (url         "URL"         :entry "generic-url")
+  (username    "Username"    :entry "generic-username")
+  (password    "Password"    :entry "generic-password"))
 
 ;;
 ;; functions
