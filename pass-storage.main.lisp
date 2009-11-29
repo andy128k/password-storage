@@ -68,7 +68,7 @@
 	(setf (gtk:tree-view-model (app-view app)) data)
 	(listview-cursor-changed app)))))
 
-(defun load-data (app filename password)
+(defun load-data (app xml)
   (labels ((load-entry2 (elem parent-iter)
 	     (let ((type (intern (tag-get-attr elem :|type|) 'keyword))
 		   (iter (gtk:tree-store-append (app-data app) parent-iter)))
@@ -94,7 +94,7 @@
 
 		  (load-entry2 elem parent-iter))))))
 
-    (parse (load-revelation-file filename password) nil)))
+    (parse xml nil)))
 
 #|
 (defun save-data (lst filename)
@@ -110,6 +110,31 @@
 				:email ,(gtk:tree-model-value lst iter 5)
 				:comments ,(gtk:tree-model-value lst iter 6)))))))
 |#
+
+(defun cb-open (app)
+  (let ((dlg (make-instance 'gtk:file-chooser-dialog
+			    :window-position :center-on-parent
+			    :transient-for (app-main-window app))))
+
+    (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
+    (gtk:dialog-add-button dlg "gtk-open" :ok)
+    (setf (gtk:dialog-default-response dlg) :ok)
+
+    (when (std-dialog-run dlg)
+      (let ((password (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
+				   '((nil "Password" :entry :required)))))
+	(when password
+	  (let ((xml (handler-case 
+			 (load-revelation-file (gtk:file-chooser-filename dlg) (car password))
+		       (error (e)
+ 			 (say-error "Can't open this file.")
+			 (return-from cb-open)))))
+
+	    (gtk:tree-store-clear (app-data app))
+	    (load-data app xml)))))))
+
+(defun cb-save (app))
+(defun cb-save-as (app))
 
 (defun make-menu (&rest actions)
   (let ((menu (make-instance 'gtk:menu)))
@@ -271,7 +296,7 @@
        (gtk:tree-view-append-column view col))
 
      (setf (gtk:gtk-window-icon main-window)
-	   (gtk:widget-render-icon main-window "ps-stock-pass-storage" :dialog ""))
+	   (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
 
      (setf (app-main-window app) main-window)
      (setf (app-view app) view))
@@ -293,17 +318,15 @@
 					(progn (gdk:drag-status drag-context :move time) nil)
 					(progn (gdk:drag-status drag-context 0 time) t)))))))
 
-    (gobject:connect-signal (app-action-edit app)   "activate" (lambda-u (cb-edit-entry app)))
-    (gobject:connect-signal (app-action-delete app) "activate" (lambda-u (cb-del-entry app)))
+    (gobject:connect-signal (app-action-open app)    "activate" (lambda-u (cb-open app)))
+    (gobject:connect-signal (app-action-save app)    "activate" (lambda-u (cb-save app)))
+    (gobject:connect-signal (app-action-save-as app) "activate" (lambda-u (cb-save-as app)))
 
-    (load-data app "./data" "Nd3e")
+    (gobject:connect-signal (app-action-edit app)    "activate" (lambda-u (cb-edit-entry app)))
+    (gobject:connect-signal (app-action-delete app)  "activate" (lambda-u (cb-del-entry app)))
 
     (gtk:widget-show (app-main-window app))
-    (gtk:gtk-main)
-
-    ;; (save-data lst "./data")
-
-    ))
+    (gtk:gtk-main)))
 
 (export 'main)
 

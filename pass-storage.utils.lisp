@@ -4,6 +4,9 @@
   (eql (gtk:show-message message :buttons :yes-no :message-type :warning)
        :yes))
 
+(defun say-error (message)
+  (gtk:show-message message :buttons :ok :message-type :error))
+
 (defun make-std-dialog (parent-window title stock-icon content)
   (let ((dlg (make-instance 'gtk:dialog
 			    :border-width 8
@@ -56,7 +59,7 @@
 	     (gtk:table-attach table
 			       (make-instance 'gtk:label
 					      :label title
-					      :xalign 0 :yalign 0)
+					      :xalign 0 :yalign 0.5)
 			       0 1 i (+ i 1) :x-options :fill :y-options :fill)
 
 	     (let ((widget (case kind
@@ -114,10 +117,14 @@
 					 :ok 
 					 (/= 0 (length (widget-get-text entry)))))))
 
-	    (widget-set-text widget (slot-value obj slot)))
+	    (when slot
+	      (widget-set-text widget (slot-value obj slot))))
 
       (when (std-dialog-run dlg)
-	(iter (for (slot widget) in ws)
-	      (setf (slot-value obj slot) (widget-get-text widget)))
-	t))))
+	(or
+	 (iter (for (slot widget) in ws)
+	       (when slot
+		 (setf (slot-value obj slot) (widget-get-text widget)))
+	       (collect (widget-get-text widget)))
+	 t)))))
 
