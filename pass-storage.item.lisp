@@ -19,6 +19,7 @@
     (description "Description" :area)))
 
 (defgeneric load-entry (xml-name xml-node))
+(defgeneric save-entry (entry))
 
 ;;
 ;; helpers
@@ -47,7 +48,16 @@
 	 ,@(iter (for (slot title type field-name) in slots)
 		 (collect `(setf (slot-value entry (quote ,slot))
 				 (entry-node-get-value xml-node :|field| ,field-name))))
-	 entry))))
+	 entry))
+
+     (defmethod save-entry ((entry ,name))
+       (list
+	(list :|entry| :|type| ,xml-name)
+	(list :|name| (slot-value entry 'name))
+	(list :|description| (slot-value entry 'description))
+	,@(iter (for (slot title type field-name) in slots)
+		(collect
+		 `(list (list :|field| :|id| ,field-name) (slot-value entry ',slot))))))))
 
 ;;
 ;; subtypes

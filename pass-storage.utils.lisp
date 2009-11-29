@@ -117,6 +117,9 @@
 					 :ok 
 					 (/= 0 (length (widget-get-text entry)))))))
 
+	    (when (find :password params)
+	      (setf (gtk:entry-visibility widget) nil))
+
 	    (when slot
 	      (widget-set-text widget (slot-value obj slot))))
 

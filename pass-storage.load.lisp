@@ -48,10 +48,6 @@
       (read-sequence v stream)
       v)))
 
-(defun write-file (filename data)
-  (with-open-file (stream filename :direction :output :if-exists :overwrite :element-type '(unsigned-byte 8))
-    (write-sequence data stream)))
-
 (defun load-revelation-file (filename password)
   (s-xml:parse-xml-string
    (babel:octets-to-string 
@@ -59,6 +55,62 @@
     :encoding :utf-8)
    :output-type :lxml))
 
-; (write-file "output"
-; 	    (decrypt-file (read-file "passwords") "Nd3e"))
+(defun encrypt-file (buffer password)
+
+  (setf password
+	(adjust-array
+	 (babel:string-to-octets password :encoding :utf-8)
+	 '(32)))
+
+  (let* ((buffer (zlib:compress buffer :fixed))
+	 (oldlen (length buffer))
+	 (padlen (- 16 (mod oldlen 16)))
+	 (newlen (+ oldlen padlen)))
+
+    (setf buffer (adjust-array buffer (list newlen) :fill-pointer newlen))
+    (setf buffer (coerce buffer '(simple-array (unsigned-byte 8) (*))))
+    (fill buffer padlen :start oldlen)
+    
+    (let ((initialization-vector (make-array '(16) :element-type '(unsigned-byte 8))))
+
+      (iter (for i from 0 to 15)
+	    (setf (aref initialization-vector i) (coerce (random 256) '(unsigned-byte 8))))
+      
+      (ironclad:encrypt-in-place
+       (ironclad:make-cipher :AES
+			     :mode :CBC
+			     :key password
+			     :initialization-vector initialization-vector)
+       buffer)
+
+      (ironclad:encrypt-in-place
+       (ironclad:make-cipher :AES
+			     :mode :ECB
+			     :key password)
+       initialization-vector)
+
+      (concatenate '(vector (unsigned-byte 8))
+		   #(#x72 #x76 #x6C #x00 ; magic string
+		     #x01                ; data version
+		     #x00                ; separator
+		     #x00 #x04 #x0B      ; app version
+		     #x00 #x00 #x00)     ; separator
+		   initialization-vector
+		   buffer
+		   ))))
+
+(defun write-file (filename data)
+  (with-open-file (stream filename :direction :output :if-exists :overwrite :if-does-not-exist :create :element-type '(unsigned-byte 8))
+    (write-sequence data stream)))
+
+(defun save-revelation-file (filename password xml)
+  (write-file filename
+	      (encrypt-file
+
+	       (babel:string-to-octets
+		(concatenate 'string "<?xml version='1.0' encoding='utf-8'?>"
+			     (s-xml:print-xml-string xml :pretty t))
+		:encoding :utf-8)
+
+	       password)))
 

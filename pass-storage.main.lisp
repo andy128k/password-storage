@@ -4,6 +4,8 @@
   main-window
   data
   view
+  filename
+  password
   action-new
   action-open
   action-save
@@ -96,23 +98,46 @@
 
     (parse xml nil)))
 
-#|
-(defun save-data (lst filename)
-  (with-open-file (s filename :direction :output :if-exists :supersede)
-    (gtk:do-tree-model lst
-      (lambda (model path iter)
-	(declare (ignore model path))
-	(format s "~s~%" `(item :group ,(gtk:tree-model-value lst iter 0)
-				:name ,(gtk:tree-model-value lst iter 1)
-				:login ,(gtk:tree-model-value lst iter 2)
-				:password ,(gtk:tree-model-value lst iter 3)
-				:url ,(gtk:tree-model-value lst iter 4)
-				:email ,(gtk:tree-model-value lst iter 5)
-				:comments ,(gtk:tree-model-value lst iter 6)))))))
-|#
+(defmacro tree-foreach-collect (iter model parent-iter &body body)
+  `(let ((,iter (if ,parent-iter
+		    (gtk:tree-model-iter-first-child ,model ,parent-iter)
+		    (gtk:tree-model-iter-first ,model))))
+     (when ,iter
+       (loop
+	  collect (progn ,@body)
+	  while (gtk:tree-model-iter-next ,model ,iter)))))
+
+(defun save-data (app filename)
+  (let ((data (app-data app)))
+
+    (labels ((traverse (parent-iter)
+	       (tree-foreach-collect iter data parent-iter
+				     (let ((entry (gtk:tree-model-value data iter 0)))
+				       (if (is-group entry)
+					   (append (save-entry entry) (traverse iter))
+					   (save-entry entry))))))
+
+      (let ((xml (list* (list :|revelationdata| :|version| "0.4.11" :|dataversion| "1")
+			(traverse nil))))
+	
+	(unless (app-password app)
+	  (let ((password (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
+				       '((nil "Password" :entry :required :password)))))
+	    (unless password
+	      (return-from save-data))
+	    (setf (app-password app) (car password))))
+
+	(save-revelation-file filename (app-password app) xml)))))
+
+(defun cb-new (app)
+  (gtk:tree-store-clear (app-data app))
+  (setf (app-filename app) nil)
+  (setf (app-password app) nil))
 
 (defun cb-open (app)
   (let ((dlg (make-instance 'gtk:file-chooser-dialog
+			    :action :open
+			    :title "Open file"
 			    :window-position :center-on-parent
 			    :transient-for (app-main-window app))))
 
@@ -122,7 +147,7 @@
 
     (when (std-dialog-run dlg)
       (let ((password (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
-				   '((nil "Password" :entry :required)))))
+				   '((nil "Password" :entry :required :password)))))
 	(when password
 	  (let ((xml (handler-case 
 			 (load-revelation-file (gtk:file-chooser-filename dlg) (car password))
@@ -131,10 +156,29 @@
 			 (return-from cb-open)))))
 
 	    (gtk:tree-store-clear (app-data app))
+	    (setf (app-filename app) (gtk:file-chooser-filename dlg))
+	    (setf (app-password app) (car password))
 	    (load-data app xml)))))))
 
-(defun cb-save (app))
-(defun cb-save-as (app))
+(defun cb-save-as (app)
+  (let ((dlg (make-instance 'gtk:file-chooser-dialog
+			    :action :save
+			    :title "Save file"
+			    :window-position :center-on-parent
+			    :transient-for (app-main-window app))))
+    
+    (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
+    (gtk:dialog-add-button dlg "gtk-save" :ok)
+    (setf (gtk:dialog-default-response dlg) :ok)
+    
+    (when (std-dialog-run dlg)
+      (setf (app-filename app) (gtk:file-chooser-filename dlg))
+      (save-data app (gtk:file-chooser-filename dlg)))))
+
+(defun cb-save (app)
+  (if (app-filename app)
+      (save-data app (app-filename app))
+      (cb-save-as app)))
 
 (defun make-menu (&rest actions)
   (let ((menu (make-instance 'gtk:menu)))
@@ -168,6 +212,7 @@
     action))
 
 (defun main ()
+  ;; TODO: initialize random
 
   ;; stock icons
   (let ((icons (make-hash-table :test 'equal))
@@ -318,6 +363,7 @@
 					(progn (gdk:drag-status drag-context :move time) nil)
 					(progn (gdk:drag-status drag-context 0 time) t)))))))
 
+    (gobject:connect-signal (app-action-new app)     "activate" (lambda-u (cb-new app)))
     (gobject:connect-signal (app-action-open app)    "activate" (lambda-u (cb-open app)))
     (gobject:connect-signal (app-action-save app)    "activate" (lambda-u (cb-save app)))
     (gobject:connect-signal (app-action-save-as app) "activate" (lambda-u (cb-save-as app)))
