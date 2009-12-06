@@ -376,3 +376,11 @@
 
 (export 'main)
 
+(defun main-and-quit ()
+  (main)
+  #+sbcl(sb-ext:quit)
+  #+clozure(ccl:quit))
+
+(export 'main-and-quit)
+
+
