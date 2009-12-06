@@ -2,3 +2,5 @@
 data
 
 /sbcl-cl-gtk2
+/clozure-cl-gtk2
+
