@@ -217,8 +217,8 @@
   ;; stock icons
   (let ((icons (make-hash-table :test 'equal))
 	(icons-directory (make-pathname
-			  :defaults (directory-namestring cl-binary-location:*location*)
-			  :directory (append (pathname-directory (directory-namestring cl-binary-location:*location*)) '("icons")))))
+			  :defaults (directory-namestring (cl-binary-location:location))
+			  :directory (append (pathname-directory (directory-namestring (cl-binary-location:location))) '("icons")))))
     ;; find all icons
     (fad:walk-directory
      icons-directory
