@@ -372,7 +372,12 @@
     (gobject:connect-signal (app-action-delete app)  "activate" (lambda-u (cb-del-entry app)))
 
     (gtk:widget-show (app-main-window app))
-    (gtk:gtk-main)))
+
+    (gdk:gdk-threads-enter)
+    (gtk:gtk-main)
+    (gdk:gdk-threads-leave)
+
+))
 
 (export 'main)
 
