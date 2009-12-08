@@ -1,11 +1,27 @@
 (in-package :pass-storage)
 
-(defun ask (message)
-  (eql (gtk:show-message message :buttons :yes-no :message-type :warning)
-       :yes))
+(defun ask (parent-window message)
+  (let ((dlg (make-instance 'gtk:message-dialog
+			    :text message
+			    :buttons :yes-no
+			    :message-type :question
+			    :window-position :center-on-parent
+			    :transient-for parent-window
+			    :use-markup nil)))
+  (prog1
+      (eql (gtk:dialog-run dlg) :yes)
+    (gtk:object-destroy dlg))))
 
-(defun say-error (message)
-  (gtk:show-message message :buttons :ok :message-type :error))
+(defun say-error (parent-window message)
+  (let ((dlg (make-instance 'gtk:message-dialog
+			    :text message
+			    :buttons :ok
+			    :message-type :error
+			    :window-position :center-on-parent
+			    :transient-for parent-window
+			    :use-markup nil)))
+    (gtk:dialog-run dlg)
+    (gtk:object-destroy dlg)))
 
 (defun make-std-dialog (parent-window title stock-icon content)
   (let ((dlg (make-instance 'gtk:dialog

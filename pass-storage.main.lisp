@@ -64,7 +64,7 @@
 (defun cb-del-entry (app)
   (let ((iter (get-selected-iter (app-view app))))
     (when (and iter
-	       (ask "Do you really want to delete selected item?"))
+	       (ask (app-main-window app) "Do you really want to delete selected item?"))
       (let* ((data (app-data app)))
 	(gtk:tree-store-remove data iter)
 	(setf (gtk:tree-view-model (app-view app)) data)
@@ -149,10 +149,10 @@
       (let ((password (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
 				   '((nil "Password" :entry :required :password)))))
 	(when password
-	  (let ((xml (handler-case 
+	  (let ((xml (handler-case
 			 (load-revelation-file (gtk:file-chooser-filename dlg) (car password))
 		       (error (e)
- 			 (say-error "Can't open this file.")
+ 			 (say-error (app-main-window app) "Can't open this file.")
 			 (return-from cb-open)))))
 
 	    (gtk:tree-store-clear (app-data app))
@@ -387,5 +387,4 @@
   #+clozure(ccl:quit))
 
 (export 'main-and-quit)
-
 
