@@ -4,19 +4,31 @@
   main-window
   data
   view
+  action-group
+
   filename
   password
-  action-new
-  action-open
-  action-save
-  action-save-as
-  action-quit
-  action-edit
-  action-delete
-  action-about)
+  changed)
 
-(defun e-close ()
-  (gtk:gtk-main-quit))
+(defun ensure-data-is-saved (app)
+  (if (app-changed app)
+
+      (case (ask-save (app-main-window app)
+		      "Save changes before closing? If you don't save, changes will be permanently lost.")
+	(:ok
+	 (cb-save app)
+	 t)
+	(:reject
+	 t)
+	(:cancel
+	 nil))
+
+      t))
+
+(defun e-close (app)
+  (if (ensure-data-is-saved app)
+      (progn (gtk:gtk-main-quit) nil)
+      t))
 
 (defun get-selected-iter (view)
   (let ((selection (gtk:tree-view-selection view)))
@@ -36,8 +48,8 @@
 
 (defun listview-cursor-changed (app)
   (let ((s (get-selected-iter (app-view app))))
-    (setf (gtk:action-sensitive (app-action-edit app)) s)
-    (setf (gtk:action-sensitive (app-action-delete app)) s)))
+    (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) "edit")) s)
+    (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) "delete")) s)))
 
 (defun update-row (app iter entry)
   (let ((data (app-data app)))
@@ -51,7 +63,8 @@
     (when (edit-entry entry (app-main-window app) "Add")
       (let ((iter (gtk:tree-store-append (app-data app)
 					 (get-selected-group-iter (app-view app)))))
-	(update-row app iter entry)))))
+	(update-row app iter entry)
+	(setf (app-changed app) t)))))
 
 (defun cb-edit-entry (app)
   (let ((data (app-data app))
@@ -59,7 +72,8 @@
     (when iter
       (let ((entry (gtk:tree-store-value data iter 0)))
 	(when (edit-entry entry (app-main-window app) "Edit")
-	  (update-row app iter entry))))))
+	  (update-row app iter entry)
+	  (setf (app-changed app) t))))))
 
 (defun cb-del-entry (app)
   (let ((iter (get-selected-iter (app-view app))))
@@ -68,7 +82,8 @@
       (let* ((data (app-data app)))
 	(gtk:tree-store-remove data iter)
 	(setf (gtk:tree-view-model (app-view app)) data)
-	(listview-cursor-changed app)))))
+	(listview-cursor-changed app)
+	(setf (app-changed app) t)))))
 
 (defun load-data (app xml)
   (labels ((load-entry2 (elem parent-iter)
@@ -127,38 +142,45 @@
 	      (return-from save-data))
 	    (setf (app-password app) (car password))))
 
-	(save-revelation-file filename (app-password app) xml)))))
+	(save-revelation-file filename (app-password app) xml)
+	(setf (app-changed app) nil)))))
 
 (defun cb-new (app)
-  (gtk:tree-store-clear (app-data app))
-  (setf (app-filename app) nil)
-  (setf (app-password app) nil))
+  (when (ensure-data-is-saved app)
+    (setf (app-changed app) nil)
+    (gtk:tree-store-clear (app-data app))
+    (setf (app-filename app) nil)
+    (setf (app-password app) nil)))
 
 (defun cb-open (app)
-  (let ((dlg (make-instance 'gtk:file-chooser-dialog
-			    :action :open
-			    :title "Open file"
-			    :window-position :center-on-parent
-			    :transient-for (app-main-window app))))
-
-    (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
-    (gtk:dialog-add-button dlg "gtk-open" :ok)
-    (setf (gtk:dialog-default-response dlg) :ok)
-
-    (when (std-dialog-run dlg)
-      (let ((password (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
-				   '((nil "Password" :entry :required :password)))))
-	(when password
-	  (let ((xml (handler-case
-			 (load-revelation-file (gtk:file-chooser-filename dlg) (car password))
-		       (error (e)
- 			 (say-error (app-main-window app) "Can't open this file.")
-			 (return-from cb-open)))))
-
-	    (gtk:tree-store-clear (app-data app))
-	    (setf (app-filename app) (gtk:file-chooser-filename dlg))
-	    (setf (app-password app) (car password))
-	    (load-data app xml)))))))
+  (when (ensure-data-is-saved app)
+    (let ((dlg (make-instance 'gtk:file-chooser-dialog
+			      :action :open
+			      :title "Open file"
+			      :window-position :center-on-parent
+			      :transient-for (app-main-window app))))
+      
+      (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
+      (gtk:dialog-add-button dlg "gtk-open" :ok)
+      (gtk:set-dialog-alternative-button-order dlg (list :ok :cancel))
+      (setf (gtk:dialog-default-response dlg) :ok)
+      
+      (when (std-dialog-run dlg)
+	(let ((password (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
+				     '((nil "Password" :entry :required :password)))))
+	  (when password
+	    (let ((xml (handler-case
+			   (load-revelation-file (gtk:file-chooser-filename dlg) (car password))
+			 (error (e)
+			   (declare (ignore e))
+			   (say-error (app-main-window app) "Can't open this file.")
+			   (return-from cb-open)))))
+	      
+	      (gtk:tree-store-clear (app-data app))
+	      (setf (app-filename app) (gtk:file-chooser-filename dlg))
+	      (setf (app-password app) (car password))
+	      (load-data app xml)
+	      (setf (app-changed app) nil))))))))
 
 (defun cb-save-as (app)
   (let ((dlg (make-instance 'gtk:file-chooser-dialog
@@ -169,6 +191,7 @@
     
     (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
     (gtk:dialog-add-button dlg "gtk-save" :ok)
+    (gtk:set-dialog-alternative-button-order dlg (list :ok :cancel))
     (setf (gtk:dialog-default-response dlg) :ok)
     
     (when (std-dialog-run dlg)
@@ -180,11 +203,11 @@
       (save-data app (app-filename app))
       (cb-save-as app)))
 
-(defun make-menu (&rest actions)
+(defun make-menu (group &rest actions)
   (let ((menu (make-instance 'gtk:menu)))
     (iter (for action in actions)
 	  (if action
-	      (gtk:menu-shell-append menu (gtk:action-create-menu-item action))
+	      (gtk:menu-shell-append menu (gtk:action-create-menu-item (gtk:action-group-action group action)))
 	      (gtk:menu-shell-append menu (make-instance 'gtk:menu-item :visible t))))
     menu))
 
@@ -202,14 +225,19 @@
        (declare (ignore ,p))
        ,@body)))
 
-(defun make-add-entry-action (func class)
-  (let* ((dummy-entry (make-instance class))
-	 (action (make-instance 'gtk:action
-				:stock-id (entry-icon dummy-entry)
-				:label (format nil "Add ~A" (entry-title dummy-entry)))))
-    
-    (gobject:connect-signal action "activate" (lambda-u (funcall func class)))
-    action))
+(defmacro create-action (group action-params &optional accel func)
+  `(let ((action (make-instance 'gtk:action ,@action-params)))
+     (gtk:action-group-add-action ,group action :accelerator ,accel)
+     ,(when func
+       `(gobject:connect-signal action "activate" ,func))))
+
+(defun entry-icon-by-class (class)
+  (let ((dummy-entry (make-instance class)))
+    (entry-icon dummy-entry)))
+
+(defun entry-title-by-class (class)
+  (let ((dummy-entry (make-instance class)))
+    (entry-title dummy-entry)))
 
 (defun main ()
   ;; TODO: initialize random
@@ -235,33 +263,86 @@
       (gtk:icon-factory-add-default factory)))
 
   (let* ((app (make-app
-	       :data 	       (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
-	       :action-new     (make-instance 'gtk:action :stock-id "gtk-new")
-	       :action-open    (make-instance 'gtk:action :stock-id "gtk-open")
-	       :action-save    (make-instance 'gtk:action :stock-id "gtk-save")
-	       :action-save-as (make-instance 'gtk:action :stock-id "gtk-save-as")
-	       :action-quit    (make-instance 'gtk:action :stock-id "gtk-quit")
-	       :action-edit    (make-instance 'gtk:action :stock-id "gtk-edit" :sensitive nil)
-	       :action-delete  (make-instance 'gtk:action :stock-id "gtk-delete" :sensitive nil)
-	       :action-about   (make-instance 'gtk:action :stock-id "gtk-about")))
+	       :data (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
+	       :action-group (make-instance 'gtk:action-group :name "action-group")))
+	 (ui (make-instance 'gtk:ui-manager)))
 
-	 (add-actions (mapcar (lambda (class)
-				(when class
-				  (make-add-entry-action
-				   (lambda (class) (cb-add-item app class))
-				   class)))
-			      (list 'entry-group
-				    nil
-				    'entry-generic
-				    'entry-creditcard
-				    'entry-cryptokey
-				    'entry-database
-				    'entry-door
-				    'entry-email
-				    'entry-ftp
-				    'entry-phone
-				    'entry-shell
-				    'entry-website))))
+    (let ((action-group (app-action-group app)))
+      (create-action action-group (:name "file-menu" :label "_File"))
+      (create-action action-group (:name "new" :stock-id "gtk-new") "<Control>n" (lambda-u (cb-new app)))
+      (create-action action-group (:name "open" :stock-id "gtk-open") "<Control>o" (lambda-u (cb-open app)))
+      (create-action action-group (:name "save" :stock-id "gtk-save") "<Control>s" (lambda-u (cb-save app)))
+      (create-action action-group (:name "save-as" :stock-id "gtk-save-as") nil (lambda-u (cb-save-as app)))
+      (create-action action-group (:name "quit" :stock-id "gtk-quit") "<Control>q" (lambda-u (e-close app)))
+
+      (create-action action-group (:name "edit-menu" :label "_Edit"))
+      
+      (loop
+	 for class1 in (list 'entry-group
+			     'entry-generic
+			     'entry-creditcard
+			     'entry-cryptokey
+			     'entry-database
+			     'entry-door
+			     'entry-email
+			     'entry-ftp
+			     'entry-phone
+			     'entry-shell
+			     'entry-website)
+	 do
+	   (let ((class class1))
+	     (create-action action-group
+			    (:name (format nil "add-~(~A~)" class)
+			     :stock-id (entry-icon-by-class class)
+			     :label (format nil "Add ~A" (entry-title-by-class class)))
+			    nil
+			    (lambda-u (cb-add-item app class)))))
+      
+      (create-action action-group (:name "edit" :stock-id "gtk-edit" :sensitive nil) nil (lambda-u (cb-edit-entry app)))
+      (create-action action-group (:name "delete" :stock-id "gtk-delete" :sensitive nil) nil (lambda-u (cb-del-entry app)))
+
+      (create-action action-group (:name "help-menu" :label "_Help"))
+      (create-action action-group (:name "about" :stock-id "gtk-about"))
+
+      (gtk:ui-manager-insert-action-group ui action-group 0))
+
+    (gtk:ui-manager-add-ui-from-string ui
+"<ui>
+  <menubar name='menubar'>
+    <menu action='file-menu'>
+      <menuitem action='new'/>
+      <menuitem action='open'/>
+      <menuitem action='save'/>
+      <menuitem action='save-as'/>
+      <separator/>
+      <menuitem action='quit'/>
+    </menu>
+    <menu action='edit-menu'>
+      <menuitem action='add-entry-group'/>
+      <separator/>
+      <menuitem action='add-entry-generic'/>
+      <menuitem action='add-entry-creditcard'/>
+      <menuitem action='add-entry-cryptokey'/>
+      <menuitem action='add-entry-database'/>
+      <menuitem action='add-entry-door'/>
+      <menuitem action='add-entry-email'/>
+      <menuitem action='add-entry-ftp'/>
+      <menuitem action='add-entry-phone'/>
+      <menuitem action='add-entry-shell'/>
+      <menuitem action='add-entry-website'/>
+      <separator/>
+      <menuitem action='edit'/>
+      <menuitem action='delete'/>
+    </menu>
+    <menu action='help-menu'>
+      <menuitem action='about'/>
+    </menu>
+  </menubar>
+  <toolbar name='toolbar'>
+    <toolitem action='edit'/>
+    <toolitem action='delete'/>
+  </toolbar>
+</ui>")
 
     (gtk:let-ui
 
@@ -272,51 +353,15 @@
       :default-width 600
       :default-height 450
       (gtk:v-box
-
-       (gtk:menu-bar
-
-	(gtk:menu-item
-	 :visible t
-	 :label "_File"
-	 :use-underline t
-	 :submenu (make-menu
-		   (app-action-new app)
-		   (app-action-open app)
-		   (app-action-save app)
-		   (app-action-save-as app)
-		   nil
-		   (app-action-quit app)))
-
-	(gtk:menu-item
-	 :visible t
-	 :label "_Edit"
-	 :use-underline t
-	 :submenu (apply #'make-menu `(,@add-actions
-				       nil
-				       ,(app-action-edit app)
-				       ,(app-action-delete app))))
-
-	(gtk:menu-item
-	 :visible t
-	 :label "_Help"
-	 :use-underline t
-	 :submenu (make-menu (app-action-about app))))
+       
+       (:expr (gtk:ui-manager-widget ui "/menubar"))
        :expand nil
        :position 0
-
-       (gtk:toolbar
-	(gtk:menu-tool-button
-	 :stock-id "gtk-add"
-	 :label "Add entry"
-	 :related-action (third add-actions) ; add-generic
-	 :menu (apply #'make-menu add-actions))
-
-	(:expr (gtk:action-create-tool-item (app-action-edit app)))
-	(:expr (gtk:action-create-tool-item (app-action-delete app))))
-
+       
+       (:expr (gtk:ui-manager-widget ui "/toolbar"))
        :expand nil
        :position 1
-
+       
        (gtk:scrolled-window
 	:can-focus t
 	:hscrollbar-policy :automatic
@@ -330,6 +375,28 @@
 	 :reorderable t
 	 :search-column 1)
 	:position 2)))
+
+     (gtk:toolbar-insert (gtk:ui-manager-widget ui "/toolbar")
+			 (make-instance 'gtk:menu-tool-button
+					:stock-id "gtk-add"
+					:label "Add entry"
+					:related-action (gtk:action-group-action (app-action-group app) "add-entry-generic")
+					:menu (apply #'make-menu
+						     (list
+						      (app-action-group app)
+						      "add-entry-group"
+						      nil
+						      "add-entry-generic"
+						      "add-entry-creditcard"
+						      "add-entry-cryptokey"
+						      "add-entry-database"
+						      "add-entry-door"
+						      "add-entry-email"
+						      "add-entry-ftp"
+						      "add-entry-phone"
+						      "add-entry-shell"
+						      "add-entry-website")))
+			 0)
 
      (let ((col (make-instance 'gtk:tree-view-column :sizing :autosize))
 	   (rnd1 (make-instance 'gtk:cell-renderer-pixbuf :stock-size 1))
@@ -346,8 +413,7 @@
      (setf (app-main-window app) main-window)
      (setf (app-view app) view))
 
-    (gobject:connect-signal (app-main-window app) "destroy" (lambda-u (e-close)))
-    (gobject:connect-signal (app-action-quit app) "activate" (lambda-u (e-close)))
+    (gobject:connect-signal (app-main-window app) "delete-event" (lambda-u (e-close app)))
 
     (gobject:connect-signal (app-view app) "cursor-changed" (lambda-u (listview-cursor-changed app)))
     (gobject:connect-signal (app-view app) "drag-motion"
@@ -363,21 +429,15 @@
 					(progn (gdk:drag-status drag-context :move time) nil)
 					(progn (gdk:drag-status drag-context 0 time) t)))))))
 
-    (gobject:connect-signal (app-action-new app)     "activate" (lambda-u (cb-new app)))
-    (gobject:connect-signal (app-action-open app)    "activate" (lambda-u (cb-open app)))
-    (gobject:connect-signal (app-action-save app)    "activate" (lambda-u (cb-save app)))
-    (gobject:connect-signal (app-action-save-as app) "activate" (lambda-u (cb-save-as app)))
+    (gobject:connect-signal (app-view app) "row-activated" (lambda-u (cb-edit-entry app)))
 
-    (gobject:connect-signal (app-action-edit app)    "activate" (lambda-u (cb-edit-entry app)))
-    (gobject:connect-signal (app-action-delete app)  "activate" (lambda-u (cb-del-entry app)))
+    (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
 
     (gtk:widget-show (app-main-window app))
 
     (gdk:gdk-threads-enter)
     (gtk:gtk-main)
-    (gdk:gdk-threads-leave)
-
-))
+    (gdk:gdk-threads-leave)))
 
 (export 'main)
 
