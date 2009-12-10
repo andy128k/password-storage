@@ -12,6 +12,23 @@
       (eql (gtk:dialog-run dlg) :yes)
     (gtk:object-destroy dlg))))
 
+(defun ask-save (parent-window message)
+  (let ((dlg (make-instance 'gtk:message-dialog
+			    :text message
+			    :message-type :warning
+			    :window-position :center-on-parent
+			    :transient-for parent-window
+			    :use-markup nil)))
+
+    (gtk:dialog-add-button dlg "gtk-discard" :reject)
+    (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
+    (gtk:dialog-add-button dlg "gtk-save" :ok)
+    (gtk:set-dialog-alternative-button-order dlg (list :ok :reject :cancel))
+
+  (prog1
+      (gtk:dialog-run dlg)
+    (gtk:object-destroy dlg))))
+
 (defun say-error (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
 			    :text message
@@ -42,6 +59,8 @@
 
     (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
     (gtk:dialog-add-button dlg "gtk-ok" :ok)
+    (gtk:set-dialog-alternative-button-order dlg (list :ok :cancel))
+
     (setf (gtk:dialog-default-response dlg) :ok)
     (gtk:dialog-set-response-sensitive dlg :ok nil)
     
