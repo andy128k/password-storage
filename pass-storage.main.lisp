@@ -152,6 +152,23 @@
     (setf (app-filename app) nil)
     (setf (app-password app) nil)))
 
+(defun open-file (app filename)
+  (let ((password (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
+			       '((nil "Password" :entry :required :password)))))
+    (when password
+      (let ((xml (handler-case
+		     (load-revelation-file filename (car password))
+		   (error (e)
+		     (declare (ignore e))
+		     (say-error (app-main-window app) "Can't open this file.")
+		     (return-from open-file)))))
+	
+	(gtk:tree-store-clear (app-data app))
+	(setf (app-filename app) filename)
+	(setf (app-password app) (car password))
+	(load-data app xml)
+	(setf (app-changed app) nil)))))
+
 (defun cb-open (app)
   (when (ensure-data-is-saved app)
     (let ((dlg (make-instance 'gtk:file-chooser-dialog
@@ -166,21 +183,7 @@
       (setf (gtk:dialog-default-response dlg) :ok)
       
       (when (std-dialog-run dlg)
-	(let ((password (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
-				     '((nil "Password" :entry :required :password)))))
-	  (when password
-	    (let ((xml (handler-case
-			   (load-revelation-file (gtk:file-chooser-filename dlg) (car password))
-			 (error (e)
-			   (declare (ignore e))
-			   (say-error (app-main-window app) "Can't open this file.")
-			   (return-from cb-open)))))
-	      
-	      (gtk:tree-store-clear (app-data app))
-	      (setf (app-filename app) (gtk:file-chooser-filename dlg))
-	      (setf (app-password app) (car password))
-	      (load-data app xml)
-	      (setf (app-changed app) nil))))))))
+	(open-file app (gtk:file-chooser-filename dlg))))))
 
 (defun cb-save-as (app)
   (let ((dlg (make-instance 'gtk:file-chooser-dialog
@@ -202,6 +205,10 @@
   (if (app-filename app)
       (save-data app (app-filename app))
       (cb-save-as app)))
+
+(defun cb-preferences (app)
+  (edit-object *config* (app-main-window app) "Preferences" "gtk-preferences"
+	       '((default-file "Default path" :filename))))
 
 (defun make-menu (group &rest actions)
   (let ((menu (make-instance 'gtk:menu)))
@@ -241,6 +248,8 @@
 
 (defun main ()
   ;; TODO: initialize random
+
+  (load-config)
 
   ;; stock icons
   (let ((icons (make-hash-table :test 'equal))
@@ -301,6 +310,8 @@
       (create-action action-group (:name "edit" :stock-id "gtk-edit" :sensitive nil) nil (lambda-u (cb-edit-entry app)))
       (create-action action-group (:name "delete" :stock-id "gtk-delete" :sensitive nil) nil (lambda-u (cb-del-entry app)))
 
+      (create-action action-group (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
+
       (create-action action-group (:name "help-menu" :label "_Help"))
       (create-action action-group (:name "about" :stock-id "gtk-about"))
 
@@ -333,6 +344,8 @@
       <separator/>
       <menuitem action='edit'/>
       <menuitem action='delete'/>
+      <separator/>
+      <menuitem action='preferences'/>
     </menu>
     <menu action='help-menu'>
       <menuitem action='about'/>
@@ -435,9 +448,20 @@
 
     (gtk:widget-show (app-main-window app))
 
+    (let ((default-file (config-default-file *config*)))
+      (when default-file
+	(gtk:gtk-main-add-timeout 1
+				  (lambda ()
+				    (gdk:gdk-threads-enter)
+				    (open-file app default-file)
+				    (gdk:gdk-threads-leave)
+				    nil))))
+    
     (gdk:gdk-threads-enter)
     (gtk:gtk-main)
-    (gdk:gdk-threads-leave)))
+    (gdk:gdk-threads-leave)
+    
+    (save-config)))
 
 (export 'main)
 
