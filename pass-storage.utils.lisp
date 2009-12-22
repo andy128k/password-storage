@@ -8,9 +8,9 @@
 			    :window-position :center-on-parent
 			    :transient-for parent-window
 			    :use-markup nil)))
-  (prog1
-      (eql (gtk:dialog-run dlg) :yes)
-    (gtk:object-destroy dlg))))
+    (prog1
+        (eql (gtk:dialog-run dlg) :yes)
+      (gtk:object-destroy dlg))))
 
 (defun ask-save (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
@@ -25,9 +25,9 @@
     (gtk:dialog-add-button dlg "gtk-save" :ok)
     (gtk:set-dialog-alternative-button-order dlg (list :ok :reject :cancel))
 
-  (prog1
-      (gtk:dialog-run dlg)
-    (gtk:object-destroy dlg))))
+    (prog1
+        (gtk:dialog-run dlg)
+      (gtk:object-destroy dlg))))
 
 (defun say-error (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
@@ -62,17 +62,16 @@
     (gtk:set-dialog-alternative-button-order dlg (list :ok :cancel))
 
     (setf (gtk:dialog-default-response dlg) :ok)
-    (gtk:dialog-set-response-sensitive dlg :ok nil)
-    
+
     (gtk:container-add (gtk:dialog-content-area dlg) content)
-    
+
     dlg))
 
 (defun std-dialog-run (dlg)
-  (prog2
-      (gtk:widget-show dlg :all t)
+  (gtk:widget-show dlg :all t)
+  (prog1
       (eql (gtk:dialog-run dlg) :ok)
-      (gtk:widget-hide dlg)))
+    (gtk:widget-hide dlg)))
 
 (defun make-table (conf)
   (let ((table (make-instance 'gtk:table
@@ -90,7 +89,7 @@
 		 (title (second item))
 		 (kind (third item))
 		 (params (cdddr item)))
-	     
+
 	     (gtk:table-attach table
 			       (make-instance 'gtk:label
 					      :label title
@@ -116,10 +115,19 @@
 							   :can-focus t
 							   :accepts-tab nil)))
 				(gtk:container-add sw widget)
-				
+
 				(gtk:table-attach table
 						  sw
 						  1 2 i (+ i 1))
+				widget))
+			     (:filename
+			      (let ((widget (make-instance 'gtk:file-chooser-button
+							   :can-focus t
+							   :activates-default t
+							   :action :open)))
+				(gtk:table-attach table
+						  widget
+						  1 2 i (+ i 1) :y-options :fill)
 				widget)))))
 
 	       (collect
@@ -130,26 +138,36 @@
   (gtk:entry-text widget))
 (defmethod widget-get-text ((widget gtk:text-view))
   (gtk:text-buffer-text (gtk:text-view-buffer widget)))
+(defmethod widget-get-text ((widget gtk:file-chooser-button))
+  (let ((filename (gtk:file-chooser-filename widget)))
+    (when (/= 0 (length filename))
+      filename)))
 
 (defgeneric widget-set-text (widget value))
 (defmethod widget-set-text ((widget gtk:entry) value)
   (setf (gtk:entry-text widget) value))
 (defmethod widget-set-text ((widget gtk:text-view) value)
   (setf (gtk:text-buffer-text (gtk:text-view-buffer widget)) value))
+(defmethod widget-set-text ((widget gtk:file-chooser-button) value)
+  (if value
+      (setf (gtk:file-chooser-filename widget) value)
+      (gtk:file-chooser-unselect-all widget)))
 
 (defun edit-object (obj parent-window title icon conf)
   (multiple-value-bind (table ws)
       (make-table conf)
-    
-    (let ((dlg (make-std-dialog parent-window title icon table)))
+
+    (let ((dlg (make-std-dialog parent-window title icon table))
+	  has-required)
 
       (iter (for (slot widget . params) in ws)
 	    (when (find :required params)
+	      (setf has-required t)
 	      (gobject:connect-signal widget "changed"
 				      (lambda (entry)
-					(gtk:dialog-set-response-sensitive 
+					(gtk:dialog-set-response-sensitive
 					 dlg
-					 :ok 
+					 :ok
 					 (/= 0 (length (widget-get-text entry)))))))
 
 	    (when (find :password params)
@@ -157,6 +175,9 @@
 
 	    (when slot
 	      (widget-set-text widget (slot-value obj slot))))
+
+      (when has-required
+	(gtk:dialog-set-response-sensitive dlg :ok nil))
 
       (when (std-dialog-run dlg)
 	(or
