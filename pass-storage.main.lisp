@@ -210,6 +210,24 @@
   (edit-object *config* (app-main-window app) "Preferences" "gtk-preferences"
 	       '((default-file "Default path" :filename))))
 
+(defun cb-copy-name (app)
+  (let ((data (app-data app))
+	(iter (get-selected-iter (app-view app))))
+    (when iter
+      (let ((entry (gtk:tree-store-value data iter 0)))
+	(gtk:clipboard-set-text
+	 (gtk:get-clipboard "CLIPBOARD")
+	 (entry-get-name entry))))))
+
+(defun cb-copy-password (app)
+  (let ((data (app-data app))
+	(iter (get-selected-iter (app-view app))))
+    (when iter
+      (let ((entry (gtk:tree-store-value data iter 0)))
+	(gtk:clipboard-set-text
+	 (gtk:get-clipboard "CLIPBOARD")
+	 (entry-get-password entry))))))
+
 (defun make-menu (group &rest actions)
   (let ((menu (make-instance 'gtk:menu)))
     (iter (for action in actions)
@@ -285,6 +303,11 @@
       (create-action action-group (:name "quit" :stock-id "gtk-quit") "<Control>q" (lambda-u (e-close app)))
 
       (create-action action-group (:name "edit-menu" :label "_Edit"))
+      (create-action action-group (:name "copy-name" :label "Copy _name") "<Control>c" (lambda-u (cb-copy-name app)))
+      (create-action action-group (:name "copy-password" :label "Copy pass_word") "<Control><Shift>c" (lambda-u (cb-copy-password app)))
+      (create-action action-group (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
+
+      (create-action action-group (:name "entry-menu" :label "_Entry"))
       
       (loop
 	 for class1 in (list 'entry-group
@@ -310,8 +333,6 @@
       (create-action action-group (:name "edit" :stock-id "gtk-edit" :sensitive nil) nil (lambda-u (cb-edit-entry app)))
       (create-action action-group (:name "delete" :stock-id "gtk-delete" :sensitive nil) nil (lambda-u (cb-del-entry app)))
 
-      (create-action action-group (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
-
       (create-action action-group (:name "help-menu" :label "_Help"))
       (create-action action-group (:name "about" :stock-id "gtk-about"))
 
@@ -329,6 +350,12 @@
       <menuitem action='quit'/>
     </menu>
     <menu action='edit-menu'>
+      <menuitem action='copy-name'/>
+      <menuitem action='copy-password'/>
+      <separator/>
+      <menuitem action='preferences'/>
+    </menu>
+    <menu action='entry-menu'>
       <menuitem action='add-entry-group'/>
       <separator/>
       <menuitem action='add-entry-generic'/>
@@ -344,8 +371,6 @@
       <separator/>
       <menuitem action='edit'/>
       <menuitem action='delete'/>
-      <separator/>
-      <menuitem action='preferences'/>
     </menu>
     <menu action='help-menu'>
       <menuitem action='about'/>
@@ -457,9 +482,7 @@
 				    (gdk:gdk-threads-leave)
 				    nil))))
     
-    (gdk:gdk-threads-enter)
     (gtk:gtk-main)
-    (gdk:gdk-threads-leave)
     
     (save-config)))
 

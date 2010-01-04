@@ -1,7 +1,7 @@
 (in-package :pass-storage)
 
 (defstruct config
-  (default-file ""))
+  default-file)
 
 (defvar *config* nil)
 

@@ -59,6 +59,9 @@
 		(collect
 		 `(list (list :|field| :|id| ,field-name) (slot-value entry ',slot))))))))
 
+(defgeneric entry-get-name (entry))
+(defgeneric entry-get-password (entry))
+
 ;;
 ;; subtypes
 ;;
@@ -67,12 +70,22 @@
   "group"
   "gtk-directory")
 
+(defmethod entry-get-name ((entry entry-group))
+  nil)
+(defmethod entry-get-password ((entry entry-group))
+  nil)
+
 (define-entry entry-generic "PassStorageEntryGeneric" "generic"
   "generic entry"
   "gtk-file"
   (hostname    "Hostname"    :entry "generic-hostname")
   (username    "Username"    :entry "generic-username")
   (password    "Password"    :entry "generic-password"))
+
+(defmethod entry-get-name ((entry entry-generic))
+  (slot-value entry 'username))
+(defmethod entry-get-password ((entry entry-generic))
+  (slot-value entry 'password))
 
 (define-entry entry-creditcard "PassStorageEntryCreditcard" "creditcard"
   "credit card"
@@ -83,6 +96,11 @@
   (ccv         "CCV number"  :entry "creditcard-ccv")
   (pin         "PIN"         :entry "generic-pin"))
 
+(defmethod entry-get-name ((entry entry-creditcard))
+  (slot-value entry 'cardnumber))
+(defmethod entry-get-password ((entry entry-creditcard))
+  (slot-value entry 'pin))
+
 (define-entry entry-cryptokey "PassStorageEntryCryptokey" "cryptokey"
   "crypto key"
   "ps-stock-entry-keyring"
@@ -90,6 +108,11 @@
   (certificate "Certificate" :entry "generic-certificate")
   (keyfile     "Key file"    :entry "generic-keyfile")
   (password    "Password"    :entry "generic-password"))
+
+(defmethod entry-get-name ((entry entry-cryptokey))
+  (slot-value entry 'hostname))
+(defmethod entry-get-password ((entry entry-cryptokey))
+  (slot-value entry 'password))
 
 (define-entry entry-database "PassStorageEntryDatabase" "database"
   "database"
@@ -99,11 +122,21 @@
   (password    "Password"    :entry "generic-password")
   (database    "Database"    :entry "generic-database"))
 
+(defmethod entry-get-name ((entry entry-database))
+  (slot-value entry 'database))
+(defmethod entry-get-password ((entry entry-database))
+  (slot-value entry 'password))
+
 (define-entry entry-door "PassStorageEntryDoor" "door"
   "door"
   "ps-stock-entry-door"
   (location    "Location"    :entry "generic-location")
   (code        "Code"        :entry "generic-code"))
+
+(defmethod entry-get-name ((entry entry-door))
+  (slot-value entry 'location))
+(defmethod entry-get-password ((entry entry-door))
+  (slot-value entry 'code))
 
 (define-entry entry-email "PassStorageEntryEmail" "email"
   "e-mail"
@@ -113,6 +146,11 @@
   (username    "Username"    :entry "generic-username")
   (password    "Password"    :entry "generic-password"))
 
+(defmethod entry-get-name ((entry entry-email))
+  (slot-value entry 'username))
+(defmethod entry-get-password ((entry entry-email))
+  (slot-value entry 'password))
+
 (define-entry entry-ftp "PassStorageEntryFtp" "ftp"
   "FTP"
   "ps-stock-entry-ftp"
@@ -121,11 +159,21 @@
   (username    "Username"    :entry "generic-username")
   (password    "Password"    :entry "generic-password"))
 
+(defmethod entry-get-name ((entry entry-ftp))
+  (slot-value entry 'username))
+(defmethod entry-get-password ((entry entry-ftp))
+  (slot-value entry 'password))
+
 (define-entry entry-phone "PassStorageEntryPhone" "phone"
   "phone"
   "ps-stock-entry-phone"
   (phonenumber "Number"      :entry "phone-phonenumber")
   (pin         "PIN"         :entry "generic-pin"))
+
+(defmethod entry-get-name ((entry entry-phone))
+  (slot-value entry 'phonenumber))
+(defmethod entry-get-password ((entry entry-phone))
+  (slot-value entry 'pin))
 
 (define-entry entry-shell "PassStorageEntryShell" "shell"
   "shell"
@@ -135,12 +183,22 @@
   (username    "Username"    :entry "generic-username")
   (password    "Password"    :entry "generic-password"))
 
+(defmethod entry-get-name ((entry entry-shell))
+  (slot-value entry 'username))
+(defmethod entry-get-password ((entry entry-shell))
+  (slot-value entry 'password))
+
 (define-entry entry-website "PassStorageEntryWebsite" "website"
   "website"
   "ps-stock-entry-website"
   (url         "URL"         :entry "generic-url")
   (username    "Username"    :entry "generic-username")
   (password    "Password"    :entry "generic-password"))
+
+(defmethod entry-get-name ((entry entry-website))
+  (slot-value entry 'username))
+(defmethod entry-get-password ((entry entry-website))
+  (slot-value entry 'password))
 
 ;;
 ;; functions
