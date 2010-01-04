@@ -158,11 +158,12 @@
       (make-table conf)
 
     (let ((dlg (make-std-dialog parent-window title icon table))
-	  has-required)
+	  disable-ok)
 
       (iter (for (slot widget . params) in ws)
 	    (when (find :required params)
-	      (setf has-required t)
+	      (setf disable-ok (and slot
+				    (= 0 (length (slot-value obj slot)))))
 	      (gobject:connect-signal widget "changed"
 				      (lambda (entry)
 					(gtk:dialog-set-response-sensitive
@@ -176,7 +177,7 @@
 	    (when slot
 	      (widget-set-text widget (slot-value obj slot))))
 
-      (when has-required
+      (when disable-ok
 	(gtk:dialog-set-response-sensitive dlg :ok nil))
 
       (when (std-dialog-run dlg)
