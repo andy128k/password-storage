@@ -5,7 +5,8 @@
   data
   view
   action-group
-
+  filter
+  
   filename
   password
   changed)
@@ -30,24 +31,28 @@
       (progn (gtk:gtk-main-quit) nil)
       t))
 
-(defun get-selected-iter (view)
-  (let ((selection (gtk:tree-view-selection view)))
+(defun get-selected-iter (app)
+  (let ((selection (gtk:tree-view-selection (app-view app))))
     (when selection
-      (gtk:tree-selection-selected selection))))
+      (let ((filter-iter (gtk:tree-selection-selected selection)))
+	(when filter-iter
+	  (gtk:tree-model-filter-convert-iter-to-child-iter (app-filter app)
+							    filter-iter))))))
 
-(defun get-selected-group-iter (view)
-  (let ((model (gtk:tree-view-model view))
-	(iter (get-selected-iter view)))
-
+(defun get-selected-group-iter (app)
+  (let* ((view (app-view app))
+	 (data (app-data app))
+	 (iter (get-selected-iter app)))
+    
     (loop
        while (and iter
-		  (not (is-group (gtk:tree-model-value model iter 0))))
-       do (setf iter (gtk:tree-model-iter-parent model iter)))
-
+		  (not (is-group (gtk:tree-model-value data iter 0))))
+       do (setf iter (gtk:tree-model-iter-parent data iter)))
+    
     iter))
 
 (defun listview-cursor-changed (app)
-  (let ((s (get-selected-iter (app-view app))))
+  (let ((s (get-selected-iter app)))
     (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) "edit")) s)
     (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) "delete")) s)))
 
@@ -56,19 +61,19 @@
     (setf (gtk:tree-store-value data iter 0) entry)
     (setf (gtk:tree-store-value data iter 1) (entry-name entry))
     (setf (gtk:tree-store-value data iter 2) (entry-icon entry))
-    (setf (gtk:tree-view-model (app-view app)) data)))
+    (gtk:tree-model-filter-refilter (app-filter app))))
 
 (defun cb-add-item (app type)
   (let ((entry (make-instance type)))
     (when (edit-entry entry (app-main-window app) "Add")
       (let ((iter (gtk:tree-store-append (app-data app)
-					 (get-selected-group-iter (app-view app)))))
+					 (get-selected-group-iter app))))
 	(update-row app iter entry)
 	(setf (app-changed app) t)))))
 
 (defun cb-edit-entry (app)
   (let ((data (app-data app))
-	(iter (get-selected-iter (app-view app))))
+	(iter (get-selected-iter app)))
     (when iter
       (let ((entry (gtk:tree-store-value data iter 0)))
 	(when (edit-entry entry (app-main-window app) "Edit")
@@ -76,12 +81,11 @@
 	  (setf (app-changed app) t))))))
 
 (defun cb-del-entry (app)
-  (let ((iter (get-selected-iter (app-view app))))
+  (let ((iter (get-selected-iter app)))
     (when (and iter
 	       (ask (app-main-window app) "Do you really want to delete selected item?"))
       (let* ((data (app-data app)))
 	(gtk:tree-store-remove data iter)
-	(setf (gtk:tree-view-model (app-view app)) data)
 	(listview-cursor-changed app)
 	(setf (app-changed app) t)))))
 
@@ -212,7 +216,7 @@
 
 (defun cb-copy-name (app)
   (let ((data (app-data app))
-	(iter (get-selected-iter (app-view app))))
+	(iter (get-selected-iter app)))
     (when iter
       (let ((entry (gtk:tree-store-value data iter 0)))
 	(gtk:clipboard-set-text
@@ -221,7 +225,7 @@
 
 (defun cb-copy-password (app)
   (let ((data (app-data app))
-	(iter (get-selected-iter (app-view app))))
+	(iter (get-selected-iter app)))
     (when iter
       (let ((entry (gtk:tree-store-value data iter 0)))
 	(gtk:clipboard-set-text
@@ -248,7 +252,11 @@
   (let ((p (gensym)))
     `(lambda (&rest ,p)
        (declare (ignore ,p))
-       ,@body)))
+       (handler-case
+	   (progn ,@body)
+	 (error (c)
+	   ;; TODO: use parent-window
+	   (say-error nil (format nil "~A" c)))))))
 
 (defmacro create-action (group action-params &optional accel func)
   `(let ((action (make-instance 'gtk:action ,@action-params)))
@@ -263,6 +271,19 @@
 (defun entry-title-by-class (class)
   (let ((dummy-entry (make-instance class)))
     (entry-title dummy-entry)))
+
+;; search
+(defgeneric entry-satisfies (entry model iter text))
+
+(defmethod entry-satisfies ((entry entry-group) model iter text)
+  (or
+   (entry-has-text entry text)
+
+   (iter (for i in-tree-model model children-of iter)
+	 (thereis (entry-satisfies (gtk:tree-store-value model i 0) model i text)))))
+
+(defmethod entry-satisfies (entry model iter text)
+  (entry-has-text entry text))
 
 (defun main ()
   ;; TODO: initialize random
@@ -289,8 +310,10 @@
    
       (gtk:icon-factory-add-default factory)))
 
-  (let* ((app (make-app
-	       :data (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray"))
+  (let* ((data (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray")))
+	 (app (make-app
+	       :data data
+	       :filter (make-instance 'gtk:tree-model-filter :child-model data)
 	       :action-group (make-instance 'gtk:action-group :name "action-group")))
 	 (ui (make-instance 'gtk:ui-manager)))
 
@@ -399,6 +422,18 @@
        (:expr (gtk:ui-manager-widget ui "/toolbar"))
        :expand nil
        :position 1
+
+       (gtk:h-box
+	:border-width 4
+	:spacing 8
+	(gtk:label :label "Find:")
+	:expand nil
+	(gtk:entry
+	 :var search-entry)
+	:expand nil
+	)
+       :expand nil
+       :position 2
        
        (gtk:scrolled-window
 	:can-focus t
@@ -408,11 +443,11 @@
 	(gtk:tree-view
 	 :var view
 	 :can-focus t
-	 :model (app-data app)
+	 :model (app-filter app)
 	 :headers-visible nil
 	 :reorderable t
 	 :search-column 1)
-	:position 2)))
+	:position 3)))
 
      (gtk:toolbar-insert (gtk:ui-manager-widget ui "/toolbar")
 			 (make-instance 'gtk:menu-tool-button
@@ -444,6 +479,18 @@
        (gtk:tree-view-column-pack-start col rnd2 :expand t)
        (gtk:tree-view-column-add-attribute col rnd2 "text" 1)
        (gtk:tree-view-append-column view col))
+     
+     (gtk:tree-model-filter-set-visible-function (app-filter app)
+						 (lambda (model iter)
+						   (when iter
+						     (let ((entry (gtk:tree-store-value model iter 0)))
+						       (when entry
+							 (entry-satisfies entry model iter (gtk:entry-text search-entry)))))))
+     
+     (gobject:connect-signal search-entry "changed"
+			     (lambda-u
+			      (gtk:tree-model-filter-refilter (app-filter app)
+			      )))
 
      (setf (gtk:gtk-window-icon main-window)
 	   (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
@@ -467,7 +514,23 @@
 					(progn (gdk:drag-status drag-context :move time) nil)
 					(progn (gdk:drag-status drag-context 0 time) t)))))))
 
-    (gobject:connect-signal (app-view app) "row-activated" (lambda-u (cb-edit-entry app)))
+    (gobject:connect-signal (app-view app) "row-activated"
+			    (lambda-u
+			     (let* ((data (app-data app))
+				    (view (app-view app))
+				    (selection (gtk:tree-view-selection view)))
+
+			       (when selection
+				 (let ((filter-iter (gtk:tree-selection-selected selection)))
+				   (when filter-iter
+				     (let* ((iter (gtk:tree-model-filter-convert-iter-to-child-iter (app-filter app) filter-iter))
+					    (entry (gtk:tree-store-value data iter 0)))
+				       (if (is-group entry)
+					   (let ((path (gtk:tree-model-path (app-filter app) filter-iter)))
+					     (if (gtk:tree-view-row-expanded-p view path)
+						 (gtk:tree-view-collapse-row view path)
+						 (gtk:tree-view-expand-row view path)))
+					   (cb-edit-entry app)))))))))
 
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
 

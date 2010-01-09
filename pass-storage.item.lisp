@@ -21,6 +21,8 @@
 (defgeneric load-entry (xml-name xml-node))
 (defgeneric save-entry (entry))
 
+(defgeneric entry-has-text (entry text))
+
 ;;
 ;; helpers
 ;;
@@ -57,7 +59,14 @@
 	(list :|description| (slot-value entry 'description))
 	,@(iter (for (slot title type field-name) in slots)
 		(collect
-		 `(list (list :|field| :|id| ,field-name) (slot-value entry ',slot))))))))
+		 `(list (list :|field| :|id| ,field-name) (slot-value entry ',slot))))))
+
+     (defmethod entry-has-text ((entry ,name) text)
+       (or
+	(search text (entry-name entry))
+	(search text (entry-description entry))
+	,@(iter (for (slot title type field-name) in slots)
+		(collect `(search text (slot-value entry (quote ,slot)))))))))
 
 (defgeneric entry-get-name (entry))
 (defgeneric entry-get-password (entry))

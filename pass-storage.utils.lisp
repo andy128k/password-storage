@@ -188,3 +188,33 @@
 	       (collect (widget-get-text widget)))
 	 t)))))
 
+;; tree model
+
+(defmacro-driver (FOR iter in-tree-model model children-of parent-iter)
+    (let ((m (gensym))
+	  (parent (gensym))
+	  (p (gensym))
+	  (i (gensym))
+	  (kwd (if generate 'generate 'for)))
+      `(progn
+	 (with ,m = ,model)
+	 (with ,parent = ,parent-iter)
+	 (with ,p = t)
+	 (with ,i = nil)
+	 (,kwd ,iter next
+	       (progn
+		 (if ,p ; first iter
+		     (progn
+		       (setf ,p nil)
+		       (setf ,i (if ,parent
+				    (gtk:tree-model-iter-first-child ,m ,parent)
+				    (gtk:tree-model-iter-first ,m))))
+		     ;; else
+		     (progn
+		       (unless (gtk:tree-model-iter-next ,m ,i)
+			 (terminate))))
+		 
+		 (unless ,i
+		   (terminate))
+		 ,i)))))
+
