@@ -157,21 +157,23 @@
     (setf (app-password app) nil)))
 
 (defun open-file (app filename)
-  (let ((password (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
-			       '((nil "Password" :entry :required :password)))))
-    (when password
-      (let ((xml (handler-case
-		     (load-revelation-file filename (car password))
-		   (error (e)
-		     (declare (ignore e))
-		     (say-error (app-main-window app) "Can't open this file.")
-		     (return-from open-file)))))
-	
-	(gtk:tree-store-clear (app-data app))
-	(setf (app-filename app) filename)
-	(setf (app-password app) (car password))
-	(load-data app xml)
-	(setf (app-changed app) nil)))))
+  (loop
+     for password = (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
+				 '((nil "Password" :entry :required :password)))
+  
+     while password
+
+     do (handler-case
+	    (let ((xml (load-revelation-file filename (car password))))
+	      (gtk:tree-store-clear (app-data app))
+	      (setf (app-filename app) filename)
+	      (setf (app-password app) (car password))
+	      (load-data app xml)
+	      (setf (app-changed app) nil)
+	      (return-from open-file))
+	  (error (e)
+	    (declare (ignore e))
+	    (say-error (app-main-window app) "Can't open this file.")))))
 
 (defun cb-open (app)
   (when (ensure-data-is-saved app)
@@ -326,6 +328,7 @@
       (create-action action-group (:name "quit" :stock-id "gtk-quit") "<Control>q" (lambda-u (e-close app)))
 
       (create-action action-group (:name "edit-menu" :label "_Edit"))
+      (create-action action-group (:name "find" :label "_Find") "<Control>f")
       (create-action action-group (:name "copy-name" :label "Copy _name") "<Control>c" (lambda-u (cb-copy-name app)))
       (create-action action-group (:name "copy-password" :label "Copy pass_word") "<Control><Shift>c" (lambda-u (cb-copy-password app)))
       (create-action action-group (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
@@ -373,6 +376,8 @@
       <menuitem action='quit'/>
     </menu>
     <menu action='edit-menu'>
+      <menuitem action='find'/>
+      <separator/>
       <menuitem action='copy-name'/>
       <menuitem action='copy-password'/>
       <separator/>
@@ -487,10 +492,12 @@
 						       (when entry
 							 (entry-satisfies entry model iter (gtk:entry-text search-entry)))))))
      
+     (gobject:connect-signal (gtk:action-group-action (app-action-group app) "find") "activate"
+			     (lambda-u
+			      (gtk:widget-grab-focus search-entry)))
      (gobject:connect-signal search-entry "changed"
 			     (lambda-u
-			      (gtk:tree-model-filter-refilter (app-filter app)
-			      )))
+			      (gtk:tree-model-filter-refilter (app-filter app))))
 
      (setf (gtk:gtk-window-icon main-window)
 	   (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
