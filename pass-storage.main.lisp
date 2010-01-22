@@ -518,8 +518,8 @@
 					 (iter (gtk:tree-model-iter-by-path model path)))
 
 				    (if (is-group (gtk:tree-store-value model iter 0))
-					(progn (gdk:drag-status drag-context :move time) nil)
-					(progn (gdk:drag-status drag-context 0 time) t)))))))
+					(progn (gdk:gdk-drag-status drag-context :move time) nil)
+					(progn (gdk:gdk-drag-status drag-context 0 time) t)))))))
 
     (gobject:connect-signal (app-view app) "row-activated"
 			    (lambda-u
