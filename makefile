@@ -1,16 +1,16 @@
 core: core-sbcl-linux-any
 
 core-sbcl-linux-any:
-	sbcl --eval "(progn (asdf:oos 'asdf:load-op :zlib) (asdf:oos 'asdf:load-op :cl-fad) (asdf:oos 'asdf:load-op :cl-gtk2-gtk) (asdf:oos 'asdf:load-op :ironclad) (sb-ext:save-lisp-and-die \"sbcl-cl-gtk2\" :executable t))"
+	sbcl --eval "(progn (asdf:oos 'asdf:load-op :cl-z) (asdf:oos 'asdf:load-op :cl-fad) (asdf:oos 'asdf:load-op :cl-gtk2-gtk) (asdf:oos 'asdf:load-op :ironclad) (sb-ext:save-lisp-and-die \"sbcl-cl-gtk2\" :executable t))"
 
 core-ecl:
 	ecl -eval "(progn (push #p\"/home/andy/.sbcl/systems/\" asdf:*central-registry*) (asdf:oos 'asdf:load-op :cl-gtk2-gtk) (asdf:oos 'asdf:load-op :ironclad) (sb-ext:save-lisp-and-die \"sbcl-cl-gtk2\" :executable t))"
 
 core-clozure-linux-64:
-	ccl --eval "(progn (asdf:oos 'asdf:load-op :zlib) (asdf:oos 'asdf:load-op :cl-fad) (asdf:oos 'asdf:load-op :cl-gtk2-gtk) (asdf:oos 'asdf:load-op :ironclad) (ccl:save-application \"clozure-cl-gtk2\" :prepend-kernel t))"
+	ccl --eval "(progn (asdf:oos 'asdf:load-op :cl-z) (asdf:oos 'asdf:load-op :cl-fad) (asdf:oos 'asdf:load-op :cl-gtk2-gtk) (asdf:oos 'asdf:load-op :ironclad) (ccl:save-application \"clozure-cl-gtk2\" :prepend-kernel t))"
 
 core-clozure-windows-32:
-	wx86cl --eval "(progn (asdf:oos 'asdf:load-op :zlib) (asdf:oos 'asdf:load-op :cl-fad) (asdf:oos 'asdf:load-op :cl-gtk2-gtk) (asdf:oos 'asdf:load-op :ironclad) (ccl:save-application \"clozure-cl-gtk2.exe\" :prepend-kernel t))"
+	wx86cl --eval "(progn (asdf:oos 'asdf:load-op :cl-z) (asdf:oos 'asdf:load-op :cl-fad) (asdf:oos 'asdf:load-op :cl-gtk2-gtk) (asdf:oos 'asdf:load-op :ironclad) (ccl:save-application \"clozure-cl-gtk2.exe\" :prepend-kernel t))"
 
 
 
