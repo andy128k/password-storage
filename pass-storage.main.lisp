@@ -28,7 +28,10 @@
 
 (defun e-close (app)
   (if (ensure-data-is-saved app)
-      (progn (gtk:gtk-main-quit) nil)
+      (progn
+         (gtk:gtk-main-quit)
+         (gtk:clipboard-clear (gtk:get-clipboard "CLIPBOARD"))
+         nil)
       t))
 
 (defun get-selected-iter (app)
@@ -40,10 +43,9 @@
 							    filter-iter))))))
 
 (defun get-selected-group-iter (app)
-  (let* ((view (app-view app))
-	 (data (app-data app))
+  (let* ((data (app-data app))
 	 (iter (get-selected-iter app)))
-    
+
     (loop
        while (and iter
 		  (not (is-group (gtk:tree-model-value data iter 0))))
@@ -166,9 +168,9 @@
      do (handler-case
 	    (let ((xml (load-revelation-file filename (car password))))
 	      (gtk:tree-store-clear (app-data app))
+	      (load-data app xml)
 	      (setf (app-filename app) filename)
 	      (setf (app-password app) (car password))
-	      (load-data app xml)
 	      (setf (app-changed app) nil)
 	      (return-from open-file))
 	  (error (e)
@@ -497,7 +499,8 @@
 			      (gtk:widget-grab-focus search-entry)))
      (gobject:connect-signal search-entry "changed"
 			     (lambda-u
-			      (gtk:tree-model-filter-refilter (app-filter app))))
+			      (gtk:tree-model-filter-refilter (app-filter app))
+			      (gtk:tree-view-expand-all (app-view app))))
 
      (setf (gtk:gtk-window-icon main-window)
 	   (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
