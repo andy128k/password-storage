@@ -242,7 +242,7 @@
 			    :window-position :center-on-parent
 			    :transient-for (app-main-window app)
 			    :authors '("Andrey Kutejko <andy128k@gmail.com>")
-			    :copyright "2009, Andrey Kutejko"
+			    :copyright "Copyright 2009, Andrey Kutejko"
 			    :logo (gtk:widget-render-icon (app-main-window app) "ps-pass-storage" :dialog "")
 			    :program-name "PassStorage"
 			    :version "0.10.2.8"
