@@ -90,48 +90,61 @@
 		 (kind (third item))
 		 (params (cdddr item)))
 
-	     (gtk:table-attach table
-			       (make-instance 'gtk:label
-					      :label title
-					      :xalign 0 :yalign 0.5)
-			       0 1 i (+ i 1) :x-options :fill :y-options :fill)
+	     (flet ((insert-label ()
+		      (gtk:table-attach table
+					(make-instance 'gtk:label
+						       :label title
+						       :xalign 0 :yalign 0.5)
+					0 1 i (+ i 1) :x-options :fill :y-options :fill)))
 
-	     (let ((widget (case kind
-			     (:entry
-			      (let ((widget (make-instance 'gtk:entry
-							   :can-focus t
-							   :activates-default t)))
-				(gtk:table-attach table
-						  widget
-						  1 2 i (+ i 1) :y-options :fill)
-				widget))
-			     (:area
-			      (let ((sw (make-instance 'gtk:scrolled-window
-						       :can-focus t
-						       :hscrollbar-policy :automatic
-						       :vscrollbar-policy :automatic
-						       :shadow-type :in))
-				    (widget (make-instance 'gtk:text-view
-							   :can-focus t
-							   :accepts-tab nil)))
-				(gtk:container-add sw widget)
+	       (let ((widget (case kind
+			       ((:entry :password :secret)
+				(insert-label)
+				(let ((widget (make-instance 'gtk:entry
+							     :can-focus t
+							     :activates-default t)))
+				  (gtk:table-attach table
+						    widget
+						    1 2 i (+ i 1) :y-options :fill)
+				  widget))
+			       (:area
+				(insert-label)
+				(let ((sw (make-instance 'gtk:scrolled-window
+							 :can-focus t
+							 :hscrollbar-policy :automatic
+							 :vscrollbar-policy :automatic
+							 :shadow-type :in))
+				      (widget (make-instance 'gtk:text-view
+							     :can-focus t
+							     :accepts-tab nil)))
+				  (gtk:container-add sw widget)
 
-				(gtk:table-attach table
-						  sw
-						  1 2 i (+ i 1))
-				widget))
-			     (:filename
-			      (let ((widget (make-instance 'gtk:file-chooser-button
-							   :can-focus t
-							   :activates-default t
-							   :action :open)))
-				(gtk:table-attach table
-						  widget
-						  1 2 i (+ i 1) :y-options :fill)
-				widget)))))
+				  (gtk:table-attach table
+						    sw
+						    1 2 i (+ i 1))
+				  widget))
+			       (:filename
+				(insert-label)
+				(let ((widget (make-instance 'gtk:file-chooser-button
+							     :can-focus t
+							     :activates-default t
+							     :action :open)))
+				  (gtk:table-attach table
+						    widget
+						    1 2 i (+ i 1) :y-options :fill)
+				  widget))
+			       (:boolean
+				(let ((widget (make-instance 'gtk:check-button
+							     :can-focus t
+							     :label title
+							     :activates-default t)))
+				  (gtk:table-attach table
+						    widget
+						    0 2 i (+ i 1) :x-options :shrink :y-options :fill)
+				  widget)))))
 
-	       (collect
-		(list* slot-name widget params))))))))
+		 (collect
+		  (list* slot-name widget params)))))))))
 
 (defgeneric widget-get-text (widget))
 (defmethod widget-get-text ((widget gtk:entry))
@@ -142,6 +155,8 @@
   (let ((filename (gtk:file-chooser-filename widget)))
     (when (/= 0 (length filename))
       filename)))
+(defmethod widget-get-text ((widget gtk:check-button))
+  (gtk:toggle-button-active widget))
 
 (defgeneric widget-set-text (widget value))
 (defmethod widget-set-text ((widget gtk:entry) value)
@@ -152,6 +167,8 @@
   (if value
       (setf (gtk:file-chooser-filename widget) value)
       (gtk:file-chooser-unselect-all widget)))
+(defmethod widget-set-text ((widget gtk:check-button) value)
+  (setf (gtk:toggle-button-active widget) value))
 
 (defun edit-object (obj parent-window title icon conf)
   (multiple-value-bind (table ws)
@@ -213,7 +230,7 @@
 		     (progn
 		       (unless (gtk:tree-model-iter-next ,m ,i)
 			 (terminate))))
-		 
+
 		 (unless ,i
 		   (terminate))
 		 ,i)))))
