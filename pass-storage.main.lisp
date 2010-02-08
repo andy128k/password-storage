@@ -237,6 +237,19 @@
 	 (gtk:get-clipboard "CLIPBOARD")
 	 (entry-get-password entry))))))
 
+(defun cb-about (app)
+  (let ((dlg (make-instance 'gtk:about-dialog
+			    :window-position :center-on-parent
+			    :transient-for (app-main-window app)
+			    :authors '("Andrey Kutejko <andy128k@gmail.com>")
+			    :copyright "2009, Andrey Kutejko"
+			    :logo (gtk:widget-render-icon (app-main-window app) "ps-pass-storage" :dialog "")
+			    :program-name "PassStorage"
+			    :version "0.10.2.8"
+			    :website "http://andy128k.github.com/PassStorage")))
+    (gtk:dialog-run dlg)
+    (gtk:object-destroy dlg)))
+
 (defun make-menu (group &rest actions)
   (let ((menu (make-instance 'gtk:menu)))
     (iter (for action in actions)
@@ -340,7 +353,7 @@
       (create-action action-group (:name "copy-password" :label "Copy pass_word") "<Control><Shift>c" (lambda-u (cb-copy-password app)))
       (create-action action-group (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
 
-      (create-action action-group (:name "entry-menu" :label "_Entry"))
+      (create-action action-group (:name "entry-menu" :label "E_ntry"))
 
       (loop
 	 for class1 in (list 'entry-group
@@ -367,7 +380,7 @@
       (create-action action-group (:name "delete" :stock-id "gtk-delete" :sensitive nil) nil (lambda-u (cb-del-entry app)))
 
       (create-action action-group (:name "help-menu" :label "_Help"))
-      (create-action action-group (:name "about" :stock-id "gtk-about"))
+      (create-action action-group (:name "about" :stock-id "gtk-about") nil (lambda-u (cb-about app)))
 
       (gtk:ui-manager-insert-action-group ui action-group 0))
 
