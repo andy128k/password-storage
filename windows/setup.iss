@@ -3,17 +3,20 @@
 
 [Setup]
 AppName=PassStorage
-AppVerName=PassStorage 0.2
+AppVerName=PassStorage 0.10.2.8
 AppPublisher=Andrey Kutejko
 AppPublisherURL=http://andy128k.github.com/PassStorage
 AppSupportURL=http://andy128k.github.com/PassStorage
 AppUpdatesURL=http://andy128k.github.com/PassStorage
 DefaultDirName={pf}\PassStorage
 DisableDirPage=yes
+DisableProgramGroupPage=yes
+DisableReadyPage=yes
 DefaultGroupName=PassStorage
-OutputBaseFilename=PassStorage-0.2
+OutputBaseFilename=PassStorage-0.10.2.8
 Compression=lzma
 SolidCompression=yes
+WizardImageFile=setup-bg.bmp
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -24,42 +27,41 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "D:\_IN_\PassStorage\runner.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\freetype6.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\intl.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libatk-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libcairo-2.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libexpat-1.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libfontconfig-1.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libgailutil-18.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libgdk_pixbuf-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libgdk-win32-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libgio-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libglib-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libgmodule-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libgobject-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libgthread-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libgtk-win32-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libjpeg-7.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libpango-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libpangocairo-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libpangoft2-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libpangowin32-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libpng12-0.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libtiff-3.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\libtiffxx-3.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\PassStorage.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\runner.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\zlib1.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\_IN_\PassStorage\etc\*"; DestDir: "{app}\etc"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "D:\_IN_\PassStorage\icons\*"; DestDir: "{app}\icons"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "D:\_IN_\PassStorage\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "D:\_IN_\PassStorage\share\*"; DestDir: "{app}\share"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "D:\PassStorage\runner.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\freetype6.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\intl.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libatk-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libcairo-2.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libexpat-1.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libfontconfig-1.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libgailutil-18.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libgdk_pixbuf-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libgdk-win32-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libgio-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libglib-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libgmodule-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libgobject-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libgthread-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libgtk-win32-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libjpeg-7.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libpango-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libpangocairo-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libpangoft2-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libpangowin32-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libpng12-0.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libtiff-3.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\libtiffxx-3.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\PassStorage.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\runner.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\zlib1.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\PassStorage\etc\*"; DestDir: "{app}\etc"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "D:\PassStorage\icons\*"; DestDir: "{app}\icons"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "D:\PassStorage\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "D:\PassStorage\share\*"; DestDir: "{app}\share"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{group}\PassStorage"; Filename: "{app}\runner.exe"; WorkingDir: "{app}"
-Name: "{group}\{cm:ProgramOnTheWeb,PassStorage}"; Filename: "http://andy128k.github.com/PassStorage"
+Name: "{userprograms}\PassStorage"; Filename: "{app}\runner.exe"; WorkingDir: "{app}"
 Name: "{commondesktop}\PassStorage"; Filename: "{app}\runner.exe"; Tasks: desktopicon; WorkingDir: "{app}"
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\PassStorage"; Filename: "{app}\runner.exe"; Tasks: quicklaunchicon; WorkingDir: "{app}"
 
