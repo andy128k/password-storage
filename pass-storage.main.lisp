@@ -6,7 +6,7 @@
   view
   action-group
   filter
-  
+
   filename
   password
   changed)
@@ -50,7 +50,7 @@
        while (and iter
 		  (not (is-group (gtk:tree-model-value data iter 0))))
        do (setf iter (gtk:tree-model-iter-parent data iter)))
-    
+
     iter))
 
 (defun listview-cursor-changed (app)
@@ -140,7 +140,7 @@
 
       (let ((xml (list* (list :|revelationdata| :|version| "0.4.11" :|dataversion| "1")
 			(traverse nil))))
-	
+
 	(unless (app-password app)
 	  (let ((password (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
 				       '((nil "Password" :entry :required :password)))))
@@ -162,7 +162,7 @@
   (loop
      for password = (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
 				 '((nil "Password" :entry :required :password)))
-  
+
      while password
 
      do (handler-case
@@ -184,12 +184,12 @@
 			      :title "Open file"
 			      :window-position :center-on-parent
 			      :transient-for (app-main-window app))))
-      
+
       (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
       (gtk:dialog-add-button dlg "gtk-open" :ok)
       (gtk:set-dialog-alternative-button-order dlg (list :ok :cancel))
       (setf (gtk:dialog-default-response dlg) :ok)
-      
+
       (when (std-dialog-run dlg)
 	(open-file app (gtk:file-chooser-filename dlg))))))
 
@@ -199,12 +199,12 @@
 			    :title "Save file"
 			    :window-position :center-on-parent
 			    :transient-for (app-main-window app))))
-    
+
     (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
     (gtk:dialog-add-button dlg "gtk-save" :ok)
     (gtk:set-dialog-alternative-button-order dlg (list :ok :cancel))
     (setf (gtk:dialog-default-response dlg) :ok)
-    
+
     (when (std-dialog-run dlg)
       (setf (app-filename app) (gtk:file-chooser-filename dlg))
       (save-data app (gtk:file-chooser-filename dlg)))))
@@ -216,7 +216,8 @@
 
 (defun cb-preferences (app)
   (edit-object *config* (app-main-window app) "Preferences" "gtk-preferences"
-	       '((default-file "Default path" :filename))))
+	       '((default-file "Default path" :filename)
+		 (search-in-secrets "Search in secrets (passwords)" :boolean))))
 
 (defun cb-copy-name (app)
   (let ((data (app-data app))
@@ -281,13 +282,17 @@
 
 (defmethod entry-satisfies ((entry entry-group) model iter text)
   (or
-   (entry-has-text entry text)
+   (entry-has-text entry
+		   text
+		   :look-at-secrets (config-search-in-secrets *config*))
 
    (iter (for i in-tree-model model children-of iter)
 	 (thereis (entry-satisfies (gtk:tree-store-value model i 0) model i text)))))
 
 (defmethod entry-satisfies (entry model iter text)
-  (entry-has-text entry text))
+  (entry-has-text entry
+		  text
+		  :look-at-secrets (config-search-in-secrets *config*)))
 
 (defun main ()
   ;; TODO: initialize random
@@ -304,14 +309,14 @@
      icons-directory
      (lambda (fn)
        (push fn (gethash (pathname-name fn) icons))))
-      
+
     ;; register stock icons
     (let ((factory (make-instance 'gtk:icon-factory)))
       (iter (for (icon-name files) in-hashtable icons)
 	    (gtk:icon-factory-add factory
 				  (concatenate 'string "ps-" icon-name)
 				  (make-icon-set files)))
-   
+
       (gtk:icon-factory-add-default factory)))
 
   (let* ((data (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray")))
@@ -336,7 +341,7 @@
       (create-action action-group (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
 
       (create-action action-group (:name "entry-menu" :label "_Entry"))
-      
+
       (loop
 	 for class1 in (list 'entry-group
 			     'entry-generic
@@ -357,7 +362,7 @@
 			     :label (format nil "Add ~A" (entry-title-by-class class)))
 			    nil
 			    (lambda-u (cb-add-item app class)))))
-      
+
       (create-action action-group (:name "edit" :stock-id "gtk-edit" :sensitive nil) nil (lambda-u (cb-edit-entry app)))
       (create-action action-group (:name "delete" :stock-id "gtk-delete" :sensitive nil) nil (lambda-u (cb-del-entry app)))
 
@@ -421,11 +426,11 @@
       :default-width 600
       :default-height 450
       (gtk:v-box
-       
+
        (:expr (gtk:ui-manager-widget ui "/menubar"))
        :expand nil
        :position 0
-       
+
        (:expr (gtk:ui-manager-widget ui "/toolbar"))
        :expand nil
        :position 1
@@ -441,7 +446,7 @@
 	)
        :expand nil
        :position 2
-       
+
        (gtk:scrolled-window
 	:can-focus t
 	:hscrollbar-policy :automatic
@@ -486,14 +491,14 @@
        (gtk:tree-view-column-pack-start col rnd2 :expand t)
        (gtk:tree-view-column-add-attribute col rnd2 "text" 1)
        (gtk:tree-view-append-column view col))
-     
+
      (gtk:tree-model-filter-set-visible-function (app-filter app)
 						 (lambda (model iter)
 						   (when iter
 						     (let ((entry (gtk:tree-store-value model iter 0)))
 						       (when entry
 							 (entry-satisfies entry model iter (gtk:entry-text search-entry)))))))
-     
+
      (gobject:connect-signal (gtk:action-group-action (app-action-group app) "find") "activate"
 			     (lambda-u
 			      (gtk:widget-grab-focus search-entry)))
@@ -554,9 +559,9 @@
 				    (open-file app default-file)
 				    (gdk:gdk-threads-leave)
 				    nil))))
-    
+
     (gtk:gtk-main)
-    
+
     (save-config)))
 
 (export 'main)

@@ -1,7 +1,8 @@
 (in-package :pass-storage)
 
 (defstruct config
-  default-file)
+  default-file
+  search-in-secrets)
 
 (defvar *config* nil)
 
