@@ -518,7 +518,9 @@
      (gobject:connect-signal search-entry "changed"
 			     (lambda-u
 			      (gtk:tree-model-filter-refilter (app-filter app))
-			      (gtk:tree-view-expand-all (app-view app))))
+			      (if (string= "" (gtk:entry-text search-entry))
+				  (gtk:tree-view-collapse-all (app-view app))
+				  (gtk:tree-view-expand-all (app-view app)))))
 
      (setf (gtk:gtk-window-icon main-window)
 	   (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
