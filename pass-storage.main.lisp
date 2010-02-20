@@ -29,18 +29,30 @@
 (defun e-close (app)
   (if (ensure-data-is-saved app)
       (progn
-         (gtk:gtk-main-quit)
-         (gtk:clipboard-clear (gtk:get-clipboard "CLIPBOARD"))
-         nil)
+	(gtk:gtk-main-quit)
+	(gtk:clipboard-clear (gtk:get-clipboard "CLIPBOARD"))
+	nil)
       t))
 
 (defun get-selected-iter (app)
   (let ((selection (gtk:tree-view-selection (app-view app))))
     (when selection
-      (let ((filter-iter (gtk:tree-selection-selected selection)))
-	(when filter-iter
-	  (gtk:tree-model-filter-convert-iter-to-child-iter (app-filter app)
-							    filter-iter))))))
+
+      (let ((current-model (gtk:tree-view-model (app-view app))))
+	(cond
+
+	  ((eq current-model (app-data app))
+	   (let ((iter (gtk:tree-selection-selected selection)))
+	     (when iter
+	       (values iter
+		       (gtk:tree-model-path (app-data app) iter)))))
+
+	  ((eq current-model (app-filter app))
+	   (let ((filter-iter (gtk:tree-selection-selected selection)))
+	     (when filter-iter
+	       (values (gtk:tree-model-filter-convert-iter-to-child-iter (app-filter app)
+									 filter-iter)
+		       (gtk:tree-model-path (app-filter app) filter-iter))))))))))
 
 (defun get-selected-group-iter (app)
   (let* ((data (app-data app))
@@ -280,7 +292,7 @@
   `(let ((action (make-instance 'gtk:action ,@action-params)))
      (gtk:action-group-add-action ,group action :accelerator ,accel)
      ,(when func
-       `(gobject:connect-signal action "activate" ,func))))
+	    `(gobject:connect-signal action "activate" ,func))))
 
 (defun entry-icon-by-class (class)
   (let ((dummy-entry (make-instance class)))
@@ -371,8 +383,8 @@
 	   (let ((class class1))
 	     (create-action action-group
 			    (:name (format nil "add-~(~A~)" class)
-			     :stock-id (entry-icon-by-class class)
-			     :label (format nil "Add ~A" (entry-title-by-class class)))
+				   :stock-id (entry-icon-by-class class)
+				   :label (format nil "Add ~A" (entry-title-by-class class)))
 			    nil
 			    (lambda-u (cb-add-item app class)))))
 
@@ -385,7 +397,7 @@
       (gtk:ui-manager-insert-action-group ui action-group 0))
 
     (gtk:ui-manager-add-ui-from-string ui
-"<ui>
+				       "<ui>
   <menubar name='menubar'>
     <menu action='file-menu'>
       <menuitem action='new'/>
@@ -468,7 +480,7 @@
 	(gtk:tree-view
 	 :var view
 	 :can-focus t
-	 :model (app-filter app)
+	 :model (app-data app)
 	 :headers-visible nil
 	 :reorderable t
 	 :search-column 1)
@@ -517,10 +529,16 @@
 			      (gtk:widget-grab-focus search-entry)))
      (gobject:connect-signal search-entry "changed"
 			     (lambda-u
-			      (gtk:tree-model-filter-refilter (app-filter app))
 			      (if (string= "" (gtk:entry-text search-entry))
-				  (gtk:tree-view-collapse-all (app-view app))
-				  (gtk:tree-view-expand-all (app-view app)))))
+				  (progn
+				    (setf (gtk:tree-view-model (app-view app)) (app-data app))
+				    (setf (gtk:tree-view-reorderable (app-view app)) t)
+				    (gtk:tree-view-collapse-all (app-view app)))
+				  (progn
+				    (setf (gtk:tree-view-model (app-view app)) (app-filter app))
+				    (setf (gtk:tree-view-reorderable (app-view app)) nil)
+				    (gtk:tree-model-filter-refilter (app-filter app))
+				    (gtk:tree-view-expand-all (app-view app))))))
 
      (setf (gtk:gtk-window-icon main-window)
 	   (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
@@ -546,21 +564,20 @@
 
     (gobject:connect-signal (app-view app) "row-activated"
 			    (lambda-u
-			     (let* ((data (app-data app))
-				    (view (app-view app))
-				    (selection (gtk:tree-view-selection view)))
+			     (multiple-value-bind (iter path)
+				 (get-selected-iter app)
 
-			       (when selection
-				 (let ((filter-iter (gtk:tree-selection-selected selection)))
-				   (when filter-iter
-				     (let* ((iter (gtk:tree-model-filter-convert-iter-to-child-iter (app-filter app) filter-iter))
-					    (entry (gtk:tree-store-value data iter 0)))
-				       (if (is-group entry)
-					   (let ((path (gtk:tree-model-path (app-filter app) filter-iter)))
-					     (if (gtk:tree-view-row-expanded-p view path)
-						 (gtk:tree-view-collapse-row view path)
-						 (gtk:tree-view-expand-row view path)))
-					   (cb-edit-entry app)))))))))
+			       (when iter
+
+				 (let* ((data (app-data app))
+					(view (app-view app))
+					(entry (gtk:tree-store-value data iter 0)))
+
+				   (if (is-group entry)
+				       (if (gtk:tree-view-row-expanded-p view path)
+					   (gtk:tree-view-collapse-row view path)
+					   (gtk:tree-view-expand-row view path))
+				       (cb-edit-entry app)))))))
 
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
 
