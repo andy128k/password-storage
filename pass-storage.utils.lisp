@@ -98,11 +98,28 @@
 					0 1 i (+ i 1) :x-options :fill :y-options :fill)))
 
 	       (let ((widget (case kind
-			       ((:entry :password :secret)
+			       ((:entry :secret)
 				(insert-label)
 				(let ((widget (make-instance 'gtk:entry
 							     :can-focus t
 							     :activates-default t)))
+				  (gtk:table-attach table
+						    widget
+						    1 2 i (+ i 1) :y-options :fill)
+				  widget))
+			       (:password
+				(insert-label)
+				(let ((widget (make-instance 'gtk:entry
+							     :can-focus t
+							     :activates-default t
+							     :secondary-icon-stock "gtk-execute")))
+				  (setf (gtk:entry-secondary-icon-tooltip-text widget) "Generate password")
+				  (gobject:connect-signal widget "icon-release"
+							  (lambda (entry pos event)
+							    (when (eq pos :secondary)
+							      (when (or (string= "" (gtk:entry-text entry))
+									(ask (gtk:widget-toplevel entry) "Do you want to overwrite current password?"))
+								(setf (gtk:entry-text entry) (generate-password))))))
 				  (gtk:table-attach table
 						    widget
 						    1 2 i (+ i 1) :y-options :fill)

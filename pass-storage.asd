@@ -15,6 +15,7 @@
   :depends-on (:cffi :trivial-garbage :cl-gtk2-gtk :babel :ironclad :cl-z :s-xml :cl-binary-location :cl-fad)
   :serial t
   :components ((:file "pass-storage.package")
+               (:file "pass-storage.password")
                (:file "pass-storage.utils")
                (:file "pass-storage.xml")
                (:file "pass-storage.item")
