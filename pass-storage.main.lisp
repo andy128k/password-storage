@@ -6,10 +6,16 @@
   view
   action-group
   filter
+  statusbar
 
   filename
   password
   changed)
+
+(defun set-status (app message)
+  (let ((statusbar (app-statusbar app)))
+    (gtk:statusbar-pop statusbar 0)
+    (gtk:statusbar-push statusbar 0 message)))
 
 (defun ensure-data-is-saved (app)
   (if (app-changed app)
@@ -83,6 +89,7 @@
       (let ((iter (gtk:tree-store-append (app-data app)
 					 (get-selected-group-iter app))))
 	(update-row app iter entry)
+	(set-status app "New entry was added")
 	(setf (app-changed app) t)))))
 
 (defun cb-edit-entry (app)
@@ -92,6 +99,7 @@
       (let ((entry (gtk:tree-store-value data iter 0)))
 	(when (edit-entry entry (app-main-window app) "Edit")
 	  (update-row app iter entry)
+	  (set-status app "Entry was changed")
 	  (setf (app-changed app) t))))))
 
 (defun cb-del-entry (app)
@@ -101,6 +109,7 @@
       (let* ((data (app-data app)))
 	(gtk:tree-store-remove data iter)
 	(listview-cursor-changed app)
+	(set-status app "Entry was deleted")
 	(setf (app-changed app) t)))))
 
 (defun load-data (app xml)
@@ -161,6 +170,7 @@
 	    (setf (app-password app) (car password))))
 
 	(save-revelation-file filename (app-password app) xml)
+	(set-status app "File was saved")
 	(setf (app-changed app) nil)))))
 
 (defun cb-new (app)
@@ -168,7 +178,8 @@
     (setf (app-changed app) nil)
     (gtk:tree-store-clear (app-data app))
     (setf (app-filename app) nil)
-    (setf (app-password app) nil)))
+    (setf (app-password app) nil)
+    (set-status app "New file was created")))
 
 (defun open-file (app filename)
   (loop
@@ -184,6 +195,7 @@
 	      (setf (app-filename app) filename)
 	      (setf (app-password app) (car password))
 	      (setf (app-changed app) nil)
+	      (set-status app "File was opened")
 	      (return-from open-file))
 	  (error (e)
 	    (declare (ignore e))
@@ -235,19 +247,29 @@
   (let ((data (app-data app))
 	(iter (get-selected-iter app)))
     (when iter
-      (let ((entry (gtk:tree-store-value data iter 0)))
-	(gtk:clipboard-set-text
-	 (gtk:get-clipboard "CLIPBOARD")
-	 (entry-get-name entry))))))
+
+      (let* ((entry (gtk:tree-store-value data iter 0))
+	     (name (entry-get-name entry)))
+	(when name
+
+	  (gtk:clipboard-set-text
+	   (gtk:get-clipboard "CLIPBOARD")
+	   name)
+	  (set-status app "Name was copied to clipboard"))))))
 
 (defun cb-copy-password (app)
   (let ((data (app-data app))
 	(iter (get-selected-iter app)))
     (when iter
-      (let ((entry (gtk:tree-store-value data iter 0)))
-	(gtk:clipboard-set-text
-	 (gtk:get-clipboard "CLIPBOARD")
-	 (entry-get-password entry))))))
+
+      (let* ((entry (gtk:tree-store-value data iter 0))
+	     (password (entry-get-password entry)))
+	(when password
+
+	  (gtk:clipboard-set-text
+	   (gtk:get-clipboard "CLIPBOARD")
+	   password)
+	  (set-status app "Secret (password) was copied to clipboard"))))))
 
 (defun cb-about (app)
   (let ((dlg (make-instance 'gtk:about-dialog
@@ -484,8 +506,14 @@
 	 :headers-visible nil
 	 :reorderable t
 	 :search-column 1)
-	:position 3)))
-
+	:position 3)
+       
+       (gtk:statusbar
+	:var statusbar
+	:has-resize-grip t)
+       :expand nil
+       :position 4))
+     
      (gtk:toolbar-insert (gtk:ui-manager-widget ui "/toolbar")
 			 (make-instance 'gtk:menu-tool-button
 					:stock-id "gtk-add"
@@ -527,14 +555,17 @@
      (gobject:connect-signal (gtk:action-group-action (app-action-group app) "find") "activate"
 			     (lambda-u
 			      (gtk:widget-grab-focus search-entry)))
+
      (gobject:connect-signal search-entry "changed"
 			     (lambda-u
 			      (if (string= "" (gtk:entry-text search-entry))
 				  (progn
+				    (set-status app "View filter was reset.")
 				    (setf (gtk:tree-view-model (app-view app)) (app-data app))
 				    (setf (gtk:tree-view-reorderable (app-view app)) t)
 				    (gtk:tree-view-collapse-all (app-view app)))
 				  (progn
+				    (set-status app "View is filtered.")
 				    (setf (gtk:tree-view-model (app-view app)) (app-filter app))
 				    (setf (gtk:tree-view-reorderable (app-view app)) nil)
 				    (gtk:tree-model-filter-refilter (app-filter app))
@@ -544,7 +575,8 @@
 	   (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
 
      (setf (app-main-window app) main-window)
-     (setf (app-view app) view))
+     (setf (app-view app) view)
+     (setf (app-statusbar app) statusbar))
 
     (gobject:connect-signal (app-main-window app) "delete-event" (lambda-u (e-close app)))
 
