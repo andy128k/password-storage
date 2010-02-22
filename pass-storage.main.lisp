@@ -275,14 +275,14 @@
 				       (nil "Confirm" :entry :required :password)))))
 	 (unless passwords
 	   (return-from cb-change-password))
-	 
+
 	 (when (string= (first passwords) (second passwords))
 	   (setf (app-password app) (first passwords))
 	   (setf (app-changed app) t)
 	   (return-from cb-change-password))
-	 
+
 	 (say-warning parent-window "Entered passwords are not identical")))))
-  
+
 (defun cb-preferences (app)
   (edit-object *config* (app-main-window app) "Preferences" "gtk-preferences"
 	       '((default-file "Default path" :filename)
@@ -479,7 +479,7 @@
 				   :sensitive nil)
 			    nil
 			    (lambda-u (cb-convert-entry app class)))))
-	   
+
       (create-action action-group (:name "delete" :stock-id "gtk-delete" :sensitive nil) nil (lambda-u (cb-del-entry app)))
 
       (create-action action-group (:name "help-menu" :label "_Help"))
@@ -545,6 +545,37 @@
     <toolitem action='edit'/>
     <toolitem action='delete'/>
   </toolbar>
+  <popup>
+    <menuitem action='copy-name'/>
+    <menuitem action='copy-password'/>
+    <separator/>
+    <menuitem action='add-entry-group'/>
+    <menuitem action='add-entry-generic'/>
+    <menuitem action='add-entry-creditcard'/>
+    <menuitem action='add-entry-cryptokey'/>
+    <menuitem action='add-entry-database'/>
+    <menuitem action='add-entry-door'/>
+    <menuitem action='add-entry-email'/>
+    <menuitem action='add-entry-ftp'/>
+    <menuitem action='add-entry-phone'/>
+    <menuitem action='add-entry-shell'/>
+    <menuitem action='add-entry-website'/>
+    <separator/>
+    <menuitem action='edit'/>
+    <menu action='convert'>
+      <menuitem action='convert-to-entry-generic'/>
+      <menuitem action='convert-to-entry-creditcard'/>
+      <menuitem action='convert-to-entry-cryptokey'/>
+      <menuitem action='convert-to-entry-database'/>
+      <menuitem action='convert-to-entry-door'/>
+      <menuitem action='convert-to-entry-email'/>
+      <menuitem action='convert-to-entry-ftp'/>
+      <menuitem action='convert-to-entry-phone'/>
+      <menuitem action='convert-to-entry-shell'/>
+      <menuitem action='convert-to-entry-website'/>
+    </menu>
+    <menuitem action='delete'/>
+  </popup>
 </ui>")
 
     (gtk:let-ui
@@ -590,13 +621,13 @@
 	 :reorderable t
 	 :search-column 1)
 	:position 3)
-       
+
        (gtk:statusbar
 	:var statusbar
 	:has-resize-grip t)
        :expand nil
        :position 4))
-     
+
      (gtk:toolbar-insert (gtk:ui-manager-widget ui "/toolbar")
 			 (make-instance 'gtk:menu-tool-button
 					:stock-id "gtk-add"
@@ -693,6 +724,20 @@
 					   (gtk:tree-view-collapse-row view path)
 					   (gtk:tree-view-expand-row view path))
 				       (cb-edit-entry app)))))))
+
+    (gobject:connect-signal (app-view app) "button-press-event"
+			    (lambda (view event)
+			      (when (= 3 (gdk:event-button-button event))
+				(let ((path (gtk:tree-view-get-path-at-pos view
+									   (round (gdk:event-button-x event))
+									   (round (gdk:event-button-y event)))))
+				  (when path
+				    (gtk:widget-grab-focus view)
+				    (gtk:tree-view-set-cursor view path)
+				    (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
+						    :button (gdk:event-button-button event)
+						    :activate-time (gdk:event-button-time event))))
+				t)))
 
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
 
