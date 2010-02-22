@@ -391,6 +391,13 @@
 		  text
 		  :look-at-secrets (config-search-in-secrets *config*)))
 
+(defun location-prefix ()
+  (let ((path (pathname-directory (directory-namestring (cl-binary-location:location)))))
+    (if (and path
+	     (string-equal "bin" (car (last path))))
+	(butlast path)
+	path)))
+
 (defun main ()
   ;; TODO: initialize random
 
@@ -400,7 +407,7 @@
   (let ((icons (make-hash-table :test 'equal))
 	(icons-directory (make-pathname
 			  :defaults (directory-namestring (cl-binary-location:location))
-			  :directory (append (pathname-directory (directory-namestring (cl-binary-location:location))) '("icons")))))
+			  :directory (append (location-prefix) '("share" "pixmaps" "pass-storage")))))
     ;; find all icons
     (fad:walk-directory
      icons-directory
