@@ -74,6 +74,25 @@
 (defun listview-cursor-changed (app)
   (let ((s (get-selected-iter app)))
     (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) "edit")) s)
+
+    (let ((entry (and s (gtk:tree-model-value (app-data app) s 0))))
+      (loop
+	 for class in (list 'entry-generic
+			    'entry-creditcard
+			    'entry-cryptokey
+			    'entry-database
+			    'entry-door
+			    'entry-email
+			    'entry-ftp
+			    'entry-phone
+			    'entry-shell
+			    'entry-website)
+	 do
+	   (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) (format nil "convert-to-~(~A~)" class)))
+		 (and s
+		      (not (is-group entry))
+		      (not (eql (find-class class) (class-of entry)))))))
+
     (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) "delete")) s)))
 
 (defun update-row (app iter entry)
@@ -101,6 +120,16 @@
 	  (update-row app iter entry)
 	  (set-status app "Entry was changed")
 	  (setf (app-changed app) t))))))
+
+(defun cb-convert-entry (app dest-class)
+  (let ((data (app-data app))
+	(iter (get-selected-iter app)))
+    (when iter
+      (let ((entry (gtk:tree-store-value data iter 0)))
+	(update-row app iter (copy-entry entry dest-class))
+	(set-status app "Entry has changed type")
+	(setf (app-changed app) t)
+	(listview-cursor-changed app)))))
 
 (defun cb-del-entry (app)
   (let ((iter (get-selected-iter app)))
@@ -249,7 +278,6 @@
 	 
 	 (when (string= (first passwords) (second passwords))
 	   (setf (app-password app) (first passwords))
-	   (format t "~A~%" (app-password app))
 	   (setf (app-changed app) t)
 	   (return-from cb-change-password))
 	 
@@ -429,6 +457,29 @@
 			    (lambda-u (cb-add-item app class)))))
 
       (create-action action-group (:name "edit" :stock-id "gtk-edit" :sensitive nil) nil (lambda-u (cb-edit-entry app)))
+      (create-action action-group (:name "convert" :label "Convert"))
+
+      (loop
+	 for class1 in (list 'entry-generic
+			     'entry-creditcard
+			     'entry-cryptokey
+			     'entry-database
+			     'entry-door
+			     'entry-email
+			     'entry-ftp
+			     'entry-phone
+			     'entry-shell
+			     'entry-website)
+	 do
+	   (let ((class class1))
+	     (create-action action-group
+			    (:name (format nil "convert-to-~(~A~)" class)
+				   :stock-id (entry-icon-by-class class)
+				   :label (format nil "to ~A" (entry-title-by-class class))
+				   :sensitive nil)
+			    nil
+			    (lambda-u (cb-convert-entry app class)))))
+	   
       (create-action action-group (:name "delete" :stock-id "gtk-delete" :sensitive nil) nil (lambda-u (cb-del-entry app)))
 
       (create-action action-group (:name "help-menu" :label "_Help"))
@@ -472,6 +523,18 @@
       <menuitem action='add-entry-website'/>
       <separator/>
       <menuitem action='edit'/>
+      <menu action='convert'>
+        <menuitem action='convert-to-entry-generic'/>
+        <menuitem action='convert-to-entry-creditcard'/>
+        <menuitem action='convert-to-entry-cryptokey'/>
+        <menuitem action='convert-to-entry-database'/>
+        <menuitem action='convert-to-entry-door'/>
+        <menuitem action='convert-to-entry-email'/>
+        <menuitem action='convert-to-entry-ftp'/>
+        <menuitem action='convert-to-entry-phone'/>
+        <menuitem action='convert-to-entry-shell'/>
+        <menuitem action='convert-to-entry-website'/>
+      </menu>
       <menuitem action='delete'/>
     </menu>
     <menu action='help-menu'>

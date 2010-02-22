@@ -236,3 +236,33 @@
 	       (entry-icon entry)
 	       (entry-slots entry)))
 
+(defun get-slots (class)
+  (iter (for slot in (closer-mop:class-slots class))
+	(when (eq :instance (closer-mop:slot-definition-allocation slot))
+	  (let ((slot-name (closer-mop:slot-definition-name slot)))
+	    (when (eql (find-package 'pass-storage)
+		       (symbol-package slot-name))
+	      (collect slot-name))))))
+
+(defun copy-entry (entry new-class)
+  (flet ((find-slot-by-name (class slot-name)
+	   (iter (for slot in (get-slots class))
+		 (when (eql slot-name slot)
+		   (return slot)))))
+    
+    (let ((new-entry (make-instance new-class)))
+      
+      (iter (for src-slot in (get-slots (class-of entry)))
+	    
+	    (let ((dst-slot (find-slot-by-name (class-of new-entry) src-slot)))
+	      (when dst-slot
+		(setf (slot-value new-entry dst-slot)
+		      (slot-value entry src-slot)))))
+      
+      (iter (for src-slot in (get-slots (class-of entry)))
+	    (unless (find-slot-by-name (class-of new-entry) src-slot)
+	      (setf (entry-description new-entry)
+		    (format nil "~A~%~A: ~A~%" (entry-description new-entry) src-slot (slot-value entry src-slot)))))
+      
+      new-entry)))
+
