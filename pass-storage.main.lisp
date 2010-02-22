@@ -238,6 +238,23 @@
       (save-data app (app-filename app))
       (cb-save-as app)))
 
+(defun cb-change-password (app)
+  (let ((parent-window (app-main-window app)))
+    (loop
+       (let ((passwords (edit-object nil parent-window "Change password" "ps-pass-storage"
+				     '((nil "Password" :entry :required :password)
+				       (nil "Confirm" :entry :required :password)))))
+	 (unless passwords
+	   (return-from cb-change-password))
+	 
+	 (when (string= (first passwords) (second passwords))
+	   (setf (app-password app) (first passwords))
+	   (format t "~A~%" (app-password app))
+	   (setf (app-changed app) t)
+	   (return-from cb-change-password))
+	 
+	 (say-warning parent-window "Entered passwords are not identical")))))
+  
 (defun cb-preferences (app)
   (edit-object *config* (app-main-window app) "Preferences" "gtk-preferences"
 	       '((default-file "Default path" :filename)
@@ -385,6 +402,7 @@
       (create-action action-group (:name "find" :label "_Find") "<Control>f")
       (create-action action-group (:name "copy-name" :label "Copy _name") "<Control>c" (lambda-u (cb-copy-name app)))
       (create-action action-group (:name "copy-password" :label "Copy pass_word") "<Control><Shift>c" (lambda-u (cb-copy-password app)))
+      (create-action action-group (:name "change-password" :label "Change _password") nil (lambda-u (cb-change-password app)))
       (create-action action-group (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
 
       (create-action action-group (:name "entry-menu" :label "E_ntry"))
@@ -434,6 +452,8 @@
       <separator/>
       <menuitem action='copy-name'/>
       <menuitem action='copy-password'/>
+      <separator/>
+      <menuitem action='change-password'/>
       <separator/>
       <menuitem action='preferences'/>
     </menu>
