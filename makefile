@@ -18,10 +18,10 @@ ps-sbcl-linux-any:
 	sbcl --eval "(progn (push #p\"/home/andy/projects/PassStorage/\" asdf:*central-registry*) (asdf:oos 'asdf:load-op :pass-storage))" --eval "(sb-ext:save-lisp-and-die \"PassStorage\" :executable t :toplevel 'pass-storage::main-and-quit)"
 
 ps-sbcl-windows-32:
-	sbcl --eval "(progn (push #p\"/home/andy/projects/PassStorage/\" asdf:*central-registry*) (asdf:oos 'asdf:load-op :pass-storage))" --eval "(sb-ext:save-lisp-and-die \"PassStorage.exe\" :executable t :toplevel 'pass-storage::main-and-quit)"
+	sbcl --eval "(progn (push #p\"/d/projects/PassStorage/\" asdf:*central-registry*) (asdf:oos 'asdf:load-op :pass-storage))" --eval "(sb-ext:save-lisp-and-die \"PassStorage.exe\" :executable t :toplevel 'pass-storage::main-and-quit)"
 
 ps-clozure-linux-64:
-	ccl --eval "(progn (push #p\"/home/andy/projects/PassStorage/\" asdf:*central-registry*) (asdf:oos 'asdf:load-op :pass-storage))" --eval "(ccl:save-application \"PassStorage\" :prepend-kernel t :toplevel-function 'pass-storage::main-and-quit)"
+	ccl --eval "(progn (push #p\"/d/projects/PassStorage/\" asdf:*central-registry*) (asdf:oos 'asdf:load-op :pass-storage))" --eval "(ccl:save-application \"PassStorage\" :prepend-kernel t :toplevel-function 'pass-storage::main-and-quit)"
 
 ps-clozure-windows-32:
-	wx86cl --eval "(progn (push #p\"/home/andy/projects/PassStorage/\" asdf:*central-registry*) (asdf:oos 'asdf:load-op :pass-storage))" --eval "(ccl:save-application \"PassStorage.exe\" :prepend-kernel t :toplevel-function 'pass-storage::main-and-quit)"
+	wx86cl --eval "(progn (push #p\"/d/projects/PassStorage/\" asdf:*central-registry*) (asdf:oos 'asdf:load-op :pass-storage))" --eval "(ccl:save-application \"PassStorage.exe\" :prepend-kernel t :toplevel-function 'pass-storage::main-and-quit)"
