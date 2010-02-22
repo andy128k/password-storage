@@ -56,6 +56,6 @@ chown -R root:root $PREFIX/
 cd deb
 dpkg-deb --build PassStorage
 cd ..
-cp deb/PassStorage.deb PassStorage_$VERSION.deb
+cp deb/PassStorage.deb PassStorage_${VERSION}_${ARCH}.deb
 rm -rf deb
 
