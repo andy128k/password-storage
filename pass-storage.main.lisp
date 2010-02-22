@@ -73,7 +73,13 @@
 
 (defun listview-cursor-changed (app)
   (let ((s (get-selected-iter app)))
-    (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) "edit")) s)
+    (loop
+       for action in '("copy-name"
+		       "copy-password"
+		       "edit"
+		       "delete")
+       do
+	 (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) action)) s))
 
     (let ((entry (and s (gtk:tree-model-value (app-data app) s 0))))
       (loop
@@ -91,9 +97,7 @@
 	   (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) (format nil "convert-to-~(~A~)" class)))
 		 (and s
 		      (not (is-group entry))
-		      (not (eql (find-class class) (class-of entry)))))))
-
-    (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) "delete")) s)))
+		      (not (eql (find-class class) (class-of entry)))))))))
 
 (defun update-row (app iter entry)
   (let ((data (app-data app)))
@@ -208,6 +212,7 @@
     (gtk:tree-store-clear (app-data app))
     (setf (app-filename app) nil)
     (setf (app-password app) nil)
+    (listview-cursor-changed app)
     (set-status app "New file was created")))
 
 (defun open-file (app filename)
@@ -428,8 +433,8 @@
 
       (create-action action-group (:name "edit-menu" :label "_Edit"))
       (create-action action-group (:name "find" :label "_Find") "<Control>f")
-      (create-action action-group (:name "copy-name" :label "Copy _name") "<Control>c" (lambda-u (cb-copy-name app)))
-      (create-action action-group (:name "copy-password" :label "Copy pass_word") "<Control><Shift>c" (lambda-u (cb-copy-password app)))
+      (create-action action-group (:name "copy-name" :label "Copy _name" :sensitive nil) "<Control>c" (lambda-u (cb-copy-name app)))
+      (create-action action-group (:name "copy-password" :label "Copy pass_word" :sensitive nil) "<Control><Shift>c" (lambda-u (cb-copy-password app)))
       (create-action action-group (:name "change-password" :label "Change _password") nil (lambda-u (cb-change-password app)))
       (create-action action-group (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
 
@@ -731,14 +736,14 @@
 				(let ((path (gtk:tree-view-get-path-at-pos view
 									   (round (gdk:event-button-x event))
 									   (round (gdk:event-button-y event)))))
+				  (gtk:widget-grab-focus view)
 				  (when path
-				    (gtk:widget-grab-focus view)
-				    (gtk:tree-view-set-cursor view path)
-				    (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
-						    :button (gdk:event-button-button event)
-						    :activate-time (gdk:event-button-time event))))
+				    (gtk:tree-view-set-cursor view path))
+				  (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
+						  :button (gdk:event-button-button event)
+						  :activate-time (gdk:event-button-time event)))
 				t)))
-
+    
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
 
     (gtk:widget-show (app-main-window app))
