@@ -54,7 +54,7 @@ echo "-- Andrey Kutejko <andy128k@gmail.com> $DATE" >> $PREFIX/DEBIAN/changelog
 chown -R root:root $PREFIX/
 
 cd deb
-dpkg-deb --build PassStorage
+dpkg-deb -z9 -Zlzma --build PassStorage
 cd ..
 cp deb/PassStorage.deb PassStorage_${VERSION}_${ARCH}.deb
 rm -rf deb
