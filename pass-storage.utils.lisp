@@ -40,6 +40,17 @@
     (gtk:dialog-run dlg)
     (gtk:object-destroy dlg)))
 
+(defun say-warning (parent-window message)
+  (let ((dlg (make-instance 'gtk:message-dialog
+			    :text message
+			    :buttons :ok
+			    :message-type :warning
+			    :window-position :center-on-parent
+			    :transient-for parent-window
+			    :use-markup nil)))
+    (gtk:dialog-run dlg)
+    (gtk:object-destroy dlg)))
+
 (defun make-std-dialog (parent-window title stock-icon content)
   (let ((dlg (make-instance 'gtk:dialog
 			    :border-width 8
