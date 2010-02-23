@@ -4,6 +4,7 @@
   (let ((dlg (make-instance 'gtk:message-dialog
 			    :text message
 			    :buttons :yes-no
+			    :title "PassStorage"
 			    :message-type :question
 			    :window-position :center-on-parent
 			    :transient-for parent-window
@@ -15,6 +16,7 @@
 (defun ask-save (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
 			    :text message
+			    :title "PassStorage"
 			    :message-type :warning
 			    :window-position :center-on-parent
 			    :transient-for parent-window
@@ -33,6 +35,7 @@
   (let ((dlg (make-instance 'gtk:message-dialog
 			    :text message
 			    :buttons :ok
+			    :title "PassStorage"
 			    :message-type :error
 			    :window-position :center-on-parent
 			    :transient-for parent-window
@@ -44,6 +47,7 @@
   (let ((dlg (make-instance 'gtk:message-dialog
 			    :text message
 			    :buttons :ok
+			    :title "PassStorage"
 			    :message-type :warning
 			    :window-position :center-on-parent
 			    :transient-for parent-window
