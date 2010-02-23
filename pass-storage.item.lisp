@@ -260,9 +260,10 @@
 		      (slot-value entry src-slot)))))
       
       (iter (for src-slot in (get-slots (class-of entry)))
-	    (unless (find-slot-by-name (class-of new-entry) src-slot)
+	    (unless (or (find-slot-by-name (class-of new-entry) src-slot)
+			(string= (slot-value entry src-slot) ""))
 	      (setf (entry-description new-entry)
 		    (format nil "~A~%~A: ~A~%" (entry-description new-entry) src-slot (slot-value entry src-slot)))))
-      
+    
       new-entry)))
 
