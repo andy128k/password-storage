@@ -557,7 +557,7 @@
     <toolitem action='edit'/>
     <toolitem action='delete'/>
   </toolbar>
-  <popup>
+  <popup accelerators='true'>
     <menuitem action='copy-name'/>
     <menuitem action='copy-password'/>
     <separator/>
