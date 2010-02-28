@@ -112,6 +112,20 @@
       (let ((iter (gtk:tree-store-append (app-data app)
 					 (get-selected-group-iter app))))
 	(update-row app iter entry)
+
+	;; select inserted entry
+	(let* ((current-model (gtk:tree-view-model (app-view app)))
+	       (iter-to-select
+		(cond
+		  ((eq current-model (app-data app))
+		   iter)
+		  ((eq current-model (app-filter app))
+		   (gtk:tree-model-filter-convert-child-iter-to-iter (app-filter app) iter)))))
+	  (when iter-to-select
+	    (let ((path-to-select (gtk:tree-model-path current-model iter-to-select)))
+	      (gtk:tree-view-expand-to-path (app-view app) path-to-select)
+	      (gtk:tree-view-set-cursor (app-view app) path-to-select))))
+
 	(set-status app "New entry was added")
 	(setf (app-changed app) t)))))
 
