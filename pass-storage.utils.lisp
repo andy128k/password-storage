@@ -267,3 +267,11 @@
 		   (terminate))
 		 ,i)))))
 
+(defun cli-options ()
+  "list of tokens passed in at the cli"
+  #+:sbcl (rest sb-ext:*posix-argv*)
+  #+:ccl (rest ccl:*command-line-argument-list*)
+  #+:clisp (rest ext:*args*)
+  #+:lispworks (rest system:*line-arguments-list*)
+  #+:cmu (rest extensions:*command-line-words*))
+

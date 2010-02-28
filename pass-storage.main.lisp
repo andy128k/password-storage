@@ -750,13 +750,15 @@
 						  :button (gdk:event-button-button event)
 						  :activate-time (gdk:event-button-time event)))
 				t)))
-    
+
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
 
     (gtk:widget-show (app-main-window app))
 
-    (let ((default-file (config-default-file *config*)))
-      (when default-file
+    (let ((default-file (or
+			 (first (cli-options))
+			 (config-default-file *config*))))
+      (when (and default-file (probe-file default-file))
 	(gtk:gtk-main-add-timeout 1
 				  (lambda ()
 				    (gdk:gdk-threads-enter)
