@@ -1,6 +1,6 @@
 (in-package :pass-storage)
 
-(defconstant +gp-alphabet+ "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890")
+(defparameter +gp-alphabet+ "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890")
 
 (defun random-character ()
   (aref +gp-alphabet+ (random (length +gp-alphabet+))))
