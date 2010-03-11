@@ -413,7 +413,8 @@
 	path)))
 
 (defun main ()
-  ;; TODO: initialize random
+
+  (glib:random-set-seed (get-universal-time))
 
   (load-config)
 

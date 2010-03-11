@@ -73,7 +73,7 @@
     (let ((initialization-vector (make-array '(16) :element-type '(unsigned-byte 8))))
 
       (iter (for i from 0 to 15)
-	    (setf (aref initialization-vector i) (coerce (random 256) '(unsigned-byte 8))))
+	    (setf (aref initialization-vector i) (coerce (glib:random-int-range 0 256) '(unsigned-byte 8))))
       
       (ironclad:encrypt-in-place
        (ironclad:make-cipher :AES
