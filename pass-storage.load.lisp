@@ -39,7 +39,7 @@
       (when (find padlen buffer :start (- size padlen) :test '/=)
 	(error "padding is corrupted"))
 
-      (cl-z:uncompress-sequence buffer :start 28 :end (- size padlen)))))
+      (cl-z:uncompress-vector buffer :start 28 :end (- size padlen)))))
 
 (defun read-file (filename)
   (with-open-file (stream filename :element-type '(unsigned-byte 8))
@@ -61,7 +61,7 @@
 	 (babel:string-to-octets password :encoding :utf-8)
 	 '(32)))
 
-  (let* ((buffer (cl-z:compress-sequence buffer))
+  (let* ((buffer (cl-z:compress-vector buffer))
 	 (oldlen (length buffer))
 	 (padlen (- 16 (mod oldlen 16)))
 	 (newlen (+ oldlen padlen)))
