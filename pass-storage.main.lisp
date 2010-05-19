@@ -280,7 +280,7 @@
     (listview-cursor-changed app)
     (set-status app "New file was created")))
 
-(defun open-file (app filename)
+(defun open-file (app filename merge)
   (loop
      for password = (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
                                  '((nil "Password" :entry :required :password)))
@@ -289,22 +289,26 @@
 
      do (handler-case
             (let ((xml (load-revelation-file filename (car password))))
-              (gtk:tree-store-clear (app-data app))
+	      (unless merge
+		(gtk:tree-store-clear (app-data app)))
               (load-data app xml)
-              (setf (app-filename app) filename)
-              (setf (app-password app) (car password))
+	      (unless merge
+		(setf (app-filename app) filename)
+		(setf (app-password app) (car password)))
               (setf (app-changed app) nil)
-              (set-status app "File was opened")
+	      (if merge
+		  (set-status app "File was merged")
+		  (set-status app "File was opened"))
               (return-from open-file))
           (error (e)
             (declare (ignore e))
             (say-error (app-main-window app) "Can't open this file.")))))
 
-(defun cb-open (app)
+(defun cb-open (app merge)
   (when (ensure-data-is-saved app)
     (let ((dlg (make-instance 'gtk:file-chooser-dialog
                               :action :open
-                              :title "Open file"
+                              :title (if merge "Merge file" "Open file")
                               :window-position :center-on-parent
                               :transient-for (app-main-window app))))
 
@@ -314,7 +318,7 @@
       (setf (gtk:dialog-default-response dlg) :ok)
 
       (when (std-dialog-run dlg)
-        (open-file app (gtk:file-chooser-filename dlg))))))
+        (open-file app (gtk:file-chooser-filename dlg) merge)))))
 
 (defun cb-save-as (app)
   (let ((dlg (make-instance 'gtk:file-chooser-dialog
@@ -499,7 +503,8 @@
     (let ((action-group (app-action-group app)))
       (create-action action-group (:name "file-menu" :label "_File"))
       (create-action action-group (:name "new" :stock-id "gtk-new") "<Control>n" (lambda-u (cb-new app)))
-      (create-action action-group (:name "open" :stock-id "gtk-open") "<Control>o" (lambda-u (cb-open app)))
+      (create-action action-group (:name "open" :stock-id "gtk-open") "<Control>o" (lambda-u (cb-open app nil)))
+      (create-action action-group (:name "merge" :label "_Merge") nil (lambda-u (cb-open app t)))
       (create-action action-group (:name "save" :stock-id "gtk-save") "<Control>s" (lambda-u (cb-save app)))
       (create-action action-group (:name "save-as" :stock-id "gtk-save-as") nil (lambda-u (cb-save-as app)))
       (create-action action-group (:name "quit" :stock-id "gtk-quit") "<Control>q" (lambda-u (e-close app)))
@@ -571,6 +576,7 @@
     <menu action='file-menu'>
       <menuitem action='new'/>
       <menuitem action='open'/>
+      <menuitem action='merge'/>
       <menuitem action='save'/>
       <menuitem action='save-as'/>
       <separator/>
@@ -858,7 +864,7 @@
         (gtk:gtk-main-add-timeout 1
                                   (lambda ()
                                     (gdk:gdk-threads-enter)
-                                    (open-file app default-file)
+                                    (open-file app default-file nil)
                                     (gdk:gdk-threads-leave)
                                     nil))))
 
