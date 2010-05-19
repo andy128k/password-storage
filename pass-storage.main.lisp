@@ -64,7 +64,6 @@
                                                                          filter-iter)
                        (gtk:tree-model-path (app-filter app) filter-iter))))))))))
 
-
 (defun get-selected-group-iter (app)
   (let* ((data (app-data app))
          (iter (get-selected-iter app)))
@@ -840,6 +839,13 @@
                                                   :button (gdk:event-button-button event)
                                                   :activate-time (gdk:event-button-time event)))
                                 t)))
+
+    (gobject:connect-signal (app-view app) "popup-menu"
+                            (lambda (view)
+			      (gtk:widget-grab-focus view)
+			      (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
+					      :activate-time (gdk:event-get-time nil))
+			      t))
 
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
 
