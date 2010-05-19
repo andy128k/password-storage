@@ -99,7 +99,11 @@
 		   ))))
 
 (defun write-file (filename data)
-  (with-open-file (stream filename :direction :output :if-exists :supersede :if-does-not-exist :create :element-type '(unsigned-byte 8))
+  (with-open-file (stream filename
+			  :direction :output
+			  :if-exists :supersede
+			  :if-does-not-exist :create
+			  :element-type '(unsigned-byte 8))
     (write-sequence data stream)))
 
 (defun save-revelation-file (filename password xml)

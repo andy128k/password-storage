@@ -3,7 +3,7 @@
 URL='http://andy128k.github.com/PassStorage'
 VERSION=`date +0.%-y.%-m.%-d`
 
-PREFIX=D:\\projects\\PassStorage
+PREFIX=C:\\projects\\PassStorage
 
 cd windows
 mingw32-make
