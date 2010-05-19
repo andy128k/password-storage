@@ -23,7 +23,7 @@
 (defun save-config ()
   (with-open-stream (stream (open (config-path)
 				  :direction :output
-				  :if-exists :overwrite
+				  :if-exists :supersede
 				  :if-does-not-exist :create))
     (format stream "~S" *config*)))
 
