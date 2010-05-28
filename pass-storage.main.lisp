@@ -703,8 +703,18 @@
           :model (app-data app)
           :headers-visible nil
           :reorderable t
-          :search-column 1))
-        (gtk:v-box
+          :search-column 1
+	  (gtk:tree-view-column
+	   :var col
+	   :sizing :autosize
+	   (gtk:cell-renderer-pixbuf
+	    :stock-size 1)
+	   :expand nil
+	   :attribute ("stock-id" 2)
+           (gtk:cell-renderer-text)
+	   :expand t
+	   :attribute ("text" 1))))
+	(gtk:v-box
          :width-request 40
          (gtk:image
           :yalign 1.0
@@ -750,16 +760,7 @@
                                                       "add-entry-phone"
                                                       "add-entry-shell"
                                                       "add-entry-website")))
-                         0)
-
-     (let ((col (make-instance 'gtk:tree-view-column :sizing :autosize))
-           (rnd1 (make-instance 'gtk:cell-renderer-pixbuf :stock-size 1))
-           (rnd2 (make-instance 'gtk:cell-renderer-text)))
-       (gtk:tree-view-column-pack-start col rnd1 :expand nil)
-       (gtk:tree-view-column-add-attribute col rnd1 "stock-id" 2)
-       (gtk:tree-view-column-pack-start col rnd2 :expand t)
-       (gtk:tree-view-column-add-attribute col rnd2 "text" 1)
-       (gtk:tree-view-append-column view col))
+			 0)
 
      (gtk:tree-model-filter-set-visible-function (app-filter app)
                                                  (lambda (model iter)
@@ -789,7 +790,7 @@
 			      (listview-cursor-changed app)))
 
      (setf (gtk:gtk-window-icon main-window)
-           (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
+	   (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
 
      (setf (app-main-window app) main-window)
      (setf (app-view app) view)
