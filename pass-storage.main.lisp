@@ -855,6 +855,12 @@
 			      (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
 					      :activate-time (gdk:event-get-time nil))
 			      t))
+    
+    #+win32
+    (gobject:connect-signal (app-current-view app) "activate-link"
+			    (lambda (label uri)
+			      (declare (ignore label))
+			      (win32-open-uri uri)))
 
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
 

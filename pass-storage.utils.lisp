@@ -131,6 +131,7 @@
 				  (setf (gtk:entry-secondary-icon-tooltip-text widget) "Generate password")
 				  (gobject:connect-signal widget "icon-release"
 							  (lambda (entry pos event)
+							    (declare (ignore event))
 							    (when (eq pos :secondary)
 							      (when (or (string= "" (gtk:entry-text entry))
 									(ask (gtk:widget-toplevel entry) "Do you want to overwrite current password?"))
@@ -274,4 +275,34 @@
   #+:clisp (rest ext:*args*)
   #+:lispworks (rest system:*line-arguments-list*)
   #+:cmu (rest extensions:*command-line-words*))
+
+#+win32
+(progn
+
+  (defun load-shell32-dll ()
+    (cffi:define-foreign-library shell32-dll
+	(:windows "shell32.dll"))
+    (cffi:use-foreign-library shell32-dll))
+  
+  #+sbcl
+  (pushnew 'load-shell32-dll sb-ext:*init-hooks*)
+  #+openmcl
+  (pushnew 'load-shell32-dll ccl:*restore-lisp-functions*)
+
+  (cffi:defcfun ("ShellExecuteA" shell-execute) :pointer
+    (hwnd :pointer)
+    (operation :string)
+    (file :string)
+    (parameters :pointer)
+    (directory :pointer)
+    (show-cmd :int))
+
+  (defun win32-open-uri (uri)
+    (shell-execute
+     (cffi:null-pointer)
+     "open"
+     uri
+     (cffi:null-pointer)
+     (cffi:null-pointer)
+     5))) ;; SW_SHOW
 
