@@ -703,64 +703,6 @@
 
     (gtk:ui-manager-add-ui-from-string ui
                                        "<ui>
-  <menubar name='menubar'>
-    <menu action='file-menu'>
-      <menuitem action='new'/>
-      <menuitem action='open'/>
-      <menuitem action='save'/>
-      <menuitem action='save-as'/>
-      <separator/>
-      <menuitem action='merge-file'/>
-      <separator/>
-      <menuitem action='quit'/>
-    </menu>
-    <menu action='edit-menu'>
-      <menuitem action='find'/>
-      <separator/>
-      <menuitem action='copy-name'/>
-      <menuitem action='copy-password'/>
-      <separator/>
-      <menuitem action='change-password'/>
-      <separator/>
-      <menuitem action='uncheck-all'/>
-      <menuitem action='merge-mode'/>
-      <separator/>
-      <menuitem action='preferences'/>
-    </menu>
-    <menu action='entry-menu'>
-      <menuitem action='add-entry-group'/>
-      <separator/>
-      <menuitem action='add-entry-generic'/>
-      <menuitem action='add-entry-creditcard'/>
-      <menuitem action='add-entry-cryptokey'/>
-      <menuitem action='add-entry-database'/>
-      <menuitem action='add-entry-door'/>
-      <menuitem action='add-entry-email'/>
-      <menuitem action='add-entry-ftp'/>
-      <menuitem action='add-entry-phone'/>
-      <menuitem action='add-entry-shell'/>
-      <menuitem action='add-entry-website'/>
-      <separator/>
-      <menuitem action='edit'/>
-      <menu action='convert'>
-        <menuitem action='convert-to-entry-generic'/>
-        <menuitem action='convert-to-entry-creditcard'/>
-        <menuitem action='convert-to-entry-cryptokey'/>
-        <menuitem action='convert-to-entry-database'/>
-        <menuitem action='convert-to-entry-door'/>
-        <menuitem action='convert-to-entry-email'/>
-        <menuitem action='convert-to-entry-ftp'/>
-        <menuitem action='convert-to-entry-phone'/>
-        <menuitem action='convert-to-entry-shell'/>
-        <menuitem action='convert-to-entry-website'/>
-      </menu>
-      <menuitem action='delete'/>
-      <menuitem action='merge'/>
-    </menu>
-    <menu action='help-menu'>
-      <menuitem action='about'/>
-    </menu>
-  </menubar>
   <toolbar name='toolbar'>
     <toolitem action='edit'/>
     <toolitem action='delete'/>
@@ -811,7 +753,59 @@
       :default-height 450
       (gtk:v-box
 
-       (:expr (gtk:ui-manager-widget ui "/menubar"))
+       (:expr (create-menubar ui
+			      (menubar ()
+				       (menu ("file-menu")
+					     (menuitem "new")
+					     (menuitem "open")
+					     (menuitem "save")
+					     (menuitem "save-as")
+					     (separator)
+					     (menuitem "merge-file")
+					     (separator)
+					     (menuitem "quit"))
+				       (menu ("edit-menu")
+					     (menuitem "find")
+					     (separator)
+					     (menuitem "copy-name")
+					     (menuitem "copy-password")
+					     (separator)
+					     (menuitem "change-password")
+					     (separator)
+					     (menuitem "uncheck-all")
+					     (menuitem "merge-mode")
+					     (separator)
+					     (menuitem "preferences"))
+				       (menu ("entry-menu")
+					     (menuitem "add-entry-group")
+					     (separator)
+					     (menuitem "add-entry-generic")
+					     (menuitem "add-entry-creditcard")
+					     (menuitem "add-entry-cryptokey")
+					     (menuitem "add-entry-database")
+					     (menuitem "add-entry-door")
+					     (menuitem "add-entry-email")
+					     (menuitem "add-entry-ftp")
+					     (menuitem "add-entry-phone")
+					     (menuitem "add-entry-shell")
+					     (menuitem "add-entry-website")
+					     (separator)
+					     (menuitem "edit")
+					     (menu ("convert")
+						   (menuitem "convert-to-entry-generic")
+						   (menuitem "convert-to-entry-creditcard")
+						   (menuitem "convert-to-entry-cryptokey")
+						   (menuitem "convert-to-entry-database")
+						   (menuitem "convert-to-entry-door")
+						   (menuitem "convert-to-entry-email")
+						   (menuitem "convert-to-entry-ftp")
+						   (menuitem "convert-to-entry-phone")
+						   (menuitem "convert-to-entry-shell")
+						   (menuitem "convert-to-entry-website"))
+					     (menuitem "delete")
+					     (menuitem "merge"))
+				       (menu ("help-menu")
+					     (menuitem "about")))))
        :expand nil
        :position 0
 

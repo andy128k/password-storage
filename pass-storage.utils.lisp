@@ -320,6 +320,66 @@
   #+:lispworks (rest system:*line-arguments-list*)
   #+:cmu (rest extensions:*command-line-words*))
 
+(defun optional-attribute (name value)
+  (if value
+      (format nil " ~A='~A'" name value)
+      ""))
+
+(defun build-menubar (node)
+  (destructuring-bind (&key name action) (second node)
+    (values
+     (format nil "<menubar~A~A>~{~A~}</menubar>"
+	     (optional-attribute "name" name)
+	     (optional-attribute "action" action)
+	     (iter (for n in (cddr node))
+		   (collect
+		    (ecase (car n)
+		      (menuitem (build-menuitem n))
+		      (separator (build-separator n))
+		      (menu (build-menu n))))))
+     name
+     action)))
+
+(defun build-menuitem (node)
+  (destructuring-bind (action &key name position always-show-image) (cdr node)
+    (format nil "<menuitem action='~A'~A~A~A/>"
+	    action
+	    (optional-attribute "name" name)
+	    (optional-attribute "position" position)
+	    (optional-attribute "always-show-image" always-show-image))))
+
+(defun build-separator (node)
+  (destructuring-bind (&key action name expand) (cdr node)
+    (format nil "<separator~A~A~A/>"
+	    (optional-attribute "action" action)
+	    (optional-attribute "name" name)
+	    (optional-attribute "expand" expand))))
+
+(defun build-menu (node)
+  (destructuring-bind (action &key name position) (second node)
+    (format nil "<menu action='~A'~A~A>~{~A~}</menu>" 
+	    action
+	    (optional-attribute "name" name)
+	    (optional-attribute "position" position)
+	    (iter (for n in (cddr node))
+		  (collect
+		   (ecase (car n)
+		     (menuitem (build-menuitem n))
+		     (separator (build-separator n))
+		     (menu (build-menu n))))))))
+
+(defmacro create-menubar (ui-manager menu)
+  (multiple-value-bind (xml name)
+      (build-menubar menu)
+    (let ((path
+	   (if name
+	       (format nil "/~A" name)
+	       "/menubar")))
+      `(progn
+	 (gtk:ui-manager-add-ui-from-string ,ui-manager
+					    ,(format nil "<ui>~A</ui>" xml))
+	 (gtk:ui-manager-widget ,ui-manager ,path)))))
+
 #+win32
 (progn
 
