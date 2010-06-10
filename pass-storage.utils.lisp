@@ -279,15 +279,11 @@
 #+win32
 (progn
 
-  (defun load-shell32-dll ()
+  (eval-when (:compile-toplevel :load-toplevel :execute)
     (cffi:define-foreign-library shell32-dll
-	(:windows "shell32.dll"))
-    (cffi:use-foreign-library shell32-dll))
-  
-  #+sbcl
-  (pushnew 'load-shell32-dll sb-ext:*init-hooks*)
-  #+openmcl
-  (pushnew 'load-shell32-dll ccl:*restore-lisp-functions*)
+	(:windows "shell32.dll")))
+
+  (cffi:use-foreign-library shell32-dll)
 
   (cffi:defcfun ("ShellExecuteA" shell-execute) :pointer
     (hwnd :pointer)
