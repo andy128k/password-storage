@@ -125,7 +125,7 @@ function make_target () {
 
 case $TARGET in
     core)
-	make_target "" "cl-z cl-fad cl-gtk2-gtk ironclad" lisp-cl-gtk2
+	make_target "" "cl-z cl-fad ironclad cl-gtk2-gdk sb-queue cl-gtk2-gtk" lisp-cl-gtk2
 	;;
     ps)
 	make_target /home/andy/projects/PassStorage/ pass-storage PassStorage pass-storage::main-and-quit
