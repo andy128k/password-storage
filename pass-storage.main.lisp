@@ -858,9 +858,9 @@
     
     #+win32
     (progn
-      (setf gtk:about-dialog-global-url-hook
+      (setf (gtk:about-dialog-global-url-hook)
 	    (lambda (dialog uri)
-	      (declare (ignore label))
+	      (declare (ignore dialog))
 	      (win32-open-uri uri)))
 
       (gobject:connect-signal (app-current-view app) "activate-link"
