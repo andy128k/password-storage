@@ -857,10 +857,16 @@
 			      t))
     
     #+win32
-    (gobject:connect-signal (app-current-view app) "activate-link"
-			    (lambda (label uri)
-			      (declare (ignore label))
-			      (win32-open-uri uri)))
+    (progn
+      (setf gtk:about-dialog-global-url-hook
+	    (lambda (dialog uri)
+	      (declare (ignore label))
+	      (win32-open-uri uri)))
+
+      (gobject:connect-signal (app-current-view app) "activate-link"
+			      (lambda (label uri)
+				(declare (ignore label))
+				(win32-open-uri uri))))
 
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
 
