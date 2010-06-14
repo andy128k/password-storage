@@ -398,7 +398,7 @@
                             :copyright "Copyright 2009, 2010, Andrey Kutejko"
                             :logo (gtk:widget-render-icon (app-main-window app) "ps-pass-storage" :dialog "")
                             :program-name "PassStorage"
-                            :version "0.10.5.20"
+                            :version *ps-version*
                             :website "http://andy128k.github.com/PassStorage")))
     (gtk:dialog-run dlg)
     (gtk:object-destroy dlg)))

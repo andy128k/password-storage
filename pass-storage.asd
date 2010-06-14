@@ -21,5 +21,6 @@
                (:file "pass-storage.item")
                (:file "pass-storage.load")
                (:file "pass-storage.config")
+               (:file "pass-storage.version")
                (:file "pass-storage.main")))
 
