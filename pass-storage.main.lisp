@@ -187,6 +187,7 @@
       (let ((entry (gtk:tree-store-value data iter 0)))
         (when (edit-entry entry (app-main-window app) "Edit")
           (update-row app iter entry)
+          (listview-cursor-changed app)
           (set-status app "Entry was changed")
           (setf (app-changed app) t))))))
 
