@@ -173,7 +173,7 @@
 							     :activates-default t)))
 				  (gtk:table-attach table
 						    widget
-						    0 2 i (+ i 1) :x-options :shrink :y-options :fill)
+						    0 2 i (+ i 1) :x-options :fill :y-options :fill)
 				  widget)))))
 
 		 (collect
@@ -301,4 +301,23 @@
      (cffi:null-pointer)
      (cffi:null-pointer)
      5))) ;; SW_SHOW
+
+(defun markup-escape-text (text)
+  (with-output-to-string (str)
+    (iter (for ch in-string text)
+          (let ((code (char-code ch)))
+            (case ch
+              (#\& (format str "&amp;"))
+              (#\< (format str "&lt;"))
+              (#\> (format str "&gt;"))
+              (#\' (format str "&apos;"))
+              (#\" (format str "&quot;"))
+              (t
+               (if (or (<= 1 code 8)
+                       (<= 11 code 12)
+                       (<= 14 code 31)
+                       (<= 127 code 132)
+                       (<= 144 code 159))
+                   (format str "&#x~X;" code)
+                   (format str "~A" ch))))))))
 

@@ -22,6 +22,7 @@
 (defgeneric save-entry (entry))
 
 (defgeneric entry-has-text (entry text &key))
+(defgeneric entry-to-markup (entry &key))
 
 ;;
 ;; helpers
@@ -72,7 +73,24 @@
 		 (if (or (eql type :password) (eql type :secret))
 		     `(when look-at-secrets
 			(search text (slot-value entry (quote ,slot)) :test #'char-equal))
-		     `(search text (slot-value entry (quote ,slot)) :test #'char-equal))))))))
+		     `(search text (slot-value entry (quote ,slot)) :test #'char-equal))))))
+
+     (defmethod entry-to-markup ((entry ,name) &key (show-secrets t))
+       (with-output-to-string (str)
+	 ,@(iter (for (slot title type field-name) in slots)
+		 (unless (or (eq slot 'name)
+			     (eq slot 'description))
+		   (collect
+		    `(let ((safe-title ,(markup-escape-text title))
+			   (safe-text (markup-escape-text (slot-value entry ',slot))))
+		       ,(cond
+			 ((eq slot 'url)
+			  `(format str "<b>~A</b>: <a href='~A'>~A</a>~%" safe-title safe-text safe-text))
+			 ((or (eq type :password) (eq type :secret))
+			  `(when show-secrets
+			     (format str "<b>~A</b>: ~A~%" safe-title safe-text)))
+			 (t
+			  `(format str "<b>~A</b>: ~A~%" safe-title safe-text)))))))))))
 
 (defgeneric entry-get-name (entry))
 (defgeneric entry-get-password (entry))
@@ -249,21 +267,21 @@
 	   (iter (for slot in (get-slots class))
 		 (when (eql slot-name slot)
 		   (return slot)))))
-    
+
     (let ((new-entry (make-instance new-class)))
-      
+
       (iter (for src-slot in (get-slots (class-of entry)))
-	    
+
 	    (let ((dst-slot (find-slot-by-name (class-of new-entry) src-slot)))
 	      (when dst-slot
 		(setf (slot-value new-entry dst-slot)
 		      (slot-value entry src-slot)))))
-      
+
       (iter (for src-slot in (get-slots (class-of entry)))
 	    (unless (or (find-slot-by-name (class-of new-entry) src-slot)
 			(string= (slot-value entry src-slot) ""))
 	      (setf (entry-description new-entry)
 		    (format nil "~A~%~A: ~A~%" (entry-description new-entry) src-slot (slot-value entry src-slot)))))
-    
+
       new-entry)))
 

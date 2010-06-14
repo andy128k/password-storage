@@ -75,25 +75,6 @@
 
     iter))
 
-(defun markup-escape-text (text)
-  (with-output-to-string (str)
-    (iter (for ch in-string text)
-          (let ((code (char-code ch)))
-            (case ch
-              (#\& (format str "&amp;"))
-              (#\< (format str "&lt;"))
-              (#\> (format str "&gt;"))
-              (#\' (format str "&apos;"))
-              (#\" (format str "&quot;"))
-              (t
-               (if (or (<= 1 code 8)
-                       (<= 11 code 12)
-                       (<= 14 code 31)
-                       (<= 127 code 132)
-                       (<= 144 code 159))
-                   (format str "&#x~X;" code)
-                   (format str "~A" ch))))))))
-
 (defun listview-cursor-changed (app)
   (let ((s (get-selected-iter app)))
     (loop
@@ -135,15 +116,8 @@
                 (entry-description entry))
 
           (setf (gtk:label-label (app-current-view app))
-                (with-output-to-string (str)
-                  (iter (for (slot title) in (entry-slots entry))
-                        (unless (or (eq slot 'name)
-                                    (eq slot 'description))
-                          (let ((safe-title (markup-escape-text title))
-                                (safe-text (markup-escape-text (slot-value entry slot))))
-                            (if (eq slot 'url)
-                                (format str "<b>~A</b>: <a href='~A'>~A</a>~%" safe-title safe-text safe-text)
-                                (format str "<b>~A</b>: ~A~%" safe-title safe-text))))))))
+                (entry-to-markup entry :show-secrets (config-show-secrets-on-preview *config*))))
+
         ;; else
         (setf (gtk:image-stock (app-current-icon app)) ""
               (gtk:label-label (app-current-title app)) ""
@@ -290,16 +264,16 @@
 
      do (handler-case
             (let ((xml (load-revelation-file filename (car password))))
-	      (unless merge
-		(gtk:tree-store-clear (app-data app)))
+              (unless merge
+                (gtk:tree-store-clear (app-data app)))
               (load-data app xml)
-	      (unless merge
-		(setf (app-filename app) filename)
-		(setf (app-password app) (car password)))
+              (unless merge
+                (setf (app-filename app) filename)
+                (setf (app-password app) (car password)))
               (setf (app-changed app) nil)
-	      (if merge
-		  (set-status app "File was merged")
-		  (set-status app "File was opened"))
+              (if merge
+                  (set-status app "File was merged")
+                  (set-status app "File was opened"))
               (return-from open-file))
           (error (e)
             (declare (ignore e))
@@ -361,7 +335,8 @@
 (defun cb-preferences (app)
   (edit-object *config* (app-main-window app) "Preferences" "gtk-preferences"
                '((default-file "Default path" :filename)
-                 (search-in-secrets "Search in secrets (passwords)" :boolean))))
+                 (search-in-secrets "Search in secrets (passwords)" :boolean)
+                 (show-secrets-on-preview "Show secrets (passwords) on preview panel" :boolean))))
 
 (defun cb-copy-name (app)
   (let ((data (app-data app))
@@ -705,17 +680,17 @@
           :headers-visible nil
           :reorderable t
           :search-column 1
-	  (gtk:tree-view-column
-	   :var col
-	   :sizing :autosize
-	   (gtk:cell-renderer-pixbuf
-	    :stock-size 1)
-	   :expand nil
-	   :attribute ("stock-id" 2)
+          (gtk:tree-view-column
+           :var col
+           :sizing :autosize
+           (gtk:cell-renderer-pixbuf
+            :stock-size 1)
+           :expand nil
+           :attribute ("stock-id" 2)
            (gtk:cell-renderer-text)
-	   :expand t
-	   :attribute ("text" 1))))
-	(gtk:v-box
+           :expand t
+           :attribute ("text" 1))))
+        (gtk:v-box
          :width-request 40
          (gtk:image
           :yalign 1.0
@@ -761,7 +736,7 @@
                                                       "add-entry-phone"
                                                       "add-entry-shell"
                                                       "add-entry-website")))
-			 0)
+                         0)
 
      (gtk:tree-model-filter-set-visible-function (app-filter app)
                                                  (lambda (model iter)
@@ -788,10 +763,10 @@
                                     (setf (gtk:tree-view-reorderable (app-view app)) nil)
                                     (gtk:tree-model-filter-refilter (app-filter app))
                                     (gtk:tree-view-expand-all (app-view app))))
-			      (listview-cursor-changed app)))
+                              (listview-cursor-changed app)))
 
      (setf (gtk:gtk-window-icon main-window)
-	   (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
+           (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
 
      (setf (app-main-window app) main-window)
      (setf (app-view app) view)
@@ -852,22 +827,22 @@
 
     (gobject:connect-signal (app-view app) "popup-menu"
                             (lambda (view)
-			      (gtk:widget-grab-focus view)
-			      (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
-					      :activate-time (gdk:event-get-time nil))
-			      t))
+                              (gtk:widget-grab-focus view)
+                              (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
+                                              :activate-time (gdk:event-get-time nil))
+                              t))
     
     #+win32
     (progn
       (setf (gtk:about-dialog-global-url-hook)
-	    (lambda (dialog uri)
-	      (declare (ignore dialog))
-	      (win32-open-uri uri)))
+            (lambda (dialog uri)
+              (declare (ignore dialog))
+              (win32-open-uri uri)))
 
       (gobject:connect-signal (app-current-view app) "activate-link"
-			      (lambda (label uri)
-				(declare (ignore label))
-				(win32-open-uri uri))))
+                              (lambda (label uri)
+                                (declare (ignore label))
+                                (win32-open-uri uri))))
 
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
 

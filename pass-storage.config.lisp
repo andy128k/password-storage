@@ -2,7 +2,8 @@
 
 (defstruct config
   default-file
-  search-in-secrets)
+  search-in-secrets
+  show-secrets-on-preview)
 
 (defvar *config* nil)
 
