@@ -1,7 +1,19 @@
 #!/bin/bash
 
+while read line
+do
+    if [[ $line =~ \*ps-version\*[[:blank:]]+\"(.*)\" ]]
+    then
+	VERSION=${BASH_REMATCH[1]}
+    fi
+done < pass-storage.version.lisp
+if [[ -z "$VERSION" ]]
+then
+    echo "Can't parse version"
+    exit
+fi
+
 URL='http://andy128k.github.com/PassStorage'
-VERSION=`date +0.%-y.%-m.%-d`
 
 PREFIX=C:\\projects\\PassStorage
 
