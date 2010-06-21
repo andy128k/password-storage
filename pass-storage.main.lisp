@@ -4,11 +4,16 @@
   main-window
   data
   view
+  column
+  check-renderer
+  merge-mode
   current-icon
   current-title
   current-description
   current-view
-  action-group
+  actions-common
+  actions-edit
+  actions-merge
   filter
   statusbar
 
@@ -83,7 +88,7 @@
                        "edit"
                        "delete")
        do
-         (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) action)) s))
+         (setf (gtk:action-sensitive (gtk:action-group-action (app-actions-edit app) action)) s))
 
     (let ((entry (and s (gtk:tree-model-value (app-data app) s 0))))
       (loop
@@ -98,7 +103,7 @@
                             'entry-shell
                             'entry-website)
          do
-           (setf (gtk:action-sensitive (gtk:action-group-action (app-action-group app) (format nil "convert-to-~(~A~)" class)))
+           (setf (gtk:action-sensitive (gtk:action-group-action (app-actions-edit app) (format nil "convert-to-~(~A~)" class)))
                  (and s
                       (not (is-group entry))
                       (not (eql (find-class class) (class-of entry)))))))
@@ -184,6 +189,34 @@
         (listview-cursor-changed app)
         (set-status app "Entry was deleted")
         (setf (app-changed app) t)))))
+
+(defun cb-uncheck-all (app)
+  (labels ((uncheck (model parent)
+	     (iter (for i in-tree-model model children-of parent)
+		   (setf (gtk:tree-store-value model i 3) nil)
+		   (uncheck model i))))
+    (uncheck (app-data app) nil)
+    (set-status app "Unchecked all items")))
+
+(defun cb-merge (app)
+  (labels ((collect-checked (model parent path)
+	     (iter (for i in-tree-model model children-of parent)
+		    (let ((entry (gtk:tree-model-value model i 0)))
+		       (cond
+			 ((is-group entry)
+			  (let ((cheched-subtree (collect-checked model i (cons (entry-name entry) path))))
+			    (when cheched-subtree
+			      (appending cheched-subtree))))
+			 ((gtk:tree-store-value model i 3)
+			  (collect (list i entry (reverse path)))))))))
+
+    (let ((checked (collect-checked (app-data app) nil nil)))
+      (ask (app-main-window app)
+	   (with-output-to-string (str)
+	     (format str "Do you want to merge following items?~%")
+	     (iter (for (i entry path) in checked)
+		   (format str "~%~{~A / ~}~A" path (entry-name entry)))))
+      )))
 
 (defun load-data (app xml)
   (labels ((load-entry2 (elem parent-iter)
@@ -411,6 +444,12 @@
      ,(when func
             `(gobject:connect-signal action "activate" ,func))))
 
+(defmacro create-toggle-action (group action-params &optional accel func)
+  `(let ((action (make-instance 'gtk:toggle-action ,@action-params)))
+     (gtk:action-group-add-action ,group action :accelerator ,accel)
+     ,(when func
+            `(gobject:connect-signal action "toggled" ,func))))
+
 (defun entry-icon-by-class (class)
   (let ((dummy-entry (make-instance class)))
     (entry-icon dummy-entry)))
@@ -443,6 +482,14 @@
         (butlast path)
         path)))
 
+(defun set-mode (app)
+  (if (app-merge-mode app)
+      (setf (gtk:action-group-visible (app-actions-edit app)) nil
+            (gtk:action-group-visible (app-actions-merge app)) t)
+      (setf (gtk:action-group-visible (app-actions-edit app)) t
+            (gtk:action-group-visible (app-actions-merge app)) nil))
+  (gtk:tree-view-column-queue-resize (app-column app)))
+
 (defun main ()
 
   (glib:random-set-seed (get-universal-time))
@@ -469,30 +516,38 @@
 
       (gtk:icon-factory-add-default factory)))
 
-  (let* ((data (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray")))
+  (let* ((data (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray" "gboolean")))
          (app (make-app
                :data data
                :filter (make-instance 'gtk:tree-model-filter :child-model data)
-               :action-group (make-instance 'gtk:action-group :name "action-group")))
+               :actions-common (make-instance 'gtk:action-group :name "actions-common")
+               :actions-edit (make-instance 'gtk:action-group :name "actions-edit")
+               :actions-merge (make-instance 'gtk:action-group :name "actions-merge")))
          (ui (make-instance 'gtk:ui-manager)))
 
-    (let ((action-group (app-action-group app)))
-      (create-action action-group (:name "file-menu" :label "_File"))
-      (create-action action-group (:name "new" :stock-id "gtk-new") "<Control>n" (lambda-u (cb-new app)))
-      (create-action action-group (:name "open" :stock-id "gtk-open") "<Control>o" (lambda-u (cb-open app nil)))
-      (create-action action-group (:name "merge" :label "_Merge") nil (lambda-u (cb-open app t)))
-      (create-action action-group (:name "save" :stock-id "gtk-save") "<Control>s" (lambda-u (cb-save app)))
-      (create-action action-group (:name "save-as" :stock-id "gtk-save-as") nil (lambda-u (cb-save-as app)))
-      (create-action action-group (:name "quit" :stock-id "gtk-quit") "<Control>q" (lambda-u (e-close app)))
+    (let ((actions-common (app-actions-common app))
+          (actions-edit (app-actions-edit app))
+          (actions-merge (app-actions-merge app)))
+      (create-action actions-common (:name "file-menu" :label "_File"))
+      (create-action actions-common (:name "new" :stock-id "gtk-new") "<Control>n" (lambda-u (cb-new app)))
+      (create-action actions-common (:name "open" :stock-id "gtk-open") "<Control>o" (lambda-u (cb-open app nil)))
+      (create-action actions-common (:name "merge-file" :label "_Merge file") nil (lambda-u (cb-open app t)))
+      (create-action actions-common (:name "save" :stock-id "gtk-save") "<Control>s" (lambda-u (cb-save app)))
+      (create-action actions-common (:name "save-as" :stock-id "gtk-save-as") nil (lambda-u (cb-save-as app)))
+      (create-action actions-common (:name "quit" :stock-id "gtk-quit") "<Control>q" (lambda-u (e-close app)))
 
-      (create-action action-group (:name "edit-menu" :label "_Edit"))
-      (create-action action-group (:name "find" :label "_Find") "<Control>f")
-      (create-action action-group (:name "copy-name" :label "Copy _name" :sensitive nil) "<Control>c" (lambda-u (cb-copy-name app)))
-      (create-action action-group (:name "copy-password" :label "Copy pass_word" :sensitive nil) "<Control><Shift>c" (lambda-u (cb-copy-password app)))
-      (create-action action-group (:name "change-password" :label "Change _password") nil (lambda-u (cb-change-password app)))
-      (create-action action-group (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
+      (create-action actions-common (:name "edit-menu" :label "_Edit"))
+      (create-action actions-common (:name "find" :label "_Find") "<Control>f")
+      (create-action actions-edit (:name "copy-name" :label "Copy _name" :sensitive nil) "<Control>c" (lambda-u (cb-copy-name app)))
+      (create-action actions-edit (:name "copy-password" :label "Copy pass_word" :sensitive nil) "<Control><Shift>c" (lambda-u (cb-copy-password app)))
+      (create-action actions-common (:name "change-password" :label "Change _password") nil (lambda-u (cb-change-password app)))
+      (create-toggle-action actions-common (:name "merge-mode" :label "_Merge mode") nil
+                            (lambda-u
+                             (setf (app-merge-mode app) (not (app-merge-mode app)))
+                             (set-mode app)))
+      (create-action actions-common (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
 
-      (create-action action-group (:name "entry-menu" :label "E_ntry"))
+      (create-action actions-common (:name "entry-menu" :label "E_ntry"))
 
       (loop
          for class1 in (list 'entry-group
@@ -508,15 +563,15 @@
                              'entry-website)
          do
            (let ((class class1))
-             (create-action action-group
+             (create-action actions-edit
                             (:name (format nil "add-~(~A~)" class)
                                    :stock-id (entry-icon-by-class class)
                                    :label (format nil "Add ~A" (entry-title-by-class class)))
                             nil
                             (lambda-u (cb-add-item app class)))))
 
-      (create-action action-group (:name "edit" :stock-id "gtk-edit" :sensitive nil) nil (lambda-u (cb-edit-entry app)))
-      (create-action action-group (:name "convert" :label "Convert"))
+      (create-action actions-edit (:name "edit" :stock-id "gtk-edit" :sensitive nil) nil (lambda-u (cb-edit-entry app)))
+      (create-action actions-edit (:name "convert" :label "Convert"))
 
       (loop
          for class1 in (list 'entry-generic
@@ -531,7 +586,7 @@
                              'entry-website)
          do
            (let ((class class1))
-             (create-action action-group
+             (create-action actions-edit
                             (:name (format nil "convert-to-~(~A~)" class)
                                    :stock-id (entry-icon-by-class class)
                                    :label (format nil "to ~A" (entry-title-by-class class))
@@ -539,12 +594,17 @@
                             nil
                             (lambda-u (cb-convert-entry app class)))))
 
-      (create-action action-group (:name "delete" :stock-id "gtk-delete" :sensitive nil) nil (lambda-u (cb-del-entry app)))
+      (create-action actions-edit (:name "delete" :stock-id "gtk-delete" :sensitive nil) nil (lambda-u (cb-del-entry app)))
 
-      (create-action action-group (:name "help-menu" :label "_Help"))
-      (create-action action-group (:name "about" :stock-id "gtk-about") nil (lambda-u (cb-about app)))
+      (create-action actions-merge (:name "uncheck-all" :label "Uncheck all") nil (lambda-u (cb-uncheck-all app)))
+      (create-action actions-merge (:name "merge" :label "Merge" :stock-id "gtk-dnd-multiple") nil (lambda-u (cb-merge app)))
 
-      (gtk:ui-manager-insert-action-group ui action-group 0))
+      (create-action actions-common (:name "help-menu" :label "_Help"))
+      (create-action actions-common (:name "about" :stock-id "gtk-about") nil (lambda-u (cb-about app)))
+
+      (gtk:ui-manager-insert-action-group ui actions-common 0)
+      (gtk:ui-manager-insert-action-group ui actions-edit 1)
+      (gtk:ui-manager-insert-action-group ui actions-merge 2))
 
     (gtk:ui-manager-add-ui-from-string ui
                                        "<ui>
@@ -552,9 +612,10 @@
     <menu action='file-menu'>
       <menuitem action='new'/>
       <menuitem action='open'/>
-      <menuitem action='merge'/>
       <menuitem action='save'/>
       <menuitem action='save-as'/>
+      <separator/>
+      <menuitem action='merge-file'/>
       <separator/>
       <menuitem action='quit'/>
     </menu>
@@ -565,6 +626,9 @@
       <menuitem action='copy-password'/>
       <separator/>
       <menuitem action='change-password'/>
+      <separator/>
+      <menuitem action='uncheck-all'/>
+      <menuitem action='merge-mode'/>
       <separator/>
       <menuitem action='preferences'/>
     </menu>
@@ -596,6 +660,7 @@
         <menuitem action='convert-to-entry-website'/>
       </menu>
       <menuitem action='delete'/>
+      <menuitem action='merge'/>
     </menu>
     <menu action='help-menu'>
       <menuitem action='about'/>
@@ -604,6 +669,7 @@
   <toolbar name='toolbar'>
     <toolitem action='edit'/>
     <toolitem action='delete'/>
+    <toolitem action='merge'/>
   </toolbar>
   <popup accelerators='true'>
     <menuitem action='copy-name'/>
@@ -683,6 +749,10 @@
           (gtk:tree-view-column
            :var col
            :sizing :autosize
+           (gtk:cell-renderer-toggle
+            :var check-renderer
+            :visible nil)
+           :expand nil
            (gtk:cell-renderer-pixbuf
             :stock-size 1)
            :expand nil
@@ -720,10 +790,10 @@
                          (make-instance 'gtk:menu-tool-button
                                         :stock-id "gtk-add"
                                         :label "Add entry"
-                                        :related-action (gtk:action-group-action (app-action-group app) "add-entry-generic")
+                                        :related-action (gtk:action-group-action (app-actions-edit app) "add-entry-generic")
                                         :menu (apply #'make-menu
                                                      (list
-                                                      (app-action-group app)
+                                                      (app-actions-edit app)
                                                       "add-entry-group"
                                                       nil
                                                       "add-entry-generic"
@@ -745,7 +815,7 @@
                                                        (when entry
                                                          (entry-satisfies entry model iter (gtk:entry-text search-entry)))))))
 
-     (gobject:connect-signal (gtk:action-group-action (app-action-group app) "find") "activate"
+     (gobject:connect-signal (gtk:action-group-action (app-actions-common app) "find") "activate"
                              (lambda-u
                               (gtk:widget-grab-focus search-entry)))
 
@@ -765,11 +835,39 @@
                                     (gtk:tree-view-expand-all (app-view app))))
                               (listview-cursor-changed app)))
 
+     (gobject:connect-signal check-renderer "toggled"
+                             (lambda (renderer path)
+                               (declare (ignore renderer))
+                               (let* ((current-model (gtk:tree-view-model (app-view app)))
+                                      (iter (gtk:tree-model-iter-from-string current-model path)))
+                                 (when (and (eq current-model (app-filter app)) iter)
+                                   (setf iter (gtk:tree-model-filter-convert-iter-to-child-iter (app-filter app) iter)))
+
+                                 (when iter
+                                   (setf (gtk:tree-store-value (app-data app) iter 3)
+                                         (not (gtk:tree-store-value (app-data app) iter 3)))))))
+
+     (gtk:tree-view-column-set-cell-data-function
+      col check-renderer
+      (lambda (col check-renderer model iter)
+        (declare (ignore col model))
+        (if (app-merge-mode app)
+            ;; then
+            (let ((current-model (gtk:tree-view-model (app-view app))))
+              (setf (gtk:cell-renderer-visible check-renderer)
+                    (not (is-group (gtk:tree-store-value current-model iter 0))))
+              (setf (gtk:cell-renderer-toggle-active check-renderer)
+                    (gtk:tree-store-value current-model iter 3)))
+            ;; else
+            (setf (gtk:cell-renderer-visible check-renderer) nil))))
+
      (setf (gtk:gtk-window-icon main-window)
            (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
 
      (setf (app-main-window app) main-window)
      (setf (app-view app) view)
+     (setf (app-column app) col)
+     (setf (app-check-renderer app) check-renderer)
      (setf (app-current-icon app) current-icon)
      (setf (app-current-title app) current-title)
      (setf (app-current-description app) current-description)
@@ -831,7 +929,7 @@
                               (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
                                               :activate-time (gdk:event-get-time nil))
                               t))
-    
+
     #+win32
     (progn
       (setf (gtk:about-dialog-global-url-hook)
@@ -845,8 +943,8 @@
                                 (win32-open-uri uri))))
 
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
-
     (gtk:widget-show (app-main-window app))
+    (set-mode app)
 
     (let ((default-file (or
                          (first (cli-options))
