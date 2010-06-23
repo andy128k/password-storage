@@ -6,7 +6,6 @@
   view
   column
   check-renderer
-  merge-mode
   current-icon
   current-title
   current-description
@@ -283,6 +282,8 @@
   (when (ensure-data-is-saved app)
     (setf (app-changed app) nil)
     (gtk:tree-store-clear (app-data app))
+    (setf (gtk:toggle-action-active (gtk:action-group-action (app-actions-common app) "merge-mode"))
+	  nil)
     (setf (app-filename app) nil)
     (setf (app-password app) nil)
     (listview-cursor-changed app)
@@ -483,7 +484,7 @@
         path)))
 
 (defun set-mode (app)
-  (if (app-merge-mode app)
+  (if (gtk:toggle-action-active (gtk:action-group-action (app-actions-common app) "merge-mode"))
       (setf (gtk:action-group-visible (app-actions-edit app)) nil
             (gtk:action-group-visible (app-actions-merge app)) t)
       (setf (gtk:action-group-visible (app-actions-edit app)) t
@@ -541,10 +542,7 @@
       (create-action actions-edit (:name "copy-name" :label "Copy _name" :sensitive nil) "<Control>c" (lambda-u (cb-copy-name app)))
       (create-action actions-edit (:name "copy-password" :label "Copy pass_word" :sensitive nil) "<Control><Shift>c" (lambda-u (cb-copy-password app)))
       (create-action actions-common (:name "change-password" :label "Change _password") nil (lambda-u (cb-change-password app)))
-      (create-toggle-action actions-common (:name "merge-mode" :label "_Merge mode") nil
-                            (lambda-u
-                             (setf (app-merge-mode app) (not (app-merge-mode app)))
-                             (set-mode app)))
+      (create-toggle-action actions-common (:name "merge-mode" :label "_Merge mode" :stock-id "ps-stock-merge-mode") nil (lambda-u (set-mode app)))
       (create-action actions-common (:name "preferences" :stock-id "gtk-preferences") nil (lambda-u (cb-preferences app)))
 
       (create-action actions-common (:name "entry-menu" :label "E_ntry"))
@@ -597,7 +595,7 @@
       (create-action actions-edit (:name "delete" :stock-id "gtk-delete" :sensitive nil) nil (lambda-u (cb-del-entry app)))
 
       (create-action actions-merge (:name "uncheck-all" :label "Uncheck all") nil (lambda-u (cb-uncheck-all app)))
-      (create-action actions-merge (:name "merge" :label "Merge" :stock-id "gtk-dnd-multiple") nil (lambda-u (cb-merge app)))
+      (create-action actions-merge (:name "merge" :label "Merge" :stock-id "ps-stock-merge") nil (lambda-u (cb-merge app)))
 
       (create-action actions-common (:name "help-menu" :label "_Help"))
       (create-action actions-common (:name "about" :stock-id "gtk-about") nil (lambda-u (cb-about app)))
@@ -670,6 +668,8 @@
     <toolitem action='edit'/>
     <toolitem action='delete'/>
     <toolitem action='merge'/>
+    <separator/>
+    <toolitem action='merge-mode'/>
   </toolbar>
   <popup accelerators='true'>
     <menuitem action='copy-name'/>
@@ -851,7 +851,7 @@
       col check-renderer
       (lambda (col check-renderer model iter)
         (declare (ignore col model))
-        (if (app-merge-mode app)
+        (if (gtk:toggle-action-active (gtk:action-group-action (app-actions-common app) "merge-mode"))
             ;; then
             (let ((current-model (gtk:tree-view-model (app-view app))))
               (setf (gtk:cell-renderer-visible check-renderer)
