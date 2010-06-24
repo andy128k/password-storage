@@ -135,26 +135,26 @@
     (setf (gtk:tree-store-value data iter 2) (entry-icon entry))
     (gtk:tree-model-filter-refilter (app-filter app))))
 
+(defun select-iter (app iter)
+  (let* ((current-model (gtk:tree-view-model (app-view app)))
+         (iter-to-select
+          (cond
+            ((eq current-model (app-data app))
+             iter)
+            ((eq current-model (app-filter app))
+             (gtk:tree-model-filter-convert-child-iter-to-iter (app-filter app) iter)))))
+    (when iter-to-select
+      (let ((path-to-select (gtk:tree-model-path current-model iter-to-select)))
+        (gtk:tree-view-expand-to-path (app-view app) path-to-select)
+        (gtk:tree-view-set-cursor (app-view app) path-to-select)))))
+
 (defun cb-add-item (app type)
   (let ((entry (make-instance type)))
     (when (edit-entry entry (app-main-window app) "Add")
       (let ((iter (gtk:tree-store-append (app-data app)
                                          (get-selected-group-iter app))))
         (update-row app iter entry)
-
-        ;; select inserted entry
-        (let* ((current-model (gtk:tree-view-model (app-view app)))
-               (iter-to-select
-                (cond
-                  ((eq current-model (app-data app))
-                   iter)
-                  ((eq current-model (app-filter app))
-                   (gtk:tree-model-filter-convert-child-iter-to-iter (app-filter app) iter)))))
-          (when iter-to-select
-            (let ((path-to-select (gtk:tree-model-path current-model iter-to-select)))
-              (gtk:tree-view-expand-to-path (app-view app) path-to-select)
-              (gtk:tree-view-set-cursor (app-view app) path-to-select))))
-
+        (select-iter app iter)
         (set-status app "New entry was added")
         (setf (app-changed app) t)))))
 
@@ -191,31 +191,65 @@
 
 (defun cb-uncheck-all (app)
   (labels ((uncheck (model parent)
-	     (iter (for i in-tree-model model children-of parent)
-		   (setf (gtk:tree-store-value model i 3) nil)
-		   (uncheck model i))))
+             (iter (for i in-tree-model model children-of parent)
+                   (setf (gtk:tree-store-value model i 3) nil)
+                   (uncheck model i))))
     (uncheck (app-data app) nil)
     (set-status app "Unchecked all items")))
 
 (defun cb-merge (app)
-  (labels ((collect-checked (model parent path)
-	     (iter (for i in-tree-model model children-of parent)
-		    (let ((entry (gtk:tree-model-value model i 0)))
-		       (cond
-			 ((is-group entry)
-			  (let ((cheched-subtree (collect-checked model i (cons (entry-name entry) path))))
-			    (when cheched-subtree
-			      (appending cheched-subtree))))
-			 ((gtk:tree-store-value model i 3)
-			  (collect (list i entry (reverse path)))))))))
+  (let ((checked
+         (labels ((collect-checked (model parent path)
+                    (iter (for i in-tree-model model children-of parent)
+                          (let ((entry (gtk:tree-model-value model i 0)))
+                            (appending (collect-checked model i (cons (entry-name entry) path)))
+                            (when (gtk:tree-store-value model i 3)
+                              (collect (list entry (reverse path))))))))
+           (collect-checked (app-data app) nil nil))))
 
-    (let ((checked (collect-checked (app-data app) nil nil)))
-      (ask (app-main-window app)
-	   (with-output-to-string (str)
-	     (format str "Do you want to merge following items?~%")
-	     (iter (for (i entry path) in checked)
-		   (format str "~%~{~A / ~}~A" path (entry-name entry)))))
-      )))
+    (when (< (length checked) 2)
+      (say-info (app-main-window app) "Nothing to merge. Select few items and try again.")
+      (return-from cb-merge))
+
+    (unless (ask (app-main-window app)
+                 (with-output-to-string (str)
+                   (format str "Do you want to merge following items?~%")
+                   (iter (for (entry path) in checked)
+                         (format str "~%~{~A / ~}~A" path (entry-name entry)))))
+      (return-from cb-merge))
+
+    ;; delete entries
+    (labels ((delete-checked (model parent)
+               (let ((i (if parent
+                            (gtk:tree-model-iter-first-child model parent)
+                            (gtk:tree-model-iter-first model))))
+                 (when i
+                   (iter (while
+                             (if (gtk:tree-store-value model i 3)
+                                 (gtk:tree-store-remove model i)
+                                 (progn
+                                   (delete-checked model i)
+                                   (gtk:tree-model-iter-next model i)))))))))
+      (delete-checked (app-data app) nil))
+
+    ;; create new entry
+    (let ((result (make-instance (or (equal-together (mapcar (lambda (c) (class-of (first c))) checked))
+                                     (find-class 'entry-generic)))))
+
+      (iter (for (entry path) in checked)
+            (join-entry result path entry))
+
+      (setf (entry-name result)
+            (let ((names (mapcar (lambda (c) (entry-name (first c))) checked)))
+              (or (equal-together names)
+                  (format nil "~A ~{ and ~A~}" (car names) (cdr names)))))
+
+      ;; TODO: detect common path
+      (let ((iter (gtk:tree-store-append (app-data app) nil)))
+        (update-row app iter result)
+        (select-iter app iter)
+        (set-status app "New entry was created by merging")
+        (setf (app-changed app) t)))))
 
 (defun load-data (app xml)
   (labels ((load-entry2 (elem parent-iter)
@@ -283,7 +317,7 @@
     (setf (app-changed app) nil)
     (gtk:tree-store-clear (app-data app))
     (setf (gtk:toggle-action-active (gtk:action-group-action (app-actions-common app) "merge-mode"))
-	  nil)
+          nil)
     (setf (app-filename app) nil)
     (setf (app-password app) nil)
     (listview-cursor-changed app)

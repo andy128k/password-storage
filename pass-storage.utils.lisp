@@ -67,6 +67,18 @@
     (gtk:dialog-run dlg)
     (gtk:widget-hide dlg :all t)))
 
+(defun say-info (parent-window message)
+  (let ((dlg (make-instance 'gtk:message-dialog
+			    :text message
+			    :buttons :ok
+			    :title "PassStorage"
+			    :message-type :info
+			    :window-position :center-on-parent
+			    :transient-for parent-window
+			    :use-markup nil)))
+    (gtk:dialog-run dlg)
+    (gtk:object-destroy dlg)))
+
 (defun make-std-dialog (parent-window title stock-icon content)
   (let ((dlg (make-instance 'gtk:dialog
 			    :border-width 8
@@ -332,4 +344,9 @@
                        (<= 144 code 159))
                    (format str "&#x~X;" code)
                    (format str "~A" ch))))))))
+
+(defun equal-together (data)
+  (let ((e1 (car data)))
+    (when (every (lambda (e) (equal e e1)) (cdr data))
+      e1)))
 

@@ -285,3 +285,41 @@
 
       new-entry)))
 
+(defun join-entry (entry path another-entry)
+  (flet ((find-slot-by-name (class slot-name)
+	   (iter (for slot in (get-slots class))
+		 (when (eql slot-name slot)
+		   (return slot)))))
+
+    (let ((src-data
+	   (iter (for src-slot in (get-slots (class-of another-entry)))
+		 (unless (or (eq src-slot 'name) (eq src-slot 'description))
+		   (for src-value = (slot-value another-entry src-slot))
+		   (when (plusp (length src-value))
+		     (collecting (list src-slot src-value)))))))
+
+      (setf src-data
+	    (iter (for (src-slot src-value) in src-data)
+		  (for dst-slot = (find-slot-by-name (class-of entry) src-slot))
+		  (cond
+		    ((not dst-slot)
+		     (collecting (list src-slot src-value)))
+		    ((zerop (length (slot-value entry dst-slot)))
+		     (setf (slot-value entry dst-slot) src-value))
+		    ((string= (slot-value entry dst-slot) src-value)
+		     nil)
+		    (t
+		     (collecting (list src-slot src-value))))))
+
+      (let ((desc (entry-description another-entry)))
+	(when (plusp (length desc))
+	  (push (list 'description desc) src-data)))
+
+      (when src-data
+	(setf (entry-description entry)
+	      (format nil "~A~%~%~{~A / ~}~A~%----------~%~:{~A: ~A~%~}"
+		      (entry-description entry)
+		      path
+		      (entry-name another-entry)
+		      src-data))))))
+
