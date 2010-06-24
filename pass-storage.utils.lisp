@@ -11,7 +11,7 @@
 			    :use-markup nil)))
     (prog1
         (eql (gtk:dialog-run dlg) :yes)
-      (gtk:object-destroy dlg))))
+      (gtk:widget-hide dlg :all t))))
 
 (defun ask-save (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
@@ -29,7 +29,7 @@
 
     (prog1
         (gtk:dialog-run dlg)
-      (gtk:object-destroy dlg))))
+      (gtk:widget-hide dlg :all t))))
 
 (defun say-error (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
@@ -41,7 +41,7 @@
 			    :transient-for parent-window
 			    :use-markup nil)))
     (gtk:dialog-run dlg)
-    (gtk:object-destroy dlg)))
+    (gtk:widget-hide dlg :all t)))
 
 (defun say-warning (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
@@ -53,7 +53,19 @@
 			    :transient-for parent-window
 			    :use-markup nil)))
     (gtk:dialog-run dlg)
-    (gtk:object-destroy dlg)))
+    (gtk:widget-hide dlg :all t)))
+
+(defun say-info (parent-window message)
+  (let ((dlg (make-instance 'gtk:message-dialog
+			    :text message
+			    :buttons :ok
+			    :title "PassStorage"
+			    :message-type :info
+			    :window-position :center-on-parent
+			    :transient-for parent-window
+			    :use-markup nil)))
+    (gtk:dialog-run dlg)
+    (gtk:widget-hide dlg :all t)))
 
 (defun make-std-dialog (parent-window title stock-icon content)
   (let ((dlg (make-instance 'gtk:dialog
