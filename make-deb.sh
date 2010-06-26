@@ -59,7 +59,7 @@ echo "Section: misc"                                                    >> $PREF
 echo "Priority: optional"                                               >> $PREFIX/$D/control
 echo "Description: Password manager"                                    >> $PREFIX/$D/control
 echo " PassStorage manages passwords/secrets and stores them securely." >> $PREFIX/$D/control
-echo "Depends: libc6, libgtk2.0-0 (>= 2.16)"                            >> $PREFIX/$D/control
+echo "Depends: libc6, libgtk2.0-0 (>= 2.18)"                            >> $PREFIX/$D/control
 
 echo "pass-storage ($VERSION) stable; urgency=medium"  > $PREFIX/usr/share/doc/pass-storage/changelog
 echo ""                                               >> $PREFIX/usr/share/doc/pass-storage/changelog
