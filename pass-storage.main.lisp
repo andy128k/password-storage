@@ -14,6 +14,7 @@
   actions-edit
   actions-merge
   filter
+  search-entry
   statusbar
 
   filename
@@ -128,12 +129,10 @@
               (gtk:label-label (app-current-description app)) ""
               (gtk:label-label (app-current-view app)) ""))))
 
-(defun update-row (app iter entry)
-  (let ((data (app-data app)))
-    (setf (gtk:tree-store-value data iter 0) entry)
-    (setf (gtk:tree-store-value data iter 1) (entry-name entry))
-    (setf (gtk:tree-store-value data iter 2) (entry-icon entry))
-    (gtk:tree-model-filter-refilter (app-filter app))))
+(defun update-row (data iter entry)
+  (setf (gtk:tree-store-value data iter 0) entry)
+  (setf (gtk:tree-store-value data iter 1) (entry-name entry))
+  (setf (gtk:tree-store-value data iter 2) (entry-icon entry)))
 
 (defun select-iter (app iter)
   (let* ((current-model (gtk:tree-view-model (app-view app)))
@@ -153,7 +152,8 @@
     (when (edit-entry entry (app-main-window app) "Add")
       (let ((iter (gtk:tree-store-append (app-data app)
                                          (get-selected-group-iter app))))
-        (update-row app iter entry)
+        (update-row (app-data app) iter entry)
+	(gtk:tree-model-filter-refilter (app-filter app))
         (select-iter app iter)
         (set-status app "New entry was added")
         (setf (app-changed app) t)))))
@@ -164,7 +164,8 @@
     (when iter
       (let ((entry (gtk:tree-store-value data iter 0)))
         (when (edit-entry entry (app-main-window app) "Edit")
-          (update-row app iter entry)
+          (update-row (app-data app) iter entry)
+	  (gtk:tree-model-filter-refilter (app-filter app))
           (listview-cursor-changed app)
           (set-status app "Entry was changed")
           (setf (app-changed app) t))))))
@@ -174,7 +175,8 @@
         (iter (get-selected-iter app)))
     (when iter
       (let ((entry (gtk:tree-store-value data iter 0)))
-        (update-row app iter (copy-entry entry dest-class))
+        (update-row (app-data app) iter (copy-entry entry dest-class))
+	(gtk:tree-model-filter-refilter (app-filter app))
         (set-status app "Entry has changed type")
         (setf (app-changed app) t)
         (listview-cursor-changed app)))))
@@ -246,38 +248,51 @@
 
       ;; TODO: detect common path
       (let ((iter (gtk:tree-store-append (app-data app) nil)))
-        (update-row app iter result)
+        (update-row (app-data app) iter result)
+	(gtk:tree-model-filter-refilter (app-filter app))
         (select-iter app iter)
         (set-status app "New entry was created by merging")
         (setf (app-changed app) t)))))
 
-(defun load-data (app xml)
-  (labels ((load-entry2 (elem parent-iter)
-             (let ((type (intern (tag-get-attr elem :|type|) 'keyword))
-                   (iter (gtk:tree-store-append (app-data app) parent-iter)))
+(defun make-data ()
+  (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray" "gboolean")))
 
-               (update-row app
+(defun load-data (filename parent-window)
+  (labels ((parse-entry (elem data parent-iter)
+             (let ((type (intern (tag-get-attr elem :|type|) 'keyword))
+                   (iter (gtk:tree-store-append data parent-iter)))
+               (update-row data
                            iter
                            (load-entry type elem))
-
                (when (eql type :|folder|)
                  (iter (for ch in (tag-children elem))
-                       (parse ch iter)))))
+                       (parse ch data iter)))))
 
-           (parse (elem parent-iter)
+           (parse (elem data parent-iter)
              (when (is-tag elem)
                (cond
                  ;; toplevel
                  ((eq (tag-name elem) :|revelationdata|)
-
                   (iter (for ch in (tag-children elem))
-                        (parse ch nil)))
-
+                        (parse ch data nil)))
                  ((eq (tag-name elem) :|entry|)
+                  (parse-entry elem data parent-iter))))))
 
-                  (load-entry2 elem parent-iter))))))
+  (loop
+     for password = (edit-object nil parent-window "Enter password" "ps-pass-storage"
+                                 '((nil "Password" :entry :required :password)))
 
-    (parse xml nil)))
+     while password
+
+     do (handler-case
+            (let ((xml (load-revelation-file filename (car password)))
+		  (data (make-data)))
+	      (parse xml data nil)
+	      (return-from load-data (values data
+					     (car password))))
+	  (error (e)
+            (declare (ignore e))
+            (say-error parent-window "Can't open this file."))))))
 
 (defmacro tree-foreach-collect (iter model parent-iter &body body)
   `(let ((,iter (if ,parent-iter
@@ -323,29 +338,21 @@
     (listview-cursor-changed app)
     (set-status app "New file was created")))
 
-(defun open-file (app filename merge)
-  (loop
-     for password = (edit-object nil (app-main-window app) "Enter password" "ps-pass-storage"
-                                 '((nil "Password" :entry :required :password)))
+(defun set-data (app data)
+  (setf (app-data app) data
+	(gtk:tree-view-model (app-view app)) data
+	(app-filter app) (make-instance 'gtk:tree-model-filter :child-model data))
+  (set-filter-function app))
 
-     while password
-
-     do (handler-case
-            (let ((xml (load-revelation-file filename (car password))))
-              (unless merge
-                (gtk:tree-store-clear (app-data app)))
-              (load-data app xml)
-              (unless merge
-                (setf (app-filename app) filename)
-                (setf (app-password app) (car password)))
-              (setf (app-changed app) nil)
-              (if merge
-                  (set-status app "File was merged")
-                  (set-status app "File was opened"))
-              (return-from open-file))
-          (error (e)
-            (declare (ignore e))
-            (say-error (app-main-window app) "Can't open this file.")))))
+(defun open-file (app filename)
+  (multiple-value-bind (data password)
+      (load-data filename (app-main-window app))
+    (when data
+      (set-data app data)
+      (setf (app-filename app) filename)
+      (setf (app-password app) password)
+      (setf (app-changed app) nil)
+      (set-status app "File was opened"))))
 
 (defun cb-open (app)
   (when (ensure-data-is-saved app)
@@ -361,7 +368,7 @@
       (setf (gtk:dialog-default-response dlg) :ok)
 
       (when (std-dialog-run dlg)
-        (open-file app (gtk:file-chooser-filename dlg) nil)))))
+        (open-file app (gtk:file-chooser-filename dlg))))))
 
 (defun cb-merge-file (app)
   (destructuring-bind (mode filename)
@@ -519,6 +526,15 @@
   (entry-has-text entry
                   text
                   :look-at-secrets (config-search-in-secrets *config*)))
+
+(defun set-filter-function (app)
+  (gtk:tree-model-filter-set-visible-function
+   (app-filter app)
+   (lambda (model iter)
+     (when iter
+       (let ((entry (gtk:tree-store-value model iter 0)))
+	 (when entry
+	   (entry-satisfies entry model iter (gtk:entry-text (app-search-entry app)))))))))
 
 (defun location-prefix ()
   (let ((path (pathname-directory (directory-namestring (cl-binary-location:location)))))
@@ -852,12 +868,9 @@
                                                       "add-entry-website")))
                          0)
 
-     (gtk:tree-model-filter-set-visible-function (app-filter app)
-                                                 (lambda (model iter)
-                                                   (when iter
-                                                     (let ((entry (gtk:tree-store-value model iter 0)))
-                                                       (when entry
-                                                         (entry-satisfies entry model iter (gtk:entry-text search-entry)))))))
+     (setf (app-search-entry app) search-entry)
+
+     (set-filter-function app)
 
      (gobject:connect-signal (gtk:action-group-action (app-actions-common app) "find") "activate"
                              (lambda-u
@@ -997,7 +1010,7 @@
         (gtk:gtk-main-add-timeout 1
                                   (lambda ()
                                     (gdk:gdk-threads-enter)
-                                    (open-file app default-file nil)
+                                    (open-file app default-file)
                                     (gdk:gdk-threads-leave)
                                     nil))))
 
