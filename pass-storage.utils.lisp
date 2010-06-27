@@ -2,25 +2,25 @@
 
 (defun ask (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
-			    :text message
-			    :buttons :yes-no
-			    :title "PassStorage"
-			    :message-type :question
-			    :window-position :center-on-parent
-			    :transient-for parent-window
-			    :use-markup nil)))
+                            :text message
+                            :buttons :yes-no
+                            :title "PassStorage"
+                            :message-type :question
+                            :window-position :center-on-parent
+                            :transient-for parent-window
+                            :use-markup nil)))
     (prog1
         (eql (gtk:dialog-run dlg) :yes)
       (gtk:widget-hide dlg :all t))))
 
 (defun ask-save (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
-			    :text message
-			    :title "PassStorage"
-			    :message-type :warning
-			    :window-position :center-on-parent
-			    :transient-for parent-window
-			    :use-markup nil)))
+                            :text message
+                            :title "PassStorage"
+                            :message-type :warning
+                            :window-position :center-on-parent
+                            :transient-for parent-window
+                            :use-markup nil)))
 
     (gtk:dialog-add-button dlg "gtk-discard" :reject)
     (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
@@ -33,68 +33,56 @@
 
 (defun say-error (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
-			    :text message
-			    :buttons :ok
-			    :title "PassStorage"
-			    :message-type :error
-			    :window-position :center-on-parent
-			    :transient-for parent-window
-			    :use-markup nil)))
+                            :text message
+                            :buttons :ok
+                            :title "PassStorage"
+                            :message-type :error
+                            :window-position :center-on-parent
+                            :transient-for parent-window
+                            :use-markup nil)))
     (gtk:dialog-run dlg)
     (gtk:widget-hide dlg :all t)))
 
 (defun say-warning (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
-			    :text message
-			    :buttons :ok
-			    :title "PassStorage"
-			    :message-type :warning
-			    :window-position :center-on-parent
-			    :transient-for parent-window
-			    :use-markup nil)))
+                            :text message
+                            :buttons :ok
+                            :title "PassStorage"
+                            :message-type :warning
+                            :window-position :center-on-parent
+                            :transient-for parent-window
+                            :use-markup nil)))
     (gtk:dialog-run dlg)
     (gtk:widget-hide dlg :all t)))
 
 (defun say-info (parent-window message)
   (let ((dlg (make-instance 'gtk:message-dialog
-			    :text message
-			    :buttons :ok
-			    :title "PassStorage"
-			    :message-type :info
-			    :window-position :center-on-parent
-			    :transient-for parent-window
-			    :use-markup nil)))
+                            :text message
+                            :buttons :ok
+                            :title "PassStorage"
+                            :message-type :info
+                            :window-position :center-on-parent
+                            :transient-for parent-window
+                            :use-markup nil)))
     (gtk:dialog-run dlg)
     (gtk:widget-hide dlg :all t)))
-
-(defun say-info (parent-window message)
-  (let ((dlg (make-instance 'gtk:message-dialog
-			    :text message
-			    :buttons :ok
-			    :title "PassStorage"
-			    :message-type :info
-			    :window-position :center-on-parent
-			    :transient-for parent-window
-			    :use-markup nil)))
-    (gtk:dialog-run dlg)
-    (gtk:object-destroy dlg)))
 
 (defun make-std-dialog (parent-window title stock-icon content)
   (let ((dlg (make-instance 'gtk:dialog
-			    :border-width 8
-			    :modal t
-			    :resizable t
-			    :window-position :center-on-parent
-			    :title title
-			    :has-separator nil
-			    :type-hint :dialog
-			    :skip-taskbar_hint t
-			    :skip-pager-hint t
-			    :gravity :center
-			    :transient-for parent-window)))
+                            :border-width 8
+                            :modal t
+                            :resizable t
+                            :window-position :center-on-parent
+                            :title title
+                            :has-separator nil
+                            :type-hint :dialog
+                            :skip-taskbar_hint t
+                            :skip-pager-hint t
+                            :gravity :center
+                            :transient-for parent-window)))
 
     (setf (gtk:gtk-window-icon dlg)
-	  (gtk:widget-render-icon dlg stock-icon :dialog ""))
+          (gtk:widget-render-icon dlg stock-icon :dialog ""))
 
     (gtk:dialog-add-button dlg "gtk-cancel" :cancel)
     (gtk:dialog-add-button dlg "gtk-ok" :ok)
@@ -114,94 +102,112 @@
 
 (defun make-table (conf)
   (let ((table (make-instance 'gtk:table
-			      :n-rows (length conf)
-			      :n-columns 2
-			      :border-width 5
-			      :column-spacing 8
-			      :row-spacing 8)))
+                              :n-rows (length conf)
+                              :n-columns 2
+                              :border-width 5
+                              :column-spacing 8
+                              :row-spacing 8)))
 
     (values
      table
      (iter (for item in conf)
-	   (for i from 0)
-	   (let ((slot-name (first item))
-		 (title (second item))
-		 (kind (third item))
-		 (params (cdddr item)))
+           (for i from 0)
+           (let ((slot-name (first item))
+                 (title (second item))
+                 (kind (third item))
+                 (params (cdddr item)))
 
-	     (flet ((insert-label ()
-		      (gtk:table-attach table
-					(make-instance 'gtk:label
-						       :label title
-						       :xalign 0 :yalign 0.5)
-					0 1 i (+ i 1) :x-options :fill :y-options :fill)))
+             (flet ((insert-label ()
+                      (gtk:table-attach table
+                                        (make-instance 'gtk:label
+                                                       :label title
+                                                       :xalign 0 :yalign 0.5)
+                                        0 1 i (+ i 1) :x-options :fill :y-options :fill)))
 
-	       (let ((widget (case kind
-			       ((:entry :secret)
-				(insert-label)
-				(let ((widget (make-instance 'gtk:entry
-							     :can-focus t
-							     :activates-default t)))
-				  (gtk:table-attach table
-						    widget
-						    1 2 i (+ i 1) :y-options :fill)
-				  widget))
-			       (:password
-				(insert-label)
-				(let ((widget (make-instance 'gtk:entry
-							     :can-focus t
-							     :activates-default t
-							     :secondary-icon-stock "gtk-execute")))
-				  (setf (gtk:entry-secondary-icon-tooltip-text widget) "Generate password")
-				  (gobject:connect-signal widget "icon-release"
-							  (lambda (entry pos event)
-							    (declare (ignore event))
-							    (when (eq pos :secondary)
-							      (when (or (string= "" (gtk:entry-text entry))
-									(ask (gtk:widget-toplevel entry) "Do you want to overwrite current password?"))
-								(setf (gtk:entry-text entry) (generate-password))))))
-				  (gtk:table-attach table
-						    widget
-						    1 2 i (+ i 1) :y-options :fill)
-				  widget))
-			       (:area
-				(insert-label)
-				(let ((sw (make-instance 'gtk:scrolled-window
-							 :can-focus t
-							 :hscrollbar-policy :automatic
-							 :vscrollbar-policy :automatic
-							 :shadow-type :in))
-				      (widget (make-instance 'gtk:text-view
-							     :can-focus t
-							     :accepts-tab nil)))
-				  (gtk:container-add sw widget)
+               (let ((widget (case kind
+                               ((:entry :secret)
+                                (insert-label)
+                                (let ((widget (make-instance 'gtk:entry
+                                                             :can-focus t
+                                                             :activates-default t)))
+                                  (gtk:table-attach table
+                                                    widget
+                                                    1 2 i (+ i 1) :y-options :fill)
+                                  widget))
+                               (:password
+                                (insert-label)
+                                (let ((widget (make-instance 'gtk:entry
+                                                             :can-focus t
+                                                             :activates-default t
+                                                             :secondary-icon-stock "gtk-execute")))
+                                  (setf (gtk:entry-secondary-icon-tooltip-text widget) "Generate password")
+                                  (gobject:connect-signal widget "icon-release"
+                                                          (lambda (entry pos event)
+                                                            (declare (ignore event))
+                                                            (when (eq pos :secondary)
+                                                              (when (or (string= "" (gtk:entry-text entry))
+                                                                        (ask (gtk:widget-toplevel entry) "Do you want to overwrite current password?"))
+                                                                (setf (gtk:entry-text entry) (generate-password))))))
+                                  (gtk:table-attach table
+                                                    widget
+                                                    1 2 i (+ i 1) :y-options :fill)
+                                  widget))
+                               (:area
+                                (insert-label)
+                                (let ((sw (make-instance 'gtk:scrolled-window
+                                                         :can-focus t
+                                                         :hscrollbar-policy :automatic
+                                                         :vscrollbar-policy :automatic
+                                                         :shadow-type :in))
+                                      (widget (make-instance 'gtk:text-view
+                                                             :can-focus t
+                                                             :accepts-tab nil)))
+                                  (gtk:container-add sw widget)
 
-				  (gtk:table-attach table
-						    sw
-						    1 2 i (+ i 1))
-				  widget))
-			       (:filename
-				(insert-label)
-				(let ((widget (make-instance 'gtk:file-chooser-button
-							     :can-focus t
-							     :activates-default t
-							     :action :open)))
-				  (gtk:table-attach table
-						    widget
-						    1 2 i (+ i 1) :y-options :fill)
-				  widget))
-			       (:boolean
-				(let ((widget (make-instance 'gtk:check-button
-							     :can-focus t
-							     :label title
-							     :activates-default t)))
-				  (gtk:table-attach table
-						    widget
-						    0 2 i (+ i 1) :x-options :fill :y-options :fill)
-				  widget)))))
+                                  (gtk:table-attach table
+                                                    sw
+                                                    1 2 i (+ i 1))
+                                  widget))
+                               (:filename
+                                (insert-label)
+                                (let ((widget (make-instance 'gtk:file-chooser-button
+                                                             :can-focus t
+                                                             :activates-default t
+                                                             :action :open)))
+                                  (gtk:table-attach table
+                                                    widget
+                                                    1 2 i (+ i 1) :y-options :fill)
+                                  widget))
+                               (:boolean
+                                (let ((widget (make-instance 'gtk:check-button
+                                                             :can-focus t
+                                                             :label title
+                                                             :activates-default t)))
+                                  (gtk:table-attach table
+                                                    widget
+                                                    0 2 i (+ i 1) :x-options :fill :y-options :fill)
+                                  widget))
+                               (:choice
+                                (let* ((box (make-instance 'gtk:v-box :spacing 4))
+                                       (buttons
+                                        (iter (for tt in title)
+                                              (let ((button (make-instance 'gtk:radio-button
+                                                                           :can-focus t
+                                                                           :label tt
+                                                                           :activates-default t)))
+                                                (gtk:box-pack-start box button)
+                                                (collecting button)))))
+                                  (iter (for button in buttons)
+                                        (setf (gtk:radio-button-group button) (remove button buttons)))
+                                  (setf (gtk:toggle-button-active (first buttons)) t)
 
-		 (collect
-		  (list* slot-name widget params)))))))))
+                                  (gtk:table-attach table
+                                                    box
+                                                    0 2 i (+ i 1) :x-options :fill :y-options :fill)
+                                  (first buttons))))))
+
+                 (collect
+                  (list* slot-name widget params)))))))))
 
 (defgeneric widget-get-text (widget))
 (defmethod widget-get-text ((widget gtk:entry))
@@ -214,6 +220,18 @@
       filename)))
 (defmethod widget-get-text ((widget gtk:check-button))
   (gtk:toggle-button-active widget))
+(defmethod widget-get-text ((widget gtk:radio-button))
+  (let ((group (gtk:radio-button-group widget)))
+    (iter (for button in group)
+          (for i from 0)
+          (when (gtk:toggle-button-active widget)
+            (return-from widget-get-text i)))))
+
+(defgeneric widget-changed (widget handler))
+(defmethod widget-changed ((widget gtk:entry) handler)
+  (gobject:connect-signal widget "changed" handler))
+(defmethod widget-changed ((widget gtk:file-chooser-button) handler)
+  (gobject:connect-signal widget "file-set" handler))
 
 (defgeneric widget-set-text (widget value))
 (defmethod widget-set-text ((widget gtk:entry) value)
@@ -232,65 +250,65 @@
       (make-table conf)
 
     (let ((dlg (make-std-dialog parent-window title icon table))
-	  disable-ok)
+          disable-ok)
 
       (iter (for (slot widget . params) in ws)
-	    (when (find :required params)
-	      (setf disable-ok (and slot
-				    (= 0 (length (slot-value obj slot)))))
-	      (gobject:connect-signal widget "changed"
-				      (lambda (entry)
-					(gtk:dialog-set-response-sensitive
-					 dlg
-					 :ok
-					 (/= 0 (length (widget-get-text entry)))))))
+            (when (find :required params)
+              (setf disable-ok (or (not slot)
+                                   (= 0 (length (slot-value obj slot)))))
+              (widget-changed widget
+                              (lambda (entry)
+                                (gtk:dialog-set-response-sensitive
+                                 dlg
+                                 :ok
+                                 (/= 0 (length (widget-get-text entry)))))))
 
-	    (when (find :password params)
-	      (setf (gtk:entry-visibility widget) nil))
+            (when (find :password params)
+              (setf (gtk:entry-visibility widget) nil))
 
-	    (when slot
-	      (widget-set-text widget (slot-value obj slot))))
+            (when slot
+              (widget-set-text widget (slot-value obj slot))))
 
       (when disable-ok
-	(gtk:dialog-set-response-sensitive dlg :ok nil))
+        (gtk:dialog-set-response-sensitive dlg :ok nil))
 
       (when (std-dialog-run dlg)
-	(or
-	 (iter (for (slot widget) in ws)
-	       (when slot
-		 (setf (slot-value obj slot) (widget-get-text widget)))
-	       (collect (widget-get-text widget)))
-	 t)))))
+        (or
+         (iter (for (slot widget) in ws)
+               (when slot
+                 (setf (slot-value obj slot) (widget-get-text widget)))
+               (collect (widget-get-text widget)))
+         t)))))
 
 ;; tree model
 
 (defmacro-driver (FOR iter in-tree-model model children-of parent-iter)
     (let ((m (gensym))
-	  (parent (gensym))
-	  (p (gensym))
-	  (i (gensym))
-	  (kwd (if generate 'generate 'for)))
+          (parent (gensym))
+          (p (gensym))
+          (i (gensym))
+          (kwd (if generate 'generate 'for)))
       `(progn
-	 (with ,m = ,model)
-	 (with ,parent = ,parent-iter)
-	 (with ,p = t)
-	 (with ,i = nil)
-	 (,kwd ,iter next
-	       (progn
-		 (if ,p ; first iter
-		     (progn
-		       (setf ,p nil)
-		       (setf ,i (if ,parent
-				    (gtk:tree-model-iter-first-child ,m ,parent)
-				    (gtk:tree-model-iter-first ,m))))
-		     ;; else
-		     (progn
-		       (unless (gtk:tree-model-iter-next ,m ,i)
-			 (terminate))))
+         (with ,m = ,model)
+         (with ,parent = ,parent-iter)
+         (with ,p = t)
+         (with ,i = nil)
+         (,kwd ,iter next
+               (progn
+                 (if ,p ; first iter
+                     (progn
+                       (setf ,p nil)
+                       (setf ,i (if ,parent
+                                    (gtk:tree-model-iter-first-child ,m ,parent)
+                                    (gtk:tree-model-iter-first ,m))))
+                     ;; else
+                     (progn
+                       (unless (gtk:tree-model-iter-next ,m ,i)
+                         (terminate))))
 
-		 (unless ,i
-		   (terminate))
-		 ,i)))))
+                 (unless ,i
+                   (terminate))
+                 ,i)))))
 
 (defun cli-options ()
   "list of tokens passed in at the cli"
@@ -305,7 +323,7 @@
 
   (eval-when (:compile-toplevel :load-toplevel :execute)
     (cffi:define-foreign-library shell32-dll
-	(:windows "shell32.dll")))
+        (:windows "shell32.dll")))
 
   (cffi:use-foreign-library shell32-dll)
 

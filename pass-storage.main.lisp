@@ -347,11 +347,11 @@
             (declare (ignore e))
             (say-error (app-main-window app) "Can't open this file.")))))
 
-(defun cb-open (app merge)
+(defun cb-open (app)
   (when (ensure-data-is-saved app)
     (let ((dlg (make-instance 'gtk:file-chooser-dialog
                               :action :open
-                              :title (if merge "Merge file" "Open file")
+                              :title "Open file"
                               :window-position :center-on-parent
                               :transient-for (app-main-window app))))
 
@@ -361,7 +361,17 @@
       (setf (gtk:dialog-default-response dlg) :ok)
 
       (when (std-dialog-run dlg)
-        (open-file app (gtk:file-chooser-filename dlg) merge)))))
+        (open-file app (gtk:file-chooser-filename dlg) nil)))))
+
+(defun cb-merge-file (app)
+  (destructuring-bind (mode filename)
+      (edit-object nil (app-main-window app) "Merge file" "ps-pass-storage"
+		   '((nil ("Merge entries by name" "Append file") :choice)
+		     (nil "File to merge" :filename :required)))
+    
+    (ecase mode
+      (0 (merge-file-by-name filename))
+      (1 (append-file filename)))))
 
 (defun cb-save-as (app)
   (let ((dlg (make-instance 'gtk:file-chooser-dialog
@@ -565,8 +575,8 @@
           (actions-merge (app-actions-merge app)))
       (create-action actions-common (:name "file-menu" :label "_File"))
       (create-action actions-common (:name "new" :stock-id "gtk-new") "<Control>n" (lambda-u (cb-new app)))
-      (create-action actions-common (:name "open" :stock-id "gtk-open") "<Control>o" (lambda-u (cb-open app nil)))
-      (create-action actions-common (:name "merge-file" :label "_Merge file") nil (lambda-u (cb-open app t)))
+      (create-action actions-common (:name "open" :stock-id "gtk-open") "<Control>o" (lambda-u (cb-open app)))
+      (create-action actions-common (:name "merge-file" :label "_Merge file") nil (lambda-u (cb-merge-file app)))
       (create-action actions-common (:name "save" :stock-id "gtk-save") "<Control>s" (lambda-u (cb-save app)))
       (create-action actions-common (:name "save-as" :stock-id "gtk-save-as") nil (lambda-u (cb-save-as app)))
       (create-action actions-common (:name "quit" :stock-id "gtk-quit") "<Control>q" (lambda-u (e-close app)))
