@@ -1,13 +1,15 @@
-#!/bin/bash
+#!/bin/sh
 
 while read line
 do
-    if [[ $line =~ \*ps-version\*[[:blank:]]+\"(.*)\" ]]
-    then
-	VERSION=${BASH_REMATCH[1]}
-    fi
+    case "$line" in
+	*\*ps-version\**)
+	    VERSION=${line#*\"}
+	    VERSION=${VERSION%%\"*}
+	;;
+    esac
 done < pass-storage.version.lisp
-if [[ -z "$VERSION" ]]
+if [ -z "$VERSION" ]
 then
     echo "Can't parse version"
     exit
@@ -27,6 +29,7 @@ cp PassStorage.exe win/PassStorage
 cp windows/runner.exe win/PassStorage
 cp -aR share win/PassStorage
 cp -aR ../gtk-redist/* win/PassStorage
+cp -aR ../clearlooks/* win/PassStorage
 
 echo "[Setup]" > win/setup.iss
 echo "AppName=PassStorage" >> win/setup.iss

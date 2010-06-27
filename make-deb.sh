@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 case `uname -m` in
     x86_64)
@@ -14,12 +14,14 @@ esac
 
 while read line
 do
-    if [[ $line =~ \*ps-version\*[[:blank:]]+\"(.*)\" ]]
-    then
-	VERSION=${BASH_REMATCH[1]}
-    fi
+    case "$line" in
+	*\*ps-version\**)
+	    VERSION=${line#*\"}
+	    VERSION=${VERSION%%\"*}
+	;;
+    esac
 done < pass-storage.version.lisp
-if [[ -z "$VERSION" ]]
+if [ -z "$VERSION" ]
 then
     echo "Can't parse version"
     exit
