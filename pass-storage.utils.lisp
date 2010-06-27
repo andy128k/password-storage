@@ -191,10 +191,12 @@
                                 (let* ((box (make-instance 'gtk:v-box :spacing 4))
                                        (buttons
                                         (iter (for tt in title)
+					      (for index from 0)
                                               (let ((button (make-instance 'gtk:radio-button
                                                                            :can-focus t
                                                                            :label tt
-                                                                           :activates-default t)))
+                                                                           :activates-default t
+									   :user-data (cffi:make-pointer index))))
                                                 (gtk:box-pack-start box button)
                                                 (collecting button)))))
                                   (iter (for button in buttons)
@@ -223,9 +225,9 @@
 (defmethod widget-get-text ((widget gtk:radio-button))
   (let ((group (gtk:radio-button-group widget)))
     (iter (for button in group)
-          (for i from 0)
-          (when (gtk:toggle-button-active widget)
-            (return-from widget-get-text i)))))
+          (when (gtk:toggle-button-active button)
+            (return-from widget-get-text
+	      (cffi:pointer-address (gtk:gtk-object-user-data button)))))))
 
 (defgeneric widget-changed (widget handler))
 (defmethod widget-changed ((widget gtk:entry) handler)

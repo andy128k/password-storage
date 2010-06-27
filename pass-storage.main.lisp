@@ -370,15 +370,52 @@
       (when (std-dialog-run dlg)
         (open-file app (gtk:file-chooser-filename dlg))))))
 
-(defun cb-merge-file (app)
-  (destructuring-bind (mode filename)
-      (edit-object nil (app-main-window app) "Merge file" "ps-pass-storage"
-		   '((nil ("Merge entries by name" "Append file") :choice)
-		     (nil "File to merge" :filename :required)))
+(defun merge-file-by-name (app data)
+  (labels ((find-entry (name parent-iter)
+	     (iter (for i in-tree-model (app-data app) children-of parent-iter)
+		   (for entry = (gtk:tree-model-value (app-data app) i 0))
+		   (if (is-group entry)
+		       (appending (find-entry name i))
+		       (when (string-equal (entry-name entry) name)
+			 (collecting entry)))))
+	   
+	   (merge-entry (src-iter)
+	     (let ((entry (gtk:tree-model-value data src-iter 0)))
+	       (if (is-group entry)
+		   (iter (for i in-tree-model data children-of src-iter)
+			 (merge-entry i))
+		   (progn
+		     (let ((dst-entries (find-entry (entry-name entry) nil)))
+		       (if dst-entries
+			   (join-entry (first dst-entries) nil entry)
+			   (update-row (app-data app) (gtk:tree-store-append (app-data app) nil) entry))))))))
+	     
+    (iter (for i in-tree-model data children-of nil)
+	  (merge-entry i))))
+
+(defun append-file (app data)
+  (labels ((append-entry (src-iter dst-iter)
+	     (let ((entry (gtk:tree-model-value data src-iter 0))
+		   (iter (gtk:tree-store-append (app-data app) dst-iter)))
+	       (update-row (app-data app) iter entry)
+	       (when (is-group entry)
+		 (iter (for i in-tree-model data children-of src-iter)
+		       (append-entry i iter))))))
     
-    (ecase mode
-      (0 (merge-file-by-name filename))
-      (1 (append-file filename)))))
+    (iter (for i in-tree-model data children-of nil)
+	  (append-entry i nil))))
+
+(defun cb-merge-file (app)
+  (let ((r (edit-object nil (app-main-window app) "Merge file" "ps-pass-storage"
+			'((nil ("Merge entries by name (ignore groups)" "Append file") :choice)
+			  (nil "File to merge" :filename :required)))))
+    (when r
+      (destructuring-bind (mode filename) r
+	(let ((data (load-data filename (app-main-window app))))
+	  (when data
+	    (ecase mode
+	      (0 (merge-file-by-name app data))
+	      (1 (append-file app data)))))))))
 
 (defun cb-save-as (app)
   (let ((dlg (make-instance 'gtk:file-chooser-dialog
