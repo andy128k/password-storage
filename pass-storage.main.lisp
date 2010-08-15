@@ -963,7 +963,7 @@
      (setf (app-current-view app) current-view)
      (setf (app-statusbar app) statusbar)
 
-     (gtk:widget-grab-focus search-entry))
+     (gtk:widget-grab-focus view))
 
     (gobject:connect-signal (app-main-window app) "delete-event" (lambda-u (e-close app)))
 
