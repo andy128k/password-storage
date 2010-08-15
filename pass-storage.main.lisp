@@ -153,7 +153,7 @@
       (let ((iter (gtk:tree-store-append (app-data app)
                                          (get-selected-group-iter app))))
         (update-row (app-data app) iter entry)
-	(gtk:tree-model-filter-refilter (app-filter app))
+        (gtk:tree-model-filter-refilter (app-filter app))
         (select-iter app iter)
         (set-status app "New entry was added")
         (setf (app-changed app) t)))))
@@ -165,7 +165,7 @@
       (let ((entry (gtk:tree-store-value data iter 0)))
         (when (edit-entry entry (app-main-window app) "Edit")
           (update-row (app-data app) iter entry)
-	  (gtk:tree-model-filter-refilter (app-filter app))
+          (gtk:tree-model-filter-refilter (app-filter app))
           (listview-cursor-changed app)
           (set-status app "Entry was changed")
           (setf (app-changed app) t))))))
@@ -176,7 +176,7 @@
     (when iter
       (let ((entry (gtk:tree-store-value data iter 0)))
         (update-row (app-data app) iter (copy-entry entry dest-class))
-	(gtk:tree-model-filter-refilter (app-filter app))
+        (gtk:tree-model-filter-refilter (app-filter app))
         (set-status app "Entry has changed type")
         (setf (app-changed app) t)
         (listview-cursor-changed app)))))
@@ -249,7 +249,7 @@
       ;; TODO: detect common path
       (let ((iter (gtk:tree-store-append (app-data app) nil)))
         (update-row (app-data app) iter result)
-	(gtk:tree-model-filter-refilter (app-filter app))
+        (gtk:tree-model-filter-refilter (app-filter app))
         (select-iter app iter)
         (set-status app "New entry was created by merging")
         (setf (app-changed app) t)))))
@@ -286,11 +286,11 @@
 
      do (handler-case
             (let ((xml (load-revelation-file filename (car password)))
-		  (data (make-data)))
-	      (parse xml data nil)
-	      (return-from load-data (values data
-					     (car password))))
-	  (error (e)
+                  (data (make-data)))
+              (parse xml data nil)
+              (return-from load-data (values data
+                                             (car password))))
+          (error (e)
             (declare (ignore e))
             (say-error parent-window "Can't open this file."))))))
 
@@ -340,8 +340,8 @@
 
 (defun set-data (app data)
   (setf (app-data app) data
-	(gtk:tree-view-model (app-view app)) data
-	(app-filter app) (make-instance 'gtk:tree-model-filter :child-model data))
+        (gtk:tree-view-model (app-view app)) data
+        (app-filter app) (make-instance 'gtk:tree-model-filter :child-model data))
   (set-filter-function app))
 
 (defun open-file (app filename)
@@ -372,50 +372,50 @@
 
 (defun merge-file-by-name (app data)
   (labels ((find-entry (name parent-iter)
-	     (iter (for i in-tree-model (app-data app) children-of parent-iter)
-		   (for entry = (gtk:tree-model-value (app-data app) i 0))
-		   (if (is-group entry)
-		       (appending (find-entry name i))
-		       (when (string-equal (entry-name entry) name)
-			 (collecting entry)))))
-	   
-	   (merge-entry (src-iter)
-	     (let ((entry (gtk:tree-model-value data src-iter 0)))
-	       (if (is-group entry)
-		   (iter (for i in-tree-model data children-of src-iter)
-			 (merge-entry i))
-		   (progn
-		     (let ((dst-entries (find-entry (entry-name entry) nil)))
-		       (if dst-entries
-			   (join-entry (first dst-entries) nil entry)
-			   (update-row (app-data app) (gtk:tree-store-append (app-data app) nil) entry))))))))
-	     
+             (iter (for i in-tree-model (app-data app) children-of parent-iter)
+                   (for entry = (gtk:tree-model-value (app-data app) i 0))
+                   (if (is-group entry)
+                       (appending (find-entry name i))
+                       (when (string-equal (entry-name entry) name)
+                         (collecting entry)))))
+
+           (merge-entry (src-iter)
+             (let ((entry (gtk:tree-model-value data src-iter 0)))
+               (if (is-group entry)
+                   (iter (for i in-tree-model data children-of src-iter)
+                         (merge-entry i))
+                   (progn
+                     (let ((dst-entries (find-entry (entry-name entry) nil)))
+                       (if dst-entries
+                           (join-entry (first dst-entries) nil entry)
+                           (update-row (app-data app) (gtk:tree-store-append (app-data app) nil) entry))))))))
+
     (iter (for i in-tree-model data children-of nil)
-	  (merge-entry i))))
+          (merge-entry i))))
 
 (defun append-file (app data)
   (labels ((append-entry (src-iter dst-iter)
-	     (let ((entry (gtk:tree-model-value data src-iter 0))
-		   (iter (gtk:tree-store-append (app-data app) dst-iter)))
-	       (update-row (app-data app) iter entry)
-	       (when (is-group entry)
-		 (iter (for i in-tree-model data children-of src-iter)
-		       (append-entry i iter))))))
-    
+             (let ((entry (gtk:tree-model-value data src-iter 0))
+                   (iter (gtk:tree-store-append (app-data app) dst-iter)))
+               (update-row (app-data app) iter entry)
+               (when (is-group entry)
+                 (iter (for i in-tree-model data children-of src-iter)
+                       (append-entry i iter))))))
+
     (iter (for i in-tree-model data children-of nil)
-	  (append-entry i nil))))
+          (append-entry i nil))))
 
 (defun cb-merge-file (app)
   (let ((r (edit-object nil (app-main-window app) "Merge file" "ps-pass-storage"
-			'((nil ("Merge entries by name (ignore groups)" "Append file") :choice)
-			  (nil "File to merge" :filename :required)))))
+                        '((nil ("Merge entries by name (ignore groups)" "Append file") :choice)
+                          (nil "File to merge" :filename :required)))))
     (when r
       (destructuring-bind (mode filename) r
-	(let ((data (load-data filename (app-main-window app))))
-	  (when data
-	    (ecase mode
-	      (0 (merge-file-by-name app data))
-	      (1 (append-file app data)))))))))
+        (let ((data (load-data filename (app-main-window app))))
+          (when data
+            (ecase mode
+              (0 (merge-file-by-name app data))
+              (1 (append-file app data)))))))))
 
 (defun cb-save-as (app)
   (let ((dlg (make-instance 'gtk:file-chooser-dialog
@@ -570,8 +570,8 @@
    (lambda (model iter)
      (when iter
        (let ((entry (gtk:tree-store-value model iter 0)))
-	 (when entry
-	   (entry-satisfies entry model iter (gtk:entry-text (app-search-entry app)))))))))
+         (when entry
+           (entry-satisfies entry model iter (gtk:entry-text (app-search-entry app)))))))))
 
 (defun location-prefix ()
   (let ((path (pathname-directory (directory-namestring (cl-binary-location:location)))))
@@ -747,97 +747,92 @@
       (gtk:v-box
 
        (:expr (create-menubar ui
-			      (menubar ()
-				       (menu ("file-menu")
-					     (menuitem "new")
-					     (menuitem "open")
-					     (menuitem "save")
-					     (menuitem "save-as")
-					     (separator)
-					     (menuitem "merge-file")
-					     (separator)
-					     (menuitem "quit"))
-				       (menu ("edit-menu")
-					     (menuitem "find")
-					     (separator)
-					     (menuitem "copy-name")
-					     (menuitem "copy-password")
-					     (separator)
-					     (menuitem "change-password")
-					     (separator)
-					     (menuitem "uncheck-all")
-					     (menuitem "merge-mode")
-					     (separator)
-					     (menuitem "preferences"))
-				       (menu ("entry-menu")
-					     (menuitem "add-entry-group")
-					     (separator)
-					     (menuitem "add-entry-generic")
-					     (menuitem "add-entry-creditcard")
-					     (menuitem "add-entry-cryptokey")
-					     (menuitem "add-entry-database")
-					     (menuitem "add-entry-door")
-					     (menuitem "add-entry-email")
-					     (menuitem "add-entry-ftp")
-					     (menuitem "add-entry-phone")
-					     (menuitem "add-entry-shell")
-					     (menuitem "add-entry-website")
-					     (separator)
-					     (menuitem "edit")
-					     (menu ("convert")
-						   (menuitem "convert-to-entry-generic")
-						   (menuitem "convert-to-entry-creditcard")
-						   (menuitem "convert-to-entry-cryptokey")
-						   (menuitem "convert-to-entry-database")
-						   (menuitem "convert-to-entry-door")
-						   (menuitem "convert-to-entry-email")
-						   (menuitem "convert-to-entry-ftp")
-						   (menuitem "convert-to-entry-phone")
-						   (menuitem "convert-to-entry-shell")
-						   (menuitem "convert-to-entry-website"))
-					     (menuitem "delete")
-					     (menuitem "merge"))
-				       (menu ("help-menu")
-					     (menuitem "about")))))
+                              (menubar ()
+                                       (menu ("file-menu")
+                                             (menuitem "new")
+                                             (menuitem "open")
+                                             (menuitem "save")
+                                             (menuitem "save-as")
+                                             (separator)
+                                             (menuitem "merge-file")
+                                             (separator)
+                                             (menuitem "quit"))
+                                       (menu ("edit-menu")
+                                             (menuitem "find")
+                                             (separator)
+                                             (menuitem "copy-name")
+                                             (menuitem "copy-password")
+                                             (separator)
+                                             (menuitem "change-password")
+                                             (separator)
+                                             (menuitem "uncheck-all")
+                                             (menuitem "merge-mode")
+                                             (separator)
+                                             (menuitem "preferences"))
+                                       (menu ("entry-menu")
+                                             (menuitem "add-entry-group")
+                                             (separator)
+                                             (menuitem "add-entry-generic")
+                                             (menuitem "add-entry-creditcard")
+                                             (menuitem "add-entry-cryptokey")
+                                             (menuitem "add-entry-database")
+                                             (menuitem "add-entry-door")
+                                             (menuitem "add-entry-email")
+                                             (menuitem "add-entry-ftp")
+                                             (menuitem "add-entry-phone")
+                                             (menuitem "add-entry-shell")
+                                             (menuitem "add-entry-website")
+                                             (separator)
+                                             (menuitem "edit")
+                                             (menu ("convert")
+                                                   (menuitem "convert-to-entry-generic")
+                                                   (menuitem "convert-to-entry-creditcard")
+                                                   (menuitem "convert-to-entry-cryptokey")
+                                                   (menuitem "convert-to-entry-database")
+                                                   (menuitem "convert-to-entry-door")
+                                                   (menuitem "convert-to-entry-email")
+                                                   (menuitem "convert-to-entry-ftp")
+                                                   (menuitem "convert-to-entry-phone")
+                                                   (menuitem "convert-to-entry-shell")
+                                                   (menuitem "convert-to-entry-website"))
+                                             (menuitem "delete")
+                                             (menuitem "merge"))
+                                       (menu ("help-menu")
+                                             (menuitem "about")))))
        :expand nil
        :position 0
 
        (gtk:toolbar
-	(:expr (make-instance 'gtk:menu-tool-button
-			      :stock-id "gtk-add"
-			      :label "Add entry"
-			      :related-action (gtk:action-group-action (app-actions-edit app) "add-entry-generic")
-			      :menu (make-menu (app-actions-edit app)
-					       "add-entry-group"
-					       nil
-					       "add-entry-generic"
-					       "add-entry-creditcard"
-					       "add-entry-cryptokey"
-					       "add-entry-database"
-					       "add-entry-door"
-					       "add-entry-email"
-					       "add-entry-ftp"
-					       "add-entry-phone"
-					       "add-entry-shell"
-					       "add-entry-website")))
-	(:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-edit app) "edit")))
-	(:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-edit app) "delete")))
-	(:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-merge app) "merge")))
-	(gtk:separator-tool-item)
-	(:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-common app) "merge-mode"))))
+        (:expr (make-instance 'gtk:menu-tool-button
+                              :stock-id "gtk-add"
+                              :label "Add entry"
+                              :related-action (gtk:action-group-action (app-actions-edit app) "add-entry-generic")
+                              :menu (make-menu (app-actions-edit app)
+                                               "add-entry-group"
+                                               nil
+                                               "add-entry-generic"
+                                               "add-entry-creditcard"
+                                               "add-entry-cryptokey"
+                                               "add-entry-database"
+                                               "add-entry-door"
+                                               "add-entry-email"
+                                               "add-entry-ftp"
+                                               "add-entry-phone"
+                                               "add-entry-shell"
+                                               "add-entry-website")))
+        (:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-edit app) "edit")))
+        (:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-edit app) "delete")))
+        (:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-merge app) "merge")))
+        (gtk:separator-tool-item)
+        (:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-common app) "merge-mode")))
+        (gtk:separator-tool-item :draw nil) :expand t
+        (gtk:tool-item
+         (gtk:entry
+          :var search-entry
+          :primary-icon-stock "gtk-find"
+          :secondary-icon-stock "gtk-clear")))
        :expand nil
        :position 1
-
-       (gtk:h-box
-        :border-width 4
-        :spacing 8
-        (gtk:label :label "Find:")
-        :expand nil
-        (gtk:entry
-         :var search-entry)
-        :expand nil)
-       :expand nil
-       :position 2
 
        (gtk:h-paned
         (gtk:scrolled-window
@@ -884,13 +879,13 @@
           :yalign 0.0
           :var current-view))
         :resize nil)
-       :position 3
+       :position 2
 
        (gtk:statusbar
         :var statusbar
         :has-resize-grip t)
        :expand nil
-       :position 4))
+       :position 3))
 
      (setf (app-search-entry app) search-entry)
 
@@ -915,6 +910,19 @@
                                     (gtk:tree-model-filter-refilter (app-filter app))
                                     (gtk:tree-view-expand-all (app-view app))))
                               (listview-cursor-changed app)))
+
+     (gobject:connect-signal search-entry "icon-release"
+                             (lambda (entry pos event)
+                               (declare (ignore event))
+                               (when (eq pos :secondary)
+                                 (setf (gtk:entry-text entry) "")
+
+                                 (set-status app "View filter was reset.")
+                                 (setf (gtk:tree-view-model (app-view app)) (app-data app))
+                                 (setf (gtk:tree-view-reorderable (app-view app)) t)
+                                 (gtk:tree-view-collapse-all (app-view app))
+
+                                 (listview-cursor-changed app))))
 
      (gobject:connect-signal check-renderer "toggled"
                              (lambda (renderer path)
