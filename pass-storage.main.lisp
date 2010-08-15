@@ -703,13 +703,6 @@
 
     (gtk:ui-manager-add-ui-from-string ui
                                        "<ui>
-  <toolbar name='toolbar'>
-    <toolitem action='edit'/>
-    <toolitem action='delete'/>
-    <toolitem action='merge'/>
-    <separator/>
-    <toolitem action='merge-mode'/>
-  </toolbar>
   <popup accelerators='true'>
     <menuitem action='copy-name'/>
     <menuitem action='copy-password'/>
@@ -809,7 +802,29 @@
        :expand nil
        :position 0
 
-       (:expr (gtk:ui-manager-widget ui "/toolbar"))
+       (gtk:toolbar
+	(:expr (make-instance 'gtk:menu-tool-button
+			      :stock-id "gtk-add"
+			      :label "Add entry"
+			      :related-action (gtk:action-group-action (app-actions-edit app) "add-entry-generic")
+			      :menu (make-menu (app-actions-edit app)
+					       "add-entry-group"
+					       nil
+					       "add-entry-generic"
+					       "add-entry-creditcard"
+					       "add-entry-cryptokey"
+					       "add-entry-database"
+					       "add-entry-door"
+					       "add-entry-email"
+					       "add-entry-ftp"
+					       "add-entry-phone"
+					       "add-entry-shell"
+					       "add-entry-website")))
+	(:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-edit app) "edit")))
+	(:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-edit app) "delete")))
+	(:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-merge app) "merge")))
+	(gtk:separator-tool-item)
+	(:expr (gtk:action-create-tool-item (gtk:action-group-action (app-actions-common app) "merge-mode"))))
        :expand nil
        :position 1
 
@@ -876,28 +891,6 @@
         :has-resize-grip t)
        :expand nil
        :position 4))
-
-     (gtk:toolbar-insert (gtk:ui-manager-widget ui "/toolbar")
-                         (make-instance 'gtk:menu-tool-button
-                                        :stock-id "gtk-add"
-                                        :label "Add entry"
-                                        :related-action (gtk:action-group-action (app-actions-edit app) "add-entry-generic")
-                                        :menu (apply #'make-menu
-                                                     (list
-                                                      (app-actions-edit app)
-                                                      "add-entry-group"
-                                                      nil
-                                                      "add-entry-generic"
-                                                      "add-entry-creditcard"
-                                                      "add-entry-cryptokey"
-                                                      "add-entry-database"
-                                                      "add-entry-door"
-                                                      "add-entry-email"
-                                                      "add-entry-ftp"
-                                                      "add-entry-phone"
-                                                      "add-entry-shell"
-                                                      "add-entry-website")))
-                         0)
 
      (setf (app-search-entry app) search-entry)
 
