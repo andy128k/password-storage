@@ -857,10 +857,10 @@
            (gtk:cell-renderer-pixbuf
             :stock-size 1)
            :expand nil
-           :attribute ("stock-id" 2)
+           :attributes '("stock-id" 2)
            (gtk:cell-renderer-text)
            :expand t
-           :attribute ("text" 1))))
+           :attributes '("text" 1))))
         (gtk:v-box
          :width-request 40
          (gtk:image
