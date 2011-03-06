@@ -564,17 +564,16 @@
   (gtk:tree-model-filter-set-visible-function
    (app-filter app)
    (lambda (model iter)
-     (let ((text (gtk:entry-text (app-search-entry app))))
-       (or
-        (entry-has-text (gtk:tree-store-value model iter 0)
-                        text
-                        :look-at-secrets (config-search-in-secrets *config*))
-        (iter (for i in-tree-model model parents-of iter)
-              (thereis (entry-has-text (gtk:tree-store-value model i 0)
-                                       text
-                                       :look-at-secrets (config-search-in-secrets *config*))))
-        (iter (for i in-tree-model model children-of iter)
-              (thereis (entry-satisfies (gtk:tree-store-value model i 0) model i text))))))))
+     (let ((text (gtk:entry-text (app-search-entry app)))
+	   (entry (gtk:tree-store-value model iter 0)))
+       (and entry
+	    (or
+	     (entry-satisfies entry model iter text)
+	     
+	     (iter (for i in-tree-model model parents-of iter)
+		   (thereis (entry-has-text (gtk:tree-store-value model i 0)
+					    text
+					    :look-at-secrets (config-search-in-secrets *config*))))))))))
 
 (defun location-prefix ()
   (let ((path (pathname-directory (directory-namestring (cl-binary-location:location)))))
