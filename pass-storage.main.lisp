@@ -556,7 +556,7 @@
    (entry-has-text entry
                    text
                    :look-at-secrets (config-search-in-secrets *config*))
-   
+
    (iter (for i in-tree-model model children-of iter)
          (thereis (entry-satisfies (gtk:tree-store-value model i 0) model i text)))))
 
@@ -593,11 +593,11 @@
 
 (defun on-start (app)
   (let ((default-file (or
-		       (first (cli-options))
-		       (config-default-file *config*))))
+                       (first (cli-options))
+                       (config-default-file *config*))))
     (when default-file
       (when (probe-file default-file)
-	(open-file app default-file))))
+        (open-file app default-file))))
 
   (gtk:widget-grab-focus (app-search-entry app)))
 
@@ -900,8 +900,6 @@
        :expand nil
        :position 3))
 
-     (setf (app-search-entry app) search-entry)
-
      (set-filter-function app)
 
      (gobject:connect-signal (gtk:action-group-action (app-actions-common app) "find") "activate"
@@ -913,15 +911,15 @@
                               (if (string= "" (gtk:entry-text search-entry))
                                   (progn
                                     (set-status app "View filter was reset.")
-                                    (setf (gtk:tree-view-model (app-view app)) (app-data app))
-                                    (setf (gtk:tree-view-reorderable (app-view app)) t)
-                                    (gtk:tree-view-collapse-all (app-view app)))
+                                    (setf (gtk:tree-view-model view) (app-data app))
+                                    (setf (gtk:tree-view-reorderable view) t)
+                                    (gtk:tree-view-collapse-all view))
                                   (progn
                                     (set-status app "View is filtered.")
-                                    (setf (gtk:tree-view-model (app-view app)) (app-filter app))
-                                    (setf (gtk:tree-view-reorderable (app-view app)) nil)
+                                    (setf (gtk:tree-view-model view) (app-filter app))
+                                    (setf (gtk:tree-view-reorderable view) nil)
                                     (gtk:tree-model-filter-refilter (app-filter app))
-                                    (gtk:tree-view-expand-all (app-view app))))
+                                    (gtk:tree-view-expand-all view)))
                               (listview-cursor-changed app)))
 
      (gobject:connect-signal search-entry "icon-release"
@@ -931,16 +929,16 @@
                                  (setf (gtk:entry-text entry) "")
 
                                  (set-status app "View filter was reset.")
-                                 (setf (gtk:tree-view-model (app-view app)) (app-data app))
-                                 (setf (gtk:tree-view-reorderable (app-view app)) t)
-                                 (gtk:tree-view-collapse-all (app-view app))
+                                 (setf (gtk:tree-view-model view) (app-data app))
+                                 (setf (gtk:tree-view-reorderable view) t)
+                                 (gtk:tree-view-collapse-all view)
 
                                  (listview-cursor-changed app))))
 
      (gobject:connect-signal check-renderer "toggled"
                              (lambda (renderer path)
                                (declare (ignore renderer))
-                               (let* ((current-model (gtk:tree-view-model (app-view app)))
+                               (let* ((current-model (gtk:tree-view-model view))
                                       (iter (gtk:tree-model-iter-from-string current-model path)))
                                  (when (and (eq current-model (app-filter app)) iter)
                                    (setf iter (gtk:tree-model-filter-convert-iter-to-child-iter (app-filter app) iter)))
@@ -955,7 +953,7 @@
         (declare (ignore col model))
         (if (gtk:toggle-action-active (gtk:action-group-action (app-actions-common app) "merge-mode"))
             ;; then
-            (let ((current-model (gtk:tree-view-model (app-view app))))
+            (let ((current-model (gtk:tree-view-model view)))
               (setf (gtk:cell-renderer-visible check-renderer)
                     (not (is-group (gtk:tree-store-value current-model iter 0))))
               (setf (gtk:cell-renderer-toggle-active check-renderer)
@@ -966,6 +964,74 @@
      (setf (gtk:gtk-window-icon main-window)
            (gtk:widget-render-icon main-window "ps-pass-storage" :dialog ""))
 
+     (gobject:connect-signal main-window "delete-event" (lambda-u (e-close app)))
+
+     (gobject:connect-signal view "cursor-changed" (lambda-u (listview-cursor-changed app)))
+     (gobject:connect-signal view "drag-motion"
+                             (lambda (widget drag-context x y time)
+                               (multiple-value-bind (path pos)
+                                   (gtk:tree-view-get-dest-row-at-pos widget x y)
+
+                                 (when (and path (or (eq pos :into-or-before) (eq pos :into-or-after)))
+                                   (let* ((model (gtk:tree-view-model widget))
+                                          (iter (gtk:tree-model-iter-by-path model path)))
+
+                                     (if (is-group (gtk:tree-store-value model iter 0))
+                                         (progn (gdk:gdk-drag-status drag-context :move time) nil)
+                                         (progn (gdk:gdk-drag-status drag-context 0 time) t)))))))
+
+     (gobject:connect-signal view "row-activated"
+                             (lambda-u
+                              (multiple-value-bind (iter path)
+                                  (get-selected-iter app)
+
+                                (when iter
+
+                                  (let* ((data (app-data app))
+                                         (view view)
+                                         (entry (gtk:tree-store-value data iter 0)))
+
+                                    (if (is-group entry)
+                                        (if (gtk:tree-view-row-expanded-p view path)
+                                            (gtk:tree-view-collapse-row view path)
+                                            (gtk:tree-view-expand-row view path))
+                                        (cb-edit-entry app)))))))
+
+     (gobject:connect-signal view "button-press-event"
+                             (lambda (view event)
+                               (when (= 3 (gdk:event-button-button event))
+                                 (let ((path (gtk:tree-view-get-path-at-pos view
+                                                                            (round (gdk:event-button-x event))
+                                                                            (round (gdk:event-button-y event)))))
+                                   (gtk:widget-grab-focus view)
+                                   (when path
+                                     (gtk:tree-view-set-cursor view path))
+                                   (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
+                                                   :button (gdk:event-button-button event)
+                                                   :activate-time (gdk:event-button-time event)))
+                                 t)))
+
+     (gobject:connect-signal view "popup-menu"
+                             (lambda (view)
+                               (gtk:widget-grab-focus view)
+                               (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
+                                               :activate-time (gdk:event-get-time nil))
+                               t))
+
+     #+win32
+     (progn
+       (setf (gtk:about-dialog-global-url-hook)
+             (lambda (dialog uri)
+               (declare (ignore dialog))
+               (win32-open-uri uri)))
+
+       (gobject:connect-signal current-view "activate-link"
+                               (lambda (label uri)
+                                 (declare (ignore label))
+                                 (win32-open-uri uri))))
+
+     (gtk:gtk-window-add-accel-group main-window (gtk:ui-manager-accel-group ui))
+
      (setf (app-main-window app) main-window)
      (setf (app-view app) view)
      (setf (app-column app) col)
@@ -975,89 +1041,20 @@
      (setf (app-current-description app) current-description)
      (setf (app-current-view app) current-view)
      (setf (app-statusbar app) statusbar)
+     (setf (app-search-entry app) search-entry)
 
-     (gtk:widget-grab-focus view))
+     (gtk:widget-show main-window)
+     (set-mode app)
 
-    (gobject:connect-signal (app-main-window app) "delete-event" (lambda-u (e-close app)))
+     (gtk:gtk-main-add-timeout 1
+                               (lambda ()
+                                 (gdk:gdk-threads-enter)
+                                 (on-start app)
+                                 (gdk:gdk-threads-leave)
+                                 nil))
+     (gtk:gtk-main)
 
-    (gobject:connect-signal (app-view app) "cursor-changed" (lambda-u (listview-cursor-changed app)))
-    (gobject:connect-signal (app-view app) "drag-motion"
-                            (lambda (widget drag-context x y time)
-                              (multiple-value-bind (path pos)
-                                  (gtk:tree-view-get-dest-row-at-pos widget x y)
-
-                                (when (and path (or (eq pos :into-or-before) (eq pos :into-or-after)))
-                                  (let* ((model (gtk:tree-view-model widget))
-                                         (iter (gtk:tree-model-iter-by-path model path)))
-
-                                    (if (is-group (gtk:tree-store-value model iter 0))
-                                        (progn (gdk:gdk-drag-status drag-context :move time) nil)
-                                        (progn (gdk:gdk-drag-status drag-context 0 time) t)))))))
-
-    (gobject:connect-signal (app-view app) "row-activated"
-                            (lambda-u
-                             (multiple-value-bind (iter path)
-                                 (get-selected-iter app)
-
-                               (when iter
-
-                                 (let* ((data (app-data app))
-                                        (view (app-view app))
-                                        (entry (gtk:tree-store-value data iter 0)))
-
-                                   (if (is-group entry)
-                                       (if (gtk:tree-view-row-expanded-p view path)
-                                           (gtk:tree-view-collapse-row view path)
-                                           (gtk:tree-view-expand-row view path))
-                                       (cb-edit-entry app)))))))
-
-    (gobject:connect-signal (app-view app) "button-press-event"
-                            (lambda (view event)
-                              (when (= 3 (gdk:event-button-button event))
-                                (let ((path (gtk:tree-view-get-path-at-pos view
-                                                                           (round (gdk:event-button-x event))
-                                                                           (round (gdk:event-button-y event)))))
-                                  (gtk:widget-grab-focus view)
-                                  (when path
-                                    (gtk:tree-view-set-cursor view path))
-                                  (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
-                                                  :button (gdk:event-button-button event)
-                                                  :activate-time (gdk:event-button-time event)))
-                                t)))
-
-    (gobject:connect-signal (app-view app) "popup-menu"
-                            (lambda (view)
-                              (gtk:widget-grab-focus view)
-                              (gtk:menu-popup (gtk:ui-manager-widget ui "/popup")
-                                              :activate-time (gdk:event-get-time nil))
-                              t))
-
-    #+win32
-    (progn
-      (setf (gtk:about-dialog-global-url-hook)
-            (lambda (dialog uri)
-              (declare (ignore dialog))
-              (win32-open-uri uri)))
-
-      (gobject:connect-signal (app-current-view app) "activate-link"
-                              (lambda (label uri)
-                                (declare (ignore label))
-                                (win32-open-uri uri))))
-
-    (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
-    (gtk:widget-show (app-main-window app))
-    (set-mode app)
-    
-    (gtk:gtk-main-add-timeout 1
-			      (lambda ()
-				(gdk:gdk-threads-enter)
-				(on-start app)
-				(gdk:gdk-threads-leave)
-				nil))
-
-    (gtk:gtk-main)
-
-    (save-config)))
+     (save-config))))
 
 (export 'main)
 
