@@ -566,12 +566,15 @@
    (lambda (model iter)
      (let ((text (gtk:entry-text (app-search-entry app))))
        (or
-	(iter (for i in-tree-model model parents-of iter)
-	      (thereis (entry-has-text (gtk:tree-store-value model i 0)
-				       text
-				       :look-at-secrets (config-search-in-secrets *config*))))
-	(iter (for i in-tree-model model children-of iter)
-	      (thereis (entry-satisfies (gtk:tree-store-value model i 0) model i text))))))))
+        (entry-has-text (gtk:tree-store-value model iter 0)
+                        text
+                        :look-at-secrets (config-search-in-secrets *config*))
+        (iter (for i in-tree-model model parents-of iter)
+              (thereis (entry-has-text (gtk:tree-store-value model i 0)
+                                       text
+                                       :look-at-secrets (config-search-in-secrets *config*))))
+        (iter (for i in-tree-model model children-of iter)
+              (thereis (entry-satisfies (gtk:tree-store-value model i 0) model i text))))))))
 
 (defun location-prefix ()
   (let ((path (pathname-directory (directory-namestring (cl-binary-location:location)))))
