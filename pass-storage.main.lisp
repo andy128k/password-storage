@@ -585,6 +585,16 @@
             (gtk:action-group-visible (app-actions-merge app)) nil))
   (gtk:tree-view-column-queue-resize (app-column app)))
 
+(defun on-start (app)
+  (let ((default-file (or
+		       (first (cli-options))
+		       (config-default-file *config*))))
+    (when default-file
+      (when (probe-file default-file)
+	(open-file app default-file))))
+
+  (gtk:widget-grab-focus (app-search-entry app)))
+
 (defun main ()
 
   (glib:random-set-seed (get-universal-time))
@@ -1031,17 +1041,13 @@
     (gtk:gtk-window-add-accel-group (app-main-window app) (gtk:ui-manager-accel-group ui))
     (gtk:widget-show (app-main-window app))
     (set-mode app)
-
-    (let ((default-file (or
-                         (first (cli-options))
-                         (config-default-file *config*))))
-      (when (and default-file (probe-file default-file))
-        (gtk:gtk-main-add-timeout 1
-                                  (lambda ()
-                                    (gdk:gdk-threads-enter)
-                                    (open-file app default-file)
-                                    (gdk:gdk-threads-leave)
-                                    nil))))
+    
+    (gtk:gtk-main-add-timeout 1
+			      (lambda ()
+				(gdk:gdk-threads-enter)
+				(on-start app)
+				(gdk:gdk-threads-leave)
+				nil))
 
     (gtk:gtk-main)
 
