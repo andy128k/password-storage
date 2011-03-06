@@ -283,34 +283,46 @@
          t)))))
 
 ;; tree model
+(defun get-first-child (model parent)
+  (if parent
+      (gtk:tree-model-iter-first-child model parent)
+      (gtk:tree-model-iter-first model)))
 
-(defmacro-driver (FOR iter in-tree-model model children-of parent-iter)
+(defmacro-driver (for iter in-tree-model model children-of parent-iter)
     (let ((m (gensym))
-          (parent (gensym))
-          (p (gensym))
           (i (gensym))
           (kwd (if generate 'generate 'for)))
       `(progn
          (with ,m = ,model)
-         (with ,parent = ,parent-iter)
-         (with ,p = t)
          (with ,i = nil)
          (,kwd ,iter next
-               (progn
-                 (if ,p ; first iter
-                     (progn
-                       (setf ,p nil)
-                       (setf ,i (if ,parent
-                                    (gtk:tree-model-iter-first-child ,m ,parent)
-                                    (gtk:tree-model-iter-first ,m))))
-                     ;; else
-                     (progn
-                       (unless (gtk:tree-model-iter-next ,m ,i)
-                         (terminate))))
+	       (progn
+		 (setf ,i
+		       (if-first-time
+			(get-first-child ,m ,parent-iter)
+			(when (gtk:tree-model-iter-next ,m ,i)
+			  i)))
+		 (if ,i
+		     ,i
+		     (terminate)))))))
 
-                 (unless ,i
-                   (terminate))
-                 ,i)))))
+(defmacro-driver (for iter in-tree-model model parents-of node-iter)
+    (let ((m (gensym))
+          (i (gensym))
+          (kwd (if generate 'generate 'for)))
+      `(progn
+         (with ,m = ,model)
+         (with ,i = ,node-iter)
+         (,kwd ,iter next
+	       (progn
+		 (setf ,i
+		       (if-first-time
+			,i
+			(progn
+			  (gtk:tree-model-iter-parent ,m ,i))))
+		 (if ,i
+		     ,i
+		     (terminate)))))))
 
 (defun cli-options ()
   "list of tokens passed in at the cli"
