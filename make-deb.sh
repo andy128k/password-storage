@@ -71,7 +71,9 @@ echo " -- Andrey Kutejko <andy128k@gmail.com>  $DATE" >> $PREFIX/usr/share/doc/p
 echo ""                                               >> $PREFIX/usr/share/doc/pass-storage/changelog
 gzip -9 $PREFIX/usr/share/doc/pass-storage/changelog
 
-fakeroot dpkg-deb -Zbzip2 -z9 --build $PREFIX .
-#  -z9 -Zxz
+# COMPRESSION='-Zbzip2 -z9'
+COMPRESSION='-Zxz -z9'
+
+fakeroot dpkg-deb $COMPRESSION --build $PREFIX .
 rm -rf $PREFIX
 
