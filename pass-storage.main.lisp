@@ -548,30 +548,27 @@
     (entry-title dummy-entry)))
 
 ;; search
-(defgeneric entry-satisfies (entry model iter text))
-
-(defmethod entry-satisfies ((entry entry-group) model iter text)
+(defun entry-satisfies (entry model iter text)
   (or
    (entry-has-text entry
                    text
                    :look-at-secrets (config-search-in-secrets *config*))
-
+   
    (iter (for i in-tree-model model children-of iter)
          (thereis (entry-satisfies (gtk:tree-store-value model i 0) model i text)))))
-
-(defmethod entry-satisfies (entry model iter text)
-  (entry-has-text entry
-                  text
-                  :look-at-secrets (config-search-in-secrets *config*)))
 
 (defun set-filter-function (app)
   (gtk:tree-model-filter-set-visible-function
    (app-filter app)
    (lambda (model iter)
-     (when iter
-       (let ((entry (gtk:tree-store-value model iter 0)))
-         (when entry
-           (entry-satisfies entry model iter (gtk:entry-text (app-search-entry app)))))))))
+     (let ((text (gtk:entry-text (app-search-entry app))))
+       (or
+	(iter (for i in-tree-model model parents-of iter)
+	      (thereis (entry-has-text (gtk:tree-store-value model i 0)
+				       text
+				       :look-at-secrets (config-search-in-secrets *config*))))
+	(iter (for i in-tree-model model children-of iter)
+	      (thereis (entry-satisfies (gtk:tree-store-value model i 0) model i text))))))))
 
 (defun location-prefix ()
   (let ((path (pathname-directory (directory-namestring (cl-binary-location:location)))))
