@@ -3,7 +3,7 @@
 # defaults
 LISP=sbcl
 
-function usage () {
+usage () {
     echo "Usage: $0 [-l <common lisp implementation>] [...]"
     echo ""
     echo "Supported Common Lisp implementations:"
@@ -36,14 +36,14 @@ case `uname -s` in
 	EXECUTABLE_SUFFIX=.exe
 	;;
     *)
-        echo 'Unsupported platform'
+        echo 'Unsupported platform' >&2
         exit 1
 	;;
 esac
 
 case $LISP in
     sbcl|ccl)
-	LISP_EVAL=--eval
+	EVAL_KEY=--eval
 	;;
     *)
 	echo "Unknown Common Lisp implementation." >&2
@@ -52,8 +52,8 @@ case $LISP in
 esac
 
 ./lisp-cl-gtk2$EXECUTABLE_SUFFIX \
-    $LISP_EVAL "(pushnew #p\"./\" asdf:*central-registry*)" \
-    $LISP_EVAL "(asdf:oos 'asdf:load-op :pass-storage)" \
-    $LISP_EVAL "(pass-storage:main-and-quit)" \
+    $EVAL_KEY "(pushnew #p\"./\" asdf:*central-registry*)" \
+    $EVAL_KEY "(asdf:load-system :pass-storage)" \
+    $EVAL_KEY "(pass-storage:main-and-quit)" \
     $*
 
