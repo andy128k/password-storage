@@ -315,11 +315,7 @@
          (with ,i = ,node-iter)
          (,kwd ,iter next
 	       (progn
-		 (setf ,i
-		       (if-first-time
-			,i
-			(progn
-			  (gtk:tree-model-iter-parent ,m ,i))))
+		 (setf ,i (gtk:tree-model-iter-parent ,m ,i))
 		 (if ,i
 		     ,i
 		     (terminate)))))))
