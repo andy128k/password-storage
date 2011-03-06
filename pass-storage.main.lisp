@@ -521,11 +521,14 @@
   (let ((p (gensym)))
     `(lambda (&rest ,p)
        (declare (ignore ,p))
+       #-nil
        (handler-case
            (progn ,@body)
          (error (c)
            ;; TODO: use parent-window
-           (say-error nil (format nil "~A" c)))))))
+           (say-error nil (format nil "~A" c))))
+       #+nil
+       ,@body)))
 
 (defmacro create-action (group action-params &optional accel func)
   `(let ((action (make-instance 'gtk:action ,@action-params)))
