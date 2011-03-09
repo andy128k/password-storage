@@ -1,4 +1,4 @@
 (in-package :pass-storage)
 
-(defvar *ps-version* "0.10.6.28")
+(defvar *ps-version* "0.11.3.10")
 
