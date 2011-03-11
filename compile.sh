@@ -79,6 +79,15 @@ case `uname -s` in
 		;;
 	esac
 	;;
+    Darwin)
+        PLATFORM=darwin
+        EXECUTABLE_SUFFIX=
+        case $LISP in
+            sbcl)
+                LISP_EXECUTABLE=sbcl
+                ;;
+        esac
+        ;;
     *)
         echo 'Unsupported platform' >&2
         exit 1
