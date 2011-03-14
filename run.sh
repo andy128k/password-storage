@@ -35,6 +35,9 @@ case `uname -s` in
     MINGW32*)
 	EXECUTABLE_SUFFIX=.exe
 	;;
+    Darwin)
+	EXECUTABLE_SUFFIX=
+	;;
     *)
         echo 'Unsupported platform' >&2
         exit 1
