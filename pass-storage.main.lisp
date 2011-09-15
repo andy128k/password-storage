@@ -278,21 +278,21 @@
                  ((eq (tag-name elem) :|entry|)
                   (parse-entry elem data parent-iter))))))
 
-  (loop
-     for password = (edit-object nil parent-window "Enter password" "ps-pass-storage"
-                                 '((nil "Password" :entry :required :password)))
+    (loop
+       for password = (edit-object nil parent-window "Enter password" "ps-pass-storage"
+                                   '((nil "Password" :entry :required :password)))
 
-     while password
+       while password
 
-     do (handler-case
-            (let ((xml (load-revelation-file filename (car password)))
-                  (data (make-data)))
-              (parse xml data nil)
-              (return-from load-data (values data
-                                             (car password))))
-          (error (e)
-            (declare (ignore e))
-            (say-error parent-window "Can't open this file."))))))
+       do (handler-case
+              (let ((xml (load-revelation-file filename (car password)))
+                    (data (make-data)))
+                (parse xml data nil)
+                (return-from load-data (values data
+                                               (car password))))
+            (error (e)
+              (declare (ignore e))
+              (say-error parent-window "Can't open this file."))))))
 
 (defmacro tree-foreach-collect (iter model parent-iter &body body)
   `(let ((,iter (if ,parent-iter
@@ -565,39 +565,38 @@
    (app-filter app)
    (lambda (model iter)
      (let ((text (gtk:entry-text (app-search-entry app)))
-	   (entry (gtk:tree-store-value model iter 0)))
+           (entry (gtk:tree-store-value model iter 0)))
        (and entry
-	    (or
-	     (entry-satisfies entry model iter text)
-	     
-	     (iter (for i in-tree-model model parents-of iter)
-		   (thereis (entry-has-text (gtk:tree-store-value model i 0)
-					    text
-					    :look-at-secrets (config-search-in-secrets *config*))))))))))
+            (or
+             (entry-satisfies entry model iter text)
+
+             (iter (for i in-tree-model model parents-of iter)
+                   (thereis (entry-has-text (gtk:tree-store-value model i 0)
+                                            text
+                                            :look-at-secrets (config-search-in-secrets *config*))))))))))
 
 (defun location-prefix ()
-  (let ((path (pathname-directory (directory-namestring (cl-binary-location:location)))))
-    (if (and path
-             (string-equal "bin" (car (last path))))
-        (butlast path)
-        path)))
+  (awhen (pathname-directory (directory-namestring (cl-binary-location:location)))
+         (if (string-equal "bin" (car (last it)))
+             (butlast it)
+             it)))
 
 (defun set-mode (app)
-  (if (gtk:toggle-action-active (gtk:action-group-action (app-actions-common app) "merge-mode"))
-      (setf (gtk:action-group-visible (app-actions-edit app)) nil
-            (gtk:action-group-visible (app-actions-merge app)) t)
-      (setf (gtk:action-group-visible (app-actions-edit app)) t
-            (gtk:action-group-visible (app-actions-merge app)) nil))
-  (gtk:tree-view-column-queue-resize (app-column app)))
+  (flet ((action-groups-visibility (e m)
+           (setf (gtk:action-group-visible (app-actions-edit app)) e
+                 (gtk:action-group-visible (app-actions-merge app)) m)))
+    (if (gtk:toggle-action-active (gtk:action-group-action (app-actions-common app) "merge-mode"))
+        (action-groups-visibility nil t)
+        (action-groups-visibility t nil))
+    (gtk:tree-view-column-queue-resize (app-column app))))
 
 (defun on-start (app)
   (let ((default-file (or
                        (first (cli-options))
                        (config-default-file *config*))))
-    (when default-file
-      (when (probe-file default-file)
-        (open-file app default-file))))
-
+    (when (and default-file
+               (probe-file default-file))
+      (open-file app default-file)))
   (gtk:widget-grab-focus (app-search-entry app)))
 
 (defun main ()

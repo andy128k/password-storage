@@ -3,5 +3,5 @@
 (in-package :common-lisp-user)
 
 (defpackage pass-storage
-  (:use :common-lisp :iterate))
+  (:use :common-lisp :iterate :anaphora))
 
