@@ -599,6 +599,17 @@
       (open-file app default-file)))
   (gtk:widget-grab-focus (app-search-entry app)))
 
+(defun create-status-icon (app)
+  (let ((window (app-main-window app))
+	(status-icon (make-instance 'gtk:status-icon
+				    :stock "ps-pass-storage")))
+    
+    (gobject:connect-signal status-icon "activate"
+			    (lambda-u
+			     (if (gtk:widget-visible window)
+				 (gtk:widget-hide window :all t)
+				 (gtk:widget-show window :all t))))))
+
 (defun main ()
 
   (glib:random-set-seed (get-universal-time))
@@ -1041,6 +1052,7 @@
      (setf (app-statusbar app) statusbar)
      (setf (app-search-entry app) search-entry)
 
+     (create-status-icon app)
      (gtk:widget-show main-window)
      (set-mode app)
 
