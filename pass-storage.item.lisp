@@ -24,6 +24,8 @@
 (defgeneric entry-has-text (entry text &key))
 (defgeneric entry-to-markup (entry &key))
 
+(defgeneric entry-username (entry))
+
 ;;
 ;; helpers
 ;;
@@ -90,7 +92,13 @@
 			  `(when show-secrets
 			     (format str "<b>~A</b>: ~A~%" safe-title safe-text)))
 			 (t
-			  `(format str "<b>~A</b>: ~A~%" safe-title safe-text)))))))))))
+			  `(format str "<b>~A</b>: ~A~%" safe-title safe-text)))))))))
+
+     (defmethod entry-username ((entry ,name))
+       (values
+	,@(iter (for (slot title type field-name) in slots)
+		(when (eq type :name)
+		  (collect `(slot-value entry ',slot))))))))
 
 (defgeneric entry-get-name (entry))
 (defgeneric entry-get-password (entry))
@@ -112,7 +120,7 @@
   "generic entry"
   "gtk-file"
   (hostname    "Hostname"    :entry    "generic-hostname")
-  (username    "Username"    :entry    "generic-username")
+  (username    "Username"    :name     "generic-username")
   (password    "Password"    :password "generic-password"))
 
 (defmethod entry-get-name ((entry entry-generic))
@@ -151,7 +159,7 @@
   "database"
   "ps-stock-entry-database"
   (hostname    "Hostname"    :entry    "generic-hostname")
-  (username    "Username"    :entry    "generic-username")
+  (username    "Username"    :name     "generic-username")
   (password    "Password"    :password "generic-password")
   (database    "Database"    :entry    "generic-database"))
 
@@ -176,7 +184,7 @@
   "ps-stock-entry-email"
   (email       "E-mail"      :entry    "generic-email")
   (hostname    "Hostname"    :entry    "generic-hostname")
-  (username    "Username"    :entry    "generic-username")
+  (username    "Username"    :name     "generic-username")
   (password    "Password"    :password "generic-password"))
 
 (defmethod entry-get-name ((entry entry-email))
@@ -189,7 +197,7 @@
   "ps-stock-entry-ftp"
   (hostname    "Hostname"    :entry    "generic-hostname")
   (port        "Port"        :entry    "generic-port")
-  (username    "Username"    :entry    "generic-username")
+  (username    "Username"    :name     "generic-username")
   (password    "Password"    :password "generic-password"))
 
 (defmethod entry-get-name ((entry entry-ftp))
@@ -213,7 +221,7 @@
   "ps-stock-entry-shell"
   (hostname    "Hostname"    :entry    "generic-hostname")
   (domain      "Domain"      :entry    "generic-domain")
-  (username    "Username"    :entry    "generic-username")
+  (username    "Username"    :name     "generic-username")
   (password    "Password"    :password "generic-password"))
 
 (defmethod entry-get-name ((entry entry-shell))
@@ -225,7 +233,7 @@
   "website"
   "ps-stock-entry-website"
   (url         "URL"         :entry    "generic-url")
-  (username    "Username"    :entry    "generic-username")
+  (username    "Username"    :name     "generic-username")
   (password    "Password"    :password "generic-password"))
 
 (defmethod entry-get-name ((entry entry-website))

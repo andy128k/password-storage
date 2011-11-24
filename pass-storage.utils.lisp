@@ -125,7 +125,7 @@
                                         0 1 i (+ i 1) :x-options :fill :y-options :fill)))
 
                (let ((widget (case kind
-                               ((:entry :secret)
+                               ((:entry :name :secret)
                                 (insert-label)
                                 (let ((widget (make-instance 'gtk:entry
                                                              :can-focus t
