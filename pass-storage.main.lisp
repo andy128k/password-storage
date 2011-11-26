@@ -615,14 +615,15 @@
 
 (defun create-status-icon (app)
   (let ((window (app-main-window app))
-	(status-icon (make-instance 'gtk:status-icon
-				    :stock "ps-pass-storage")))
+        (status-icon (make-instance 'gtk:status-icon
+                                    :stock "ps-pass-storage")))
     
     (gobject:connect-signal status-icon "activate"
-			    (lambda-u
-			     (if (gtk:widget-visible window)
-				 (gtk:widget-hide window :all t)
-				 (gtk:widget-show window :all t))))))
+                            (lambda-u
+                             (if (gtk:widget-visible window)
+                                 (gtk:widget-hide window :all t)
+                                 (gtk:widget-show window :all t))))
+    status-icon))
 
 (defun main ()
 
@@ -1066,17 +1067,19 @@
      (setf (app-statusbar app) statusbar)
      (setf (app-search-entry app) search-entry)
 
-     (create-status-icon app)
-     (gtk:widget-show main-window)
-     (set-mode app)
+     (let ((status-icon (create-status-icon app)))
+       (gtk:widget-show main-window)
+       (set-mode app)
+       
+       (gtk:gtk-main-add-timeout 1
+				 (lambda ()
+				   (gdk:gdk-threads-enter)
+				   (on-start app)
+				   (gdk:gdk-threads-leave)
+				   nil))
+       (gtk:gtk-main)
 
-     (gtk:gtk-main-add-timeout 1
-                               (lambda ()
-                                 (gdk:gdk-threads-enter)
-                                 (on-start app)
-                                 (gdk:gdk-threads-leave)
-                                 nil))
-     (gtk:gtk-main)
+       (setf (gtk:status-icon-visible status-icon) nil))
 
      (save-config))))
 
