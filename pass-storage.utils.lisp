@@ -100,7 +100,14 @@
       (eql (gtk:dialog-run dlg) :ok)
     (gtk:widget-hide dlg)))
 
-(defun make-table (conf)
+(defun build-completion-model (items)
+  (let ((model (make-instance 'gtk:list-store :column-types '("gchararray"))))
+    (iter (for item in items)
+          (setf (gtk:list-store-value model (gtk:list-store-append model) 0)
+                item))
+    model))
+
+(defun make-table (conf &optional names)
   (let ((table (make-instance 'gtk:table
                               :n-rows (length conf)
                               :n-columns 2
@@ -125,11 +132,31 @@
                                         0 1 i (+ i 1) :x-options :fill :y-options :fill)))
 
                (let ((widget (case kind
-                               ((:entry :name :secret)
+                               ((:entry :secret)
                                 (insert-label)
                                 (let ((widget (make-instance 'gtk:entry
                                                              :can-focus t
                                                              :activates-default t)))
+
+                                  (gtk:table-attach table
+                                                    widget
+                                                    1 2 i (+ i 1) :y-options :fill)
+                                  widget))
+                               (:name
+                                (insert-label)
+                                (let ((widget (make-instance 'gtk:entry
+                                                             :can-focus t
+                                                             :activates-default t))
+                                      (completion (make-instance 'gtk:entry-completion
+                                                                 :text-column 0
+                                                                 :model (build-completion-model names)
+                                                                 :popup-set-width nil))
+                                      (cell (make-instance 'gtk:cell-renderer-text)))
+                                  
+                                  (gtk:cell-layout-pack-start completion cell :expand t)
+                                  (gtk:cell-layout-add-attribute completion cell "text" 0)
+                                  (setf (gtk:entry-completion widget) completion)
+                                  
                                   (gtk:table-attach table
                                                     widget
                                                     1 2 i (+ i 1) :y-options :fill)
@@ -247,9 +274,9 @@
 (defmethod widget-set-text ((widget gtk:check-button) value)
   (setf (gtk:toggle-button-active widget) value))
 
-(defun edit-object (obj parent-window title icon conf)
+(defun edit-object (obj parent-window title icon conf &optional name-completion)
   (multiple-value-bind (table ws)
-      (make-table conf)
+      (make-table conf name-completion)
 
     (let ((dlg (make-std-dialog parent-window title icon table))
           disable-ok)

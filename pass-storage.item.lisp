@@ -255,12 +255,13 @@
 (defun entry-icon (o)
   (slot-value o 'icon))
 
-(defun edit-entry (entry parent-window title)
+(defun edit-entry (entry parent-window title &optional names)
   (edit-object entry
 	       parent-window
 	       (concatenate 'string title " " (entry-title entry))
 	       (entry-icon entry)
-	       (entry-slots entry)))
+	       (entry-slots entry)
+	       names))
 
 (defun get-slots (class)
   (iter (for slot in (closer-mop:class-slots class))
