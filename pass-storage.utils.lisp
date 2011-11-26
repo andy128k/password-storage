@@ -218,12 +218,12 @@
                                 (let* ((box (make-instance 'gtk:v-box :spacing 4))
                                        (buttons
                                         (iter (for tt in title)
-					      (for index from 0)
+                                              (for index from 0)
                                               (let ((button (make-instance 'gtk:radio-button
                                                                            :can-focus t
                                                                            :label tt
                                                                            :activates-default t
-									   :user-data (cffi:make-pointer index))))
+                                                                           :user-data (cffi:make-pointer index))))
                                                 (gtk:box-pack-start box button)
                                                 (collecting button)))))
                                   (iter (for button in buttons)
@@ -254,7 +254,7 @@
     (iter (for button in group)
           (when (gtk:toggle-button-active button)
             (return-from widget-get-text
-	      (cffi:pointer-address (gtk:gtk-object-user-data button)))))))
+              (cffi:pointer-address (gtk:gtk-object-user-data button)))))))
 
 (defgeneric widget-changed (widget handler))
 (defmethod widget-changed ((widget gtk:entry) handler)
@@ -323,15 +323,15 @@
          (with ,m = ,model)
          (with ,i = nil)
          (,kwd ,iter next
-	       (progn
-		 (setf ,i
-		       (if-first-time
-			(get-first-child ,m ,parent-iter)
-			(when (gtk:tree-model-iter-next ,m ,i)
-			  i)))
-		 (if ,i
-		     ,i
-		     (terminate)))))))
+               (progn
+                 (setf ,i
+                       (if-first-time
+                        (get-first-child ,m ,parent-iter)
+                        (when (gtk:tree-model-iter-next ,m ,i)
+                          i)))
+                 (if ,i
+                     ,i
+                     (terminate)))))))
 
 (defmacro-driver (for iter in-tree-model model parents-of node-iter)
     (let ((m (gensym))
@@ -341,11 +341,11 @@
          (with ,m = ,model)
          (with ,i = ,node-iter)
          (,kwd ,iter next
-	       (progn
-		 (setf ,i (gtk:tree-model-iter-parent ,m ,i))
-		 (if ,i
-		     ,i
-		     (terminate)))))))
+               (progn
+                 (setf ,i (gtk:tree-model-iter-parent ,m ,i))
+                 (if ,i
+                     ,i
+                     (terminate)))))))
 
 (defun cli-options ()
   "list of tokens passed in at the cli"
@@ -364,56 +364,56 @@
   (destructuring-bind (&key name action) (second node)
     (values
      (format nil "<menubar~A~A>~{~A~}</menubar>"
-	     (optional-attribute "name" name)
-	     (optional-attribute "action" action)
-	     (iter (for n in (cddr node))
-		   (collect
-		    (ecase (car n)
-		      (menuitem (build-menuitem n))
-		      (separator (build-separator n))
-		      (menu (build-menu n))))))
+             (optional-attribute "name" name)
+             (optional-attribute "action" action)
+             (iter (for n in (cddr node))
+                   (collect
+                    (ecase (car n)
+                      (menuitem (build-menuitem n))
+                      (separator (build-separator n))
+                      (menu (build-menu n))))))
      name
      action)))
 
 (defun build-menuitem (node)
   (destructuring-bind (action &key name position always-show-image) (cdr node)
     (format nil "<menuitem action='~A'~A~A~A/>"
-	    action
-	    (optional-attribute "name" name)
-	    (optional-attribute "position" position)
-	    (optional-attribute "always-show-image" always-show-image))))
+            action
+            (optional-attribute "name" name)
+            (optional-attribute "position" position)
+            (optional-attribute "always-show-image" always-show-image))))
 
 (defun build-separator (node)
   (destructuring-bind (&key action name expand) (cdr node)
     (format nil "<separator~A~A~A/>"
-	    (optional-attribute "action" action)
-	    (optional-attribute "name" name)
-	    (optional-attribute "expand" expand))))
+            (optional-attribute "action" action)
+            (optional-attribute "name" name)
+            (optional-attribute "expand" expand))))
 
 (defun build-menu (node)
   (destructuring-bind (action &key name position) (second node)
     (format nil "<menu action='~A'~A~A>~{~A~}</menu>" 
-	    action
-	    (optional-attribute "name" name)
-	    (optional-attribute "position" position)
-	    (iter (for n in (cddr node))
-		  (collect
-		   (ecase (car n)
-		     (menuitem (build-menuitem n))
-		     (separator (build-separator n))
-		     (menu (build-menu n))))))))
+            action
+            (optional-attribute "name" name)
+            (optional-attribute "position" position)
+            (iter (for n in (cddr node))
+                  (collect
+                   (ecase (car n)
+                     (menuitem (build-menuitem n))
+                     (separator (build-separator n))
+                     (menu (build-menu n))))))))
 
 (defmacro create-menubar (ui-manager menu)
   (multiple-value-bind (xml name)
       (build-menubar menu)
     (let ((path
-	   (if name
-	       (format nil "/~A" name)
-	       "/menubar")))
+           (if name
+               (format nil "/~A" name)
+               "/menubar")))
       `(progn
-	 (gtk:ui-manager-add-ui-from-string ,ui-manager
-					    ,(format nil "<ui>~A</ui>" xml))
-	 (gtk:ui-manager-widget ,ui-manager ,path)))))
+         (gtk:ui-manager-add-ui-from-string ,ui-manager
+                                            ,(format nil "<ui>~A</ui>" xml))
+         (gtk:ui-manager-widget ,ui-manager ,path)))))
 
 #+win32
 (progn
