@@ -132,7 +132,16 @@
 (defun update-row (data iter entry)
   (setf (gtk:tree-store-value data iter 0) entry)
   (setf (gtk:tree-store-value data iter 1) (entry-name entry))
-  (setf (gtk:tree-store-value data iter 2) (entry-icon entry)))
+  (setf (gtk:tree-store-value data iter 2) (entry-icon entry))
+  (unless (is-group entry)
+    (setf (gtk:tree-store-value data iter 4)
+	  (let ((e (password-entropy (entry-get-password entry))))
+	    (cond
+	      ((< e 28) "ps-very-weak")
+	      ((and (<= 28 e) (< e 36)) "ps-weak")
+	      ((and (<= 36 e) (< e 60)) "ps-reasonable")
+	      ((and (<= 60 e) (< e 128)) "ps-strong")
+	      ((<= 128 e) "ps-very-strong"))))))
 
 (defun select-iter (app iter)
   (let* ((current-model (gtk:tree-view-model (app-view app)))
@@ -269,7 +278,7 @@
         (setf (app-changed app) t)))))
 
 (defun make-data ()
-  (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray" "gboolean")))
+  (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray" "gboolean" "gchararray")))
 
 (defun load-data (filename parent-window)
   (labels ((parse-entry (elem data parent-iter)
@@ -651,7 +660,7 @@
 
       (gtk:icon-factory-add-default factory)))
 
-  (let* ((data (make-instance 'gtk:tree-store :column-types '("GObject" "gchararray" "gchararray" "gboolean")))
+  (let* ((data (make-data))
          (app (make-app
                :data data
                :filter (make-instance 'gtk:tree-model-filter :child-model data)
@@ -872,11 +881,14 @@
        :position 1
 
        (gtk:h-paned
+
+
         (gtk:scrolled-window
          :can-focus t
          :hscrollbar-policy :automatic
          :vscrollbar-policy :automatic
          :shadow-type :in
+
          (gtk:tree-view
           :var view
           :can-focus t
@@ -884,20 +896,31 @@
           :headers-visible nil
           :reorderable t
           :search-column 1
+
           (gtk:tree-view-column
            :var col
            :sizing :autosize
+
            (gtk:cell-renderer-toggle
             :var check-renderer
             :visible nil)
            :expand nil
+
            (gtk:cell-renderer-pixbuf
             :stock-size 1)
            :expand nil
            :attributes '("stock-id" 2)
+
            (gtk:cell-renderer-text)
            :expand t
-           :attributes '("text" 1))))
+           :attributes '("text" 1)
+
+	   (gtk:cell-renderer-pixbuf
+            :stock-size 1)
+           :expand nil
+           :attributes '("stock-id" 4))))
+
+
         (gtk:v-box
          :width-request 40
          (gtk:image

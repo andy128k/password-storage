@@ -31,5 +31,6 @@
                (:file "pass-storage.load")
                (:file "pass-storage.config")
                (:file "pass-storage.version")
+               (:file "pass-storage.entropy")
                (:file "pass-storage.main")))
 
