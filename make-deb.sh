@@ -15,10 +15,10 @@ esac
 while read line
 do
     case "$line" in
-	*\*ps-version\**)
-	    VERSION=${line#*\"}
-	    VERSION=${VERSION%%\"*}
-	;;
+        *\*ps-version\**)
+            VERSION=${line#*\"}
+            VERSION=${VERSION%%\"*}
+        ;;
     esac
 done < pass-storage.version.lisp
 if [ -z "$VERSION" ]
@@ -50,6 +50,8 @@ echo "Categories=Utility;"                  >> $PREFIX/usr/share/applications/Pa
 echo "StartupNotify=true"                   >> $PREFIX/usr/share/applications/PassStorage.desktop
 echo "MimeType=application/x-revelation;"   >> $PREFIX/usr/share/applications/PassStorage.desktop
 
+SIZE=`du -ks $PREFIX | cut -f1`
+
 D=DEBIAN
 mkdir -p $PREFIX/$D
 
@@ -62,6 +64,7 @@ echo "Priority: optional"                                               >> $PREF
 echo "Description: Password manager"                                    >> $PREFIX/$D/control
 echo " PassStorage manages passwords/secrets and stores them securely." >> $PREFIX/$D/control
 echo "Depends: libc6, libgtk2.0-0 (>= 2.18), revelation (>= 0.4.11) | revelation-mime" >> $PREFIX/$D/control
+echo "Installed-size: $SIZE"                                            >> $PREFIX/$D/control
 
 echo "pass-storage ($VERSION) stable; urgency=medium"  > $PREFIX/usr/share/doc/pass-storage/changelog
 echo ""                                               >> $PREFIX/usr/share/doc/pass-storage/changelog
