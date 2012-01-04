@@ -116,9 +116,9 @@ make_target () {
         sbcl)
             if [ -z $ENTRY_POINT ]
             then
-                EV2="(sb-ext:save-lisp-and-die \"$TARGET_NAME$EXECUTABLE_SUFFIX\" :compression t :executable t)"
+                EV2="(sb-ext:save-lisp-and-die \"$TARGET_NAME$EXECUTABLE_SUFFIX\" #+sb-core-compression :compression #+sb-core-compression t :executable t)"
             else
-                EV2="(sb-ext:save-lisp-and-die \"$TARGET_NAME$EXECUTABLE_SUFFIX\" :compression t :executable t :toplevel '$ENTRY_POINT)"
+                EV2="(sb-ext:save-lisp-and-die \"$TARGET_NAME$EXECUTABLE_SUFFIX\" #+sb-core-compression :compression #+sb-core-compression t :executable t :toplevel '$ENTRY_POINT)"
             fi
             ;;
         ccl)
