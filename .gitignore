@@ -1,4 +1,5 @@
 *~
+.DS_Store
 data
 
 /sbcl-cl-gtk2
