@@ -1,7 +1,4 @@
 *~
 .DS_Store
 data
-
-/sbcl-cl-gtk2
-/clozure-cl-gtk2
-
+/target/

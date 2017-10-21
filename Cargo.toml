@@ -1,0 +1,29 @@
+[package]
+name = "password-storage"
+version = "0.17.0"
+authors = ["Andrey Kutejko <andy128k@gmail.com>"]
+build = "build.rs"
+
+[dependencies]
+lazy_static = "0.2.9"
+error-chain = "0.10.0"
+debug-cell = "0.1.0"
+
+rand = "0.3.17"
+rust-crypto = "0.2.36"
+deflate = "0.7.17"
+inflate = "0.3.3"
+minidom = "0.6.2"
+
+toml = "0.4.5"
+serde = "1.0.17"
+serde_derive = "1.0.17"
+
+glib = "0.3.1"
+glib-sys = "0.4.0"
+gobject-sys = "0.4.0"
+gio = "0.2.0"
+gdk = "0.6.0"
+libc = "*"
+gtk = { version = "0.2.0", features = ["v3_22"] }
+gtk-sys = "0.4.0"

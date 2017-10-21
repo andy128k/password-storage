@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/net/andy128k/password-storage/icons">
+    <file alias="48x48/apps/password-storage.png">icons/app-icon/password-storage.png</file>
+    <file alias="scalable/apps/password-storage.svg">icons/app-icon/password-storage.svg</file>
+
+    <file alias="48x48/actions/merge.png">icons/actions/48x48/merge.png</file>
+    <file alias="24x24/actions/merge.png">icons/actions/24x24/merge.png</file>
+    <file alias="48x48/actions/merge-mode.png">icons/actions/48x48/merge-mode.png</file>
+    <file alias="24x24/actions/merge-mode.png">icons/actions/24x24/merge-mode.png</file>
+
+    <file alias="entry-generic.png">icons/entries/generic.png</file>
+    <file alias="entry-creditcard.png">icons/entries/creditcard.png</file>
+    <file alias="entry-database.png">icons/entries/database.png</file>
+    <file alias="entry-door.png">icons/entries/door.png</file>
+    <file alias="entry-email.png">icons/entries/email.png</file>
+    <file alias="entry-ftp.png">icons/entries/ftp.png</file>
+    <file alias="entry-keyring.png">icons/entries/keyring.png</file>
+    <file alias="entry-phone.png">icons/entries/phone.png</file>
+    <file alias="entry-shell.png">icons/entries/shell.png</file>
+    <file alias="entry-website.png">icons/entries/website.png</file>
+
+    <file alias="strength-very-weak.png">icons/strength/very-weak.png</file>
+    <file alias="strength-weak.png">icons/strength/weak.png</file>
+    <file alias="strength-reasonable.png">icons/strength/reasonable.png</file>
+    <file alias="strength-strong.png">icons/strength/strong.png</file>
+    <file alias="strength-very-strong.png">icons/strength/very-strong.png</file>
+  </gresource>
+</gresources>
