@@ -14,6 +14,7 @@ use gtk::{
     AboutDialog,
     TreeViewExt, TreeIter,
     timeout_add, Continue,
+    License
 };
 use actions;
 use actions::*;
@@ -459,6 +460,7 @@ fn cb_about(win: &PSMainWindow) -> Result<()> {
     dlg.set_transient_for(window);
     dlg.set_authors(&["Andrey Kutejko <andy128k@gmail.com>"]);
     dlg.set_copyright("Copyright 2009-2017, Andrey Kutejko");
+    dlg.set_license_type(License::Lgpl30);
     dlg.set_logo_icon_name("password-storage");
     dlg.set_icon_name("password-storage");
     dlg.set_program_name("PassStorage");
