@@ -65,9 +65,8 @@ impl PSApplication {
 
     pub fn run(&self) {
         let argv: Vec<String> = ::std::env::args().collect();
-        let argv_refs: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
         let gtk_app = self.0.borrow().gtk_app.clone();
-        let code = gtk_app.run(&argv_refs);
+        let code = gtk_app.run(&argv);
 
         ::std::process::exit(code);
     }

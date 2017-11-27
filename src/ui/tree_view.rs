@@ -1,6 +1,6 @@
 use glib::{Value};
 use gio::MenuModel;
-use gdk::{DragAction, ACTION_MOVE, DragContextExtManual, Event};
+use gdk::{DragAction, DragContextExtManual, Event};
 use gtk::prelude::*;
 use gtk::{
     TreeView, TreeViewExt, Widget, WidgetExt,
@@ -110,7 +110,7 @@ impl PSTreeView {
                     }
                 }
             }
-            drag_context.drag_status(ACTION_MOVE, time);
+            drag_context.drag_status(DragAction::MOVE, time);
             Inhibit(false)
         });
     }
