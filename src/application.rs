@@ -1,78 +1,99 @@
-use std::rc::Rc;
 use gio::prelude::*;
 use gio::ApplicationFlags;
 use gtk::{Application, ClipboardExt};
 
+use ptr::*;
 use config::Config;
-use main_window::old_main;
+use main_window::{PSMainWindow, PSMainWindowWeak, old_main, do_open_file};
 use utils::clipboard::get_clipboard;
 
-struct PSApplicationPrivate {
+pub struct PSApplicationPrivate {
     gtk_app: Application,
     config: Config,
+    win: PSMainWindowWeak,
 }
 
-#[derive(Clone)]
-pub struct PSApplication(Rc<::debug_cell::RefCell<PSApplicationPrivate>>);
+pub type PSApplication = SharedPtr<PSApplicationPrivate>;
 
 impl PSApplication {
-    pub fn new() -> Self {
-        let gtk_app = Application::new("net.andy128k.password-storage", ApplicationFlags::empty())
+    pub fn new_app() -> Self {
+        let gtk_app = Application::new("net.andy128k.password-storage", ApplicationFlags::HANDLES_OPEN)
             .expect("Initialization of application failed.");
 
-        let private = Rc::new(::debug_cell::RefCell::new(PSApplicationPrivate {
-            gtk_app,
+        let app = PSApplication::new(PSApplicationPrivate {
+            gtk_app: gtk_app.clone(),
             config: Config::load(),
-        }));
+            win: PSMainWindowWeak::new()
+        });
 
         {
-            private.borrow().gtk_app.connect_startup(move |_app| {
+            gtk_app.connect_startup(move |_app| {
                 ::icons::load_icons().unwrap();
             });
         }
         {
-            let private_weak = Rc::downgrade(&private);
-            private.borrow().gtk_app.connect_activate(move |_app| {
-                if let Some(private) = private_weak.upgrade() {
-                    let app = PSApplication(private);
-                    old_main(&app);
+            let app_weak = app.downgrade();
+            gtk_app.connect_activate(move |_app| {
+                if let Some(app) = app_weak.upgrade() {
+                    app.activate();
                 }
             });
         }
         {
-            let private_weak = Rc::downgrade(&private);
-            private.borrow().gtk_app.connect_shutdown(move |_app| {
-                if let Some(private) = private_weak.upgrade() {
-                    private.borrow().config.save().unwrap();
+            let app_weak = app.downgrade();
+            gtk_app.connect_shutdown(move |_app| {
+                if let Some(app) = app_weak.upgrade() {
+                    app.borrow().config.save().unwrap();
+                }
+            });
+        }
+        {
+            let app_weak = app.downgrade();
+            gtk_app.connect_open(move |_app, files, _hint| {
+                if let Some(app) = app_weak.upgrade() {
+                    let path = files[0].get_path().unwrap(); // TODO: check
+                    let win = app.activate();
+                    do_open_file(&win, &path);
                 }
             });
         }
 
-        PSApplication(private)
+        app
     }
 
     pub fn get_application(&self) -> Application {
-        self.0.borrow().gtk_app.clone()
+        self.borrow().gtk_app.clone()
     }
 
     pub fn get_config(&self) -> Config {
-        self.0.borrow().config.clone()
+        self.borrow().config.clone()
     }
 
     pub fn set_config(&self, new_config: Config) {
-        self.0.borrow_mut().config = new_config;
+        self.borrow_mut().config = new_config;
     }
 
     pub fn run(&self) {
         let argv: Vec<String> = ::std::env::args().collect();
-        let gtk_app = self.0.borrow().gtk_app.clone();
+        let gtk_app = self.borrow().gtk_app.clone();
         let code = gtk_app.run(&argv);
 
         ::std::process::exit(code);
     }
 
     pub fn quit(&self) {
-        self.0.borrow().gtk_app.quit();
+        self.borrow().gtk_app.quit();
         get_clipboard().clear();
+    }
+
+    fn activate(&self) -> PSMainWindow {
+        let win_ref = self.borrow().win.upgrade();
+        if let Some(win) = win_ref {
+            win
+        } else {
+            let win = old_main(self);
+            self.borrow_mut().win = win.retain().downgrade();
+            win
+        }
     }
 }

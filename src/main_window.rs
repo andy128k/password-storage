@@ -1,5 +1,5 @@
 use std::convert::Into;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::collections::{HashSet, HashMap};
 use std::iter::Iterator;
 use std::path::PathBuf;
@@ -16,6 +16,7 @@ use gtk::{
     timeout_add, Continue,
     License
 };
+use ptr::*;
 use actions;
 use actions::*;
 use ui;
@@ -47,7 +48,7 @@ enum AppMode {
     MergeMode
 }
 
-struct PSMainWindowPrivate {
+pub struct PSMainWindowPrivate {
     app: PSApplication,
 
     main_window: ApplicationWindow,
@@ -69,7 +70,8 @@ struct PSMainWindowPrivate {
     changed: bool,
 }
 
-type PSMainWindow = Rc<::debug_cell::RefCell<PSMainWindowPrivate>>;
+pub type PSMainWindow = SharedPtr<PSMainWindowPrivate>;
+pub type PSMainWindowWeak = WeakPtr<PSMainWindowPrivate>;
 
 fn set_status(win: &PSMainWindow, message: &str) {
     let statusbar = &win.borrow().statusbar;
@@ -349,7 +351,7 @@ fn set_data(win: &PSMainWindow, data: PSStore) {
     win.borrow().filter.set_model(Some(&data));
 }
 
-fn do_open_file(win: &PSMainWindow, filename: &PathBuf) {
+pub fn do_open_file(win: &PSMainWindow, filename: &PathBuf) {
     let window = &win.borrow().main_window.clone().upcast();
     if let Some((entries, password)) = load_data(filename, window) {
         let data = PSStore::from_tree(&entries);
@@ -580,7 +582,7 @@ fn create_main_window(gtk_app: &Application, view: &PSTreeView) -> (ApplicationW
 fn create_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<Fn(&PSMainWindow) -> Result<()>>) {
     let (_action_group_name, action_name) = ps_action_name.name();
     let action = ::gio::SimpleAction::new(&action_name, None);
-    let win1 = win.clone();
+    let win1 = win.retain();
     action.connect_activate(move |_, _| {
         if let Err(error) = cb(&win1) {
             let window = win1.borrow().main_window.clone().upcast();
@@ -593,7 +595,7 @@ fn create_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<
 fn create_toggle_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<Fn(&PSMainWindow, bool) -> Result<()>>) {
     let (_action_group_name, action_name) = ps_action_name.name();
     let action = ::gio::SimpleAction::new_stateful(&action_name, None, &false.into());
-    let win1 = win.clone();
+    let win1 = win.retain();
     action.connect_activate(move |action, _| {
         let prev_state: bool = action.get_state().and_then(|state| state.get()).unwrap_or(false);
         let new_state: bool = !prev_state;
@@ -606,7 +608,7 @@ fn create_toggle_action(win: &PSMainWindow, ps_action_name: actions::PSAction, c
     win.borrow_mut().actions.insert(ps_action_name, action);
 }
 
-pub fn old_main(app1: &PSApplication) {
+pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     let data = PSStore::new();
     let filter = PSTreeFilter::new();
     let view = PSTreeView::new();
@@ -616,8 +618,8 @@ pub fn old_main(app1: &PSApplication) {
     filter.set_model(Some(&data));
     view.set_model(Some(&data.as_model()));
 
-    let win = Rc::new(::debug_cell::RefCell::new(PSMainWindowPrivate {
-        app: (*app1).clone(),
+    let win = PSMainWindow::new(PSMainWindowPrivate {
+        app: app1.retain(),
 
         mode: AppMode::Initial,
         main_window, data, view,
@@ -631,10 +633,10 @@ pub fn old_main(app1: &PSApplication) {
         filename: None,
         password: None,
         changed: false,
-    }));
+    });
 
     {
-        let win1 = win.clone();
+        let win1 = win.retain();
         filter.set_filter_func(Some(Box::new(move |record| {
             let search_text = win1.borrow().search_entry.get_text();
             let config = win1.borrow().app.get_config();    
@@ -714,7 +716,7 @@ pub fn old_main(app1: &PSApplication) {
     set_mode(&win, AppMode::Initial);
 
     {
-        let win1 = win.clone();
+        let win1 = win.retain();
         win.borrow().search_entry.connect_changed(move |text| {
             if text.is_some() {
                 set_status(&win1, "View is filtered.");
@@ -735,7 +737,7 @@ pub fn old_main(app1: &PSApplication) {
     }
 
     {
-        let win1 = win.clone();
+        let win1 = win.retain();
         win.borrow().view.connect_cursor_changed(move |selection| {
             let mut record = None;
             if let Some((iter, _path)) = selection {
@@ -746,7 +748,7 @@ pub fn old_main(app1: &PSApplication) {
     }
 
     {
-        let win1 = win.clone();
+        let win1 = win.retain();
         win.borrow().view.connect_drop(move |iter| {
             let record_opt = win1.borrow().data.get(&iter);
             if let Some(record) = record_opt {
@@ -758,7 +760,7 @@ pub fn old_main(app1: &PSApplication) {
     }
 
     {
-        let win1 = win.clone();
+        let win1 = win.retain();
         win.borrow().view.connect_row_activated(move |selection| {
             if let Some((iter, path)) = selection {
                 let record_opt = win1.borrow().data.get(&iter);
@@ -781,7 +783,7 @@ pub fn old_main(app1: &PSApplication) {
     cb_new(&win);
 
     {
-        let win1 = win.clone();
+        let win1 = win.retain();
         timeout_add(1, move || {
             let config = win1.borrow().app.get_config();
             if let Some(default_file) = config.default_file {
@@ -790,4 +792,6 @@ pub fn old_main(app1: &PSApplication) {
             Continue(false)
         });
     }
+
+    win
 }

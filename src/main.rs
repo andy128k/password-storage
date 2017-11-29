@@ -24,6 +24,7 @@ pub mod error;
 pub mod icons;
 pub mod password;
 pub mod utils;
+pub mod ptr;
 pub mod markup_builder;
 pub mod model;
 pub mod actions;
@@ -37,6 +38,6 @@ pub mod main_window;
 pub mod format;
 
 fn main() {
-    let app = application::PSApplication::new();
+    let app = application::PSApplication::new_app();
     app.run();
 }
