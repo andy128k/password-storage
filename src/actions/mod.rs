@@ -14,6 +14,7 @@ pub enum DocAction {
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum ViewModeAction {
+    Close,
     Save,
     SaveAs,
     MergeFile,
@@ -80,6 +81,7 @@ impl DocAction {
 impl ViewModeAction {
     pub fn name(&self) -> String {
         match *self {
+            ViewModeAction::Close => "close".to_string(),
             ViewModeAction::Save => "save".to_string(),
             ViewModeAction::SaveAs => "save-as".to_string(),
             ViewModeAction::MergeFile => "merge-file".to_string(),

@@ -10,7 +10,7 @@ use gio::{
 use gtk::prelude::*;
 use gtk::{
     Application, ApplicationWindow, GtkApplicationExt, WindowPosition, Grid, ContainerExt, Statusbar, Align,
-    Window, Paned, Orientation, ScrolledWindow, ScrolledWindowExt, PolicyType, ShadowType,
+    Widget, Window, Stack, Paned, Orientation, ScrolledWindow, ScrolledWindowExt, PolicyType, ShadowType,
     AboutDialog,
     TreeViewExt, TreeIter,
     timeout_add, Continue,
@@ -53,6 +53,7 @@ pub struct PSMainWindowPrivate {
 
     main_window: ApplicationWindow,
     mode: AppMode,
+    stack: Stack,
     data: PSStore,
     view: PSTreeView,
     preview: PSPreviewPanel,
@@ -412,6 +413,19 @@ fn cb_save(win: &PSMainWindow) -> Result<()> {
     Ok(())
 }
 
+fn cb_close(win: &PSMainWindow) -> Result<()> {
+    if ensure_data_is_saved(win)? {
+        win.borrow_mut().changed = false;
+        set_data(win, PSStore::new());
+        win.borrow_mut().filename = None;
+        win.borrow_mut().password = None;
+        listview_cursor_changed(win, None);
+        set_mode(win, AppMode::Initial);
+        set_status(win, "");
+    }
+    Ok(())
+}
+
 fn cb_change_password(win: &PSMainWindow) -> Result<()> {
     let window = win.borrow().main_window.clone().upcast();
     if let Some(new_password) = change_password(&window) {
@@ -488,6 +502,7 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
             }
             win.borrow().actions.get(&PSAction::Doc(DocAction::MergeMode)).map(|action| action.set_state(&false.into()));
             win.borrow().view.set_selection_mode(false);
+            win.borrow().stack.set_visible_child_name("dashboard");
         },
         AppMode::FileOpened => {
             for (action_name, action) in &win.borrow().actions {
@@ -502,6 +517,7 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
             }
             win.borrow().actions.get(&PSAction::Doc(DocAction::MergeMode)).map(|action| action.set_state(&false.into()));
             win.borrow().view.set_selection_mode(false);
+            win.borrow().stack.set_visible_child_name("file");
         },
         AppMode::MergeMode => {
             for (action_name, action) in &win.borrow().actions {
@@ -516,6 +532,7 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
             }
             win.borrow().actions.get(&PSAction::Doc(DocAction::MergeMode)).map(|action| action.set_state(&true.into()));
             win.borrow().view.set_selection_mode(true);
+            win.borrow().stack.set_visible_child_name("file");
         }
     }
     win.borrow_mut().mode = mode;
@@ -526,7 +543,39 @@ fn set_merge_mode(win: &PSMainWindow, merge: bool) -> Result<()> {
     Ok(())
 }
 
-fn create_main_window(gtk_app: &Application, view: &PSTreeView) -> (ApplicationWindow, PSSearchEntry, PSPreviewPanel, Statusbar) {
+fn create_dashboard() -> Widget {
+    let w = ::gtk::DrawingArea::new();
+    w.upcast()
+}
+
+fn create_file_widget(tree_view: &PSTreeView, preview: &PSPreviewPanel) -> Widget {
+    let paned = Paned::new(Orientation::Horizontal);
+
+    let sw = ScrolledWindow::new(None, None);
+    sw.set_can_focus(true);
+    sw.set_property_hscrollbar_policy(PolicyType::Automatic);
+    sw.set_property_vscrollbar_policy(PolicyType::Automatic);
+    sw.set_shadow_type(ShadowType::In);
+    sw.add(&tree_view.get_widget());
+
+    paned.pack1(&sw, true, false);
+
+    paned.pack2(&preview.get_widget(), false, false);
+
+    paned.set_hexpand(true);
+    paned.set_vexpand(true);
+
+    paned.upcast()
+}
+
+fn create_content_widget(dashboard: &Widget, file_widget: &Widget) -> Stack {
+    let stack = Stack::new();
+    stack.add_named(dashboard, "dashboard");
+    stack.add_named(file_widget, "file");
+    stack
+}
+
+fn create_main_window(gtk_app: &Application, content: &Widget) -> (ApplicationWindow, PSSearchEntry, Statusbar) {
     let main_window = ApplicationWindow::new(gtk_app);
     gtk_app.set_menubar(&ui::menu::create_menu_bar());
     main_window.set_title("Password Storage");
@@ -535,7 +584,6 @@ fn create_main_window(gtk_app: &Application, view: &PSTreeView) -> (ApplicationW
     main_window.set_default_size(1000, 800);
 
     let search_entry = PSSearchEntry::new();
-    let preview = PSPreviewPanel::new();
 
     let statusbar = Statusbar::new();
 
@@ -547,25 +595,7 @@ fn create_main_window(gtk_app: &Application, view: &PSTreeView) -> (ApplicationW
         toolbar.set_valign(Align::Start);
         grid.attach(&toolbar, 0, 0, 1, 1);
 
-        let paned = {
-            let paned = Paned::new(Orientation::Horizontal);
-
-            let sw = ScrolledWindow::new(None, None);
-            sw.set_can_focus(true);
-            sw.set_property_hscrollbar_policy(PolicyType::Automatic);
-            sw.set_property_vscrollbar_policy(PolicyType::Automatic);
-            sw.set_shadow_type(ShadowType::In);
-            sw.add(&view.get_widget());
-
-            paned.pack1(&sw, true, false);
-
-            paned.pack2(&preview.get_widget(), false, false);
-
-            paned.set_hexpand(true);
-            paned.set_vexpand(true);
-            paned
-        };
-        grid.attach(&paned, 0, 1, 1, 1);
+        grid.attach(content, 0, 1, 1, 1);
 
         statusbar.set_halign(Align::Fill);
         statusbar.set_valign(Align::End);
@@ -576,7 +606,7 @@ fn create_main_window(gtk_app: &Application, view: &PSTreeView) -> (ApplicationW
 
     main_window.add(&grid);
 
-    (main_window, search_entry, preview, statusbar)
+    (main_window, search_entry, statusbar)
 }
 
 fn create_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<Fn(&PSMainWindow) -> Result<()>>) {
@@ -612,8 +642,14 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     let data = PSStore::new();
     let filter = PSTreeFilter::new();
     let view = PSTreeView::new();
+    let preview = PSPreviewPanel::new();
 
-    let (main_window, search_entry, preview, statusbar) = create_main_window(&app1.get_application(), &view);
+    let dashboard = create_dashboard();
+    let file_widget = create_file_widget(&view, &preview);
+
+    let stack = create_content_widget(&dashboard, &file_widget);
+
+    let (main_window, search_entry, statusbar) = create_main_window(&app1.get_application(), &stack.clone().upcast());
 
     filter.set_model(Some(&data));
     view.set_model(Some(&data.as_model()));
@@ -622,7 +658,7 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
         app: app1.retain(),
 
         mode: AppMode::Initial,
-        main_window, data, view,
+        main_window, stack, data, view,
         filter: filter.clone(),
         search_entry,
         preview,
@@ -661,6 +697,7 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
         create_action(&win, PSAction::ViewMode(ViewModeAction::MergeFile), Box::new(cb_merge_file));
         create_action(&win, PSAction::ViewMode(ViewModeAction::Save), Box::new(cb_save));
         create_action(&win, PSAction::ViewMode(ViewModeAction::SaveAs), Box::new(cb_save_as));
+        create_action(&win, PSAction::ViewMode(ViewModeAction::Close), Box::new(cb_close));
         create_action(&win, PSAction::ViewMode(ViewModeAction::Find), Box::new(|win| {
             win.borrow().search_entry.grab_focus();
             Ok(())
@@ -712,8 +749,6 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
             window.insert_action_group(group_name.name(), Some(group));
         }
     }
-
-    set_mode(&win, AppMode::Initial);
 
     {
         let win1 = win.retain();
@@ -778,20 +813,22 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     let popup = ui::menu::create_tree_popup();
     win.borrow().view.set_popup(&popup);
 
+    set_mode(&win, AppMode::Initial);
+
     win.borrow().main_window.show_all();
 
-    cb_new(&win);
+    // cb_new(&win);
 
-    {
-        let win1 = win.retain();
-        timeout_add(1, move || {
-            let config = win1.borrow().app.get_config();
-            if let Some(default_file) = config.default_file {
-                do_open_file(&win1, &PathBuf::from(default_file));
-            }
-            Continue(false)
-        });
-    }
+    // {
+    //     let win1 = win.retain();
+    //     timeout_add(1, move || {
+    //         let config = win1.borrow().app.get_config();
+    //         if let Some(default_file) = config.default_file {
+    //             do_open_file(&win1, &PathBuf::from(default_file));
+    //         }
+    //         Continue(false)
+    //     });
+    // }
 
     win
 }

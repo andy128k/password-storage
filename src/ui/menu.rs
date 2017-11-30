@@ -85,6 +85,7 @@ pub fn create_menu_bar() -> MenuModel {
         });
         menu.append_section(None, &{
             Menu::new()
+                .item_with_accel("_Close", &PSAction::ViewMode(ViewModeAction::Close), "<Primary>w")
                 .item_with_accel("_Quit", &PSAction::App(AppAction::Quit), "<Primary>q")
         });
         menu
