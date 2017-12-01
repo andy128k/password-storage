@@ -29,6 +29,7 @@ pub mod markup_builder;
 pub mod model;
 pub mod actions;
 pub mod config;
+pub mod cache;
 pub mod version;
 pub mod entropy;
 pub mod store;

@@ -4,12 +4,14 @@ use gtk::{Application, ClipboardExt};
 
 use ptr::*;
 use config::Config;
+use cache::Cache;
 use main_window::{PSMainWindow, PSMainWindowWeak, old_main, do_open_file};
 use utils::clipboard::get_clipboard;
 
 pub struct PSApplicationPrivate {
     gtk_app: Application,
     config: Config,
+    cache: Cache,
     win: PSMainWindowWeak,
 }
 
@@ -23,6 +25,7 @@ impl PSApplication {
         let app = PSApplication::new(PSApplicationPrivate {
             gtk_app: gtk_app.clone(),
             config: Config::load(),
+            cache: Cache::load(),
             win: PSMainWindowWeak::new()
         });
 
@@ -44,6 +47,7 @@ impl PSApplication {
             gtk_app.connect_shutdown(move |_app| {
                 if let Some(app) = app_weak.upgrade() {
                     app.borrow().config.save().unwrap();
+                    app.borrow().cache.save().unwrap();
                 }
             });
         }
@@ -71,6 +75,10 @@ impl PSApplication {
 
     pub fn set_config(&self, new_config: Config) {
         self.borrow_mut().config = new_config;
+    }
+
+    pub fn get_cache(&self) -> Cache {
+        self.borrow().cache.retain()
     }
 
     pub fn run(&self) {

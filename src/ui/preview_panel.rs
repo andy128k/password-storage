@@ -55,19 +55,6 @@ impl PSPreviewPanel {
     }
 }
 
-fn big(value: &str) -> String {
-    format!("<big><b>{}</b></big>", escape_markup(value))
-}
-
-fn bold(value: &str) -> String {
-    format!("<b>{}</b>", escape_markup(value))
-}
-
-fn url(value: &str) -> String {
-    let escaped = escape_markup(value);
-    format!("<a href='{}'>{}</a>", escaped, escaped)
-}
-
 fn record_to_markup(record: &Record, show_secrets: bool) -> String {
     let mut buf = String::new();
     for field in &record.record_type.fields {

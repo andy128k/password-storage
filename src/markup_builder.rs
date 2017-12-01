@@ -10,6 +10,19 @@ pub fn escape_markup(val: &str) -> String {
     }
 }
 
+pub fn big(value: &str) -> String {
+    format!("<big><b>{}</b></big>", escape_markup(value))
+}
+
+pub fn bold(value: &str) -> String {
+    format!("<b>{}</b>", escape_markup(value))
+}
+
+pub fn url(value: &str) -> String {
+    let escaped = escape_markup(value);
+    format!("<a href='{}'>{}</a>", escaped, escaped)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

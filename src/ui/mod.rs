@@ -1,6 +1,7 @@
 pub mod menu;
 pub mod toolbar;
 pub mod search;
+pub mod dashboard;
 pub mod filter;
 pub mod tree_view;
 pub mod preview_panel;

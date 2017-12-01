@@ -1,5 +1,4 @@
 use std::convert::Into;
-use std::rc::{Rc, Weak};
 use std::collections::{HashSet, HashMap};
 use std::iter::Iterator;
 use std::path::PathBuf;
@@ -20,6 +19,7 @@ use ptr::*;
 use actions;
 use actions::*;
 use ui;
+use ui::dashboard::PSDashboard;
 use ui::search::PSSearchEntry;
 use ui::filter::PSTreeFilter;
 use ui::tree_view::PSTreeView;
@@ -54,6 +54,7 @@ pub struct PSMainWindowPrivate {
     main_window: ApplicationWindow,
     mode: AppMode,
     stack: Stack,
+    dashboard: PSDashboard,
     data: PSStore,
     view: PSTreeView,
     preview: PSPreviewPanel,
@@ -325,6 +326,7 @@ fn save_data(win: &PSMainWindow, filename: &PathBuf) -> Result<()> {
 
         set_status(win, &format!("File '{}' was saved", filename.to_string_lossy()));
         win.borrow_mut().changed = false;
+        win.borrow().app.get_cache().add_file(&filename);
     }
     Ok(())
 }
@@ -355,6 +357,8 @@ fn set_data(win: &PSMainWindow, data: PSStore) {
 pub fn do_open_file(win: &PSMainWindow, filename: &PathBuf) {
     let window = &win.borrow().main_window.clone().upcast();
     if let Some((entries, password)) = load_data(filename, window) {
+        win.borrow().app.get_cache().add_file(&filename);
+
         let data = PSStore::from_tree(&entries);
         set_data(win, data);
         {
@@ -501,8 +505,10 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
                 action.set_enabled(enabled);
             }
             win.borrow().actions.get(&PSAction::Doc(DocAction::MergeMode)).map(|action| action.set_state(&false.into()));
+            win.borrow().search_entry.set_sensitive(false);
             win.borrow().view.set_selection_mode(false);
             win.borrow().stack.set_visible_child_name("dashboard");
+            win.borrow().dashboard.update();
         },
         AppMode::FileOpened => {
             for (action_name, action) in &win.borrow().actions {
@@ -516,6 +522,7 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
                 action.set_enabled(enabled);
             }
             win.borrow().actions.get(&PSAction::Doc(DocAction::MergeMode)).map(|action| action.set_state(&false.into()));
+            win.borrow().search_entry.set_sensitive(true);
             win.borrow().view.set_selection_mode(false);
             win.borrow().stack.set_visible_child_name("file");
         },
@@ -531,6 +538,7 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
                 action.set_enabled(enabled);
             }
             win.borrow().actions.get(&PSAction::Doc(DocAction::MergeMode)).map(|action| action.set_state(&true.into()));
+            win.borrow().search_entry.set_sensitive(true);
             win.borrow().view.set_selection_mode(true);
             win.borrow().stack.set_visible_child_name("file");
         }
@@ -541,11 +549,6 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
 fn set_merge_mode(win: &PSMainWindow, merge: bool) -> Result<()> {
     set_mode(win, if merge { AppMode::MergeMode } else { AppMode::FileOpened });
     Ok(())
-}
-
-fn create_dashboard() -> Widget {
-    let w = ::gtk::DrawingArea::new();
-    w.upcast()
 }
 
 fn create_file_widget(tree_view: &PSTreeView, preview: &PSPreviewPanel) -> Widget {
@@ -644,10 +647,11 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     let view = PSTreeView::new();
     let preview = PSPreviewPanel::new();
 
-    let dashboard = create_dashboard();
+    let dashboard = PSDashboard::new(&app1.get_cache());
+
     let file_widget = create_file_widget(&view, &preview);
 
-    let stack = create_content_widget(&dashboard, &file_widget);
+    let stack = create_content_widget(&dashboard.get_widget(), &file_widget);
 
     let (main_window, search_entry, statusbar) = create_main_window(&app1.get_application(), &stack.clone().upcast());
 
@@ -658,7 +662,10 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
         app: app1.retain(),
 
         mode: AppMode::Initial,
-        main_window, stack, data, view,
+        main_window,
+        stack,
+        dashboard,
+        data, view,
         filter: filter.clone(),
         search_entry,
         preview,
@@ -752,6 +759,13 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
 
     {
         let win1 = win.retain();
+        win.borrow_mut().dashboard.connect_activate(move |filename| {
+            do_open_file(&win1, &filename);
+        });
+    }
+
+    {
+        let win1 = win.retain();
         win.borrow().search_entry.connect_changed(move |text| {
             if text.is_some() {
                 set_status(&win1, "View is filtered.");
@@ -813,9 +827,9 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     let popup = ui::menu::create_tree_popup();
     win.borrow().view.set_popup(&popup);
 
-    set_mode(&win, AppMode::Initial);
-
     win.borrow().main_window.show_all();
+
+    set_mode(&win, AppMode::Initial);
 
     // cb_new(&win);
 

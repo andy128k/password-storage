@@ -36,6 +36,10 @@ impl PSSearchEntry {
         self.0.grab_focus();
     }
 
+    pub fn set_sensitive(&self, sensitive: bool) {
+        self.0.set_sensitive(sensitive);
+    }
+
     pub fn get_text(&self) -> Option<String> {
         self.0.get_text().and_then(non_empty)
     }
