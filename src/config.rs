@@ -5,7 +5,6 @@ use utils::result_ext::ResultLogExt;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Config {
-    pub default_file: Option<String>,
     pub search_in_secrets: bool,
     pub show_secrets_on_preview: bool,
 }

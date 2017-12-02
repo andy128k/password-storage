@@ -12,7 +12,6 @@ use gtk::{
     Widget, Window, Stack, Paned, Orientation, ScrolledWindow, ScrolledWindowExt, PolicyType, ShadowType,
     AboutDialog,
     TreeViewExt, TreeIter,
-    timeout_add, Continue,
     License
 };
 use ptr::*;
@@ -830,19 +829,6 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     win.borrow().main_window.show_all();
 
     set_mode(&win, AppMode::Initial);
-
-    // cb_new(&win);
-
-    // {
-    //     let win1 = win.retain();
-    //     timeout_add(1, move || {
-    //         let config = win1.borrow().app.get_config();
-    //         if let Some(default_file) = config.default_file {
-    //             do_open_file(&win1, &PathBuf::from(default_file));
-    //         }
-    //         Continue(false)
-    //     });
-    // }
 
     win
 }
