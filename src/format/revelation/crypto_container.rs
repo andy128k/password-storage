@@ -1,3 +1,4 @@
+use failure::err_msg;
 use crypto::symmetriccipher::{Encryptor, Decryptor};
 use crypto::aes::{ecb_encryptor, ecb_decryptor, cbc_encryptor, cbc_decryptor, KeySize};
 use crypto::blockmodes::{NoPadding, PkcsPadding};
@@ -19,7 +20,7 @@ fn encrypt_all(decrypted_data: &[u8], encryptor: &mut Box<Encryptor>) -> Result<
     let mut write_buffer = RefWriteBuffer::new(&mut buffer);
 
     loop {
-        let result = encryptor.encrypt(&mut read_buffer, &mut write_buffer, true).map_err(ErrorKind::Crypto)?;
+        let result = encryptor.encrypt(&mut read_buffer, &mut write_buffer, true).map_err(EncryptError)?;
         final_result.extend(write_buffer.take_read_buffer().take_remaining());
         match result {
             BufferResult::BufferUnderflow => break,
@@ -37,7 +38,7 @@ fn decrypt_all(encrypted_data: &[u8], decryptor: &mut Box<Decryptor>) -> Result<
     let mut write_buffer = RefWriteBuffer::new(&mut buffer);
 
     loop {
-        let result = decryptor.decrypt(&mut read_buffer, &mut write_buffer, true).map_err(ErrorKind::Crypto)?;
+        let result = decryptor.decrypt(&mut read_buffer, &mut write_buffer, true).map_err(DecryptError)?;
         final_result.extend(write_buffer.take_read_buffer().take_remaining());
         match result {
             BufferResult::BufferUnderflow => break,
@@ -60,11 +61,11 @@ pub fn decrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
     let password = adjust_password(password);
 
     if buffer.len() < 28 || (buffer.len() - 28) % 16 != 0 {
-        return Err(ErrorKind::BadFile.into());
+        return Err(BadFile.into());
     }
 
     if buffer[0..MAGIC.len()] != MAGIC {
-        return Err(ErrorKind::BadFile.into());
+        return Err(BadFile.into());
     }
 
     // decrypt the initial vector for CBC decryption
@@ -76,12 +77,12 @@ pub fn decrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
             &mut RefWriteBuffer::new(&mut iv),
             true
         )
-        .map_err(ErrorKind::Crypto)?;
+        .map_err(DecryptError)?;
 
     let mut body_decryptor = cbc_decryptor(KeySize::KeySize256, &password, &iv, PkcsPadding);
     let decrypted = decrypt_all(&buffer[28..], &mut body_decryptor)?;
 
-    inflate_bytes_zlib(&decrypted).map_err(|e| e.into())
+    inflate_bytes_zlib(&decrypted).map_err(err_msg)
 }
 
 pub fn encrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
@@ -101,7 +102,7 @@ pub fn encrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
             &mut RefWriteBuffer::new(&mut encrypted_iv),
             true
         )
-        .map_err(ErrorKind::Crypto)?;
+        .map_err(EncryptError)?;
 
     let mut result = Vec::with_capacity(MAGIC.len() + encrypted_iv.len() + encrypted.len());
     result.extend_from_slice(&MAGIC);
@@ -114,7 +115,6 @@ pub fn encrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use error_chain::ChainedError;
 
     const EMPTY_RVL: &[u8] = include_bytes!("./fixtures/empty.rvl");
 
@@ -133,8 +133,7 @@ mod test {
         let buf = decrypt_file(EMPTY_RVL, "iforgotpassword");
         assert!(buf.is_err());
         let err = buf.err().unwrap();
-        assert_eq!(err.description(), "Crypto error");
-        assert_eq!(format!("{}", err.display()), "Error: Crypto error: InvalidPadding\n");
+        assert_eq!(format!("{}", err), "File cannot be decrypted");
     }
 
     #[test]

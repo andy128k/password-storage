@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use failure::err_msg;
 use glib::get_user_config_dir;
 use error::*;
 use utils::result_ext::ResultLogExt;
@@ -14,7 +15,7 @@ fn config_path() -> Result<PathBuf> {
         path.push("password-storage.toml");
         Ok(path)
     } else {
-        Err(ErrorKind::Msg("Path to config is not detected".to_string()).into())
+        Err(err_msg("Path to config is not detected"))
     }
 }
 

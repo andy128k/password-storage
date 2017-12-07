@@ -75,7 +75,7 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
             },
             Err(e) => {
                 error_label.set_visible(true);
-                error_label.set_label(&format!("Can't open this file.\n{}", e.description()));
+                error_label.set_label(&format!("Can't open this file.\n{}", e));
             }
         }
     }

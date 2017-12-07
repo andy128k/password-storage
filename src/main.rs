@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
 extern crate rand;
 extern crate crypto;
 extern crate deflate;

@@ -1,3 +1,4 @@
+use failure::err_msg;
 use minidom::{Node, Element};
 use error::*;
 use model::record::*;
@@ -138,8 +139,8 @@ fn entry_field_by_id(xml_node: &Element, id: &str) -> String {
 }
 
 fn record_from_xml(xml_type: &str, xml_node: &Element) -> Result<Record> {
-    let record_type = detect_type_by_xml_type(xml_type).ok_or_else(|| format!("Bad entry type '{}'.", xml_type))?;
-    let mappings = get_fields_mapping(record_type).ok_or_else(|| format!("Bad entry type '{}'.", xml_type))?;
+    let record_type = detect_type_by_xml_type(xml_type).ok_or_else(|| format_err!("Bad entry type '{}'.", xml_type))?;
+    let mappings = get_fields_mapping(record_type).ok_or_else(|| format_err!("Bad entry type '{}'.", xml_type))?;
 
     let mut record = record_type.new_record();
     record.values.insert("name".to_string(), entry_node_get_value(xml_node, "name"));
@@ -153,8 +154,8 @@ fn record_from_xml(xml_type: &str, xml_node: &Element) -> Result<Record> {
 }
 
 fn record_to_xml(record: &Record) -> Result<Element> {
-    let xml_type = detect_xml_type_by_type(record.record_type).ok_or_else(|| format!("Bad entry type '{}'.", record.record_type.name))?;
-    let mappings = get_fields_mapping(record.record_type).ok_or_else(|| format!("Bad entry type '{}'.", xml_type))?;
+    let xml_type = detect_xml_type_by_type(record.record_type).ok_or_else(|| format_err!("Bad entry type '{}'.", record.record_type.name))?;
+    let mappings = get_fields_mapping(record.record_type).ok_or_else(|| format_err!("Bad entry type '{}'.", xml_type))?;
 
     let mut elem = Element::builder("entry").attr("type", xml_type);
 
@@ -196,7 +197,7 @@ pub fn record_tree_from_xml(elem: &Element) -> Result<RecordTree> {
                 Ok(RecordNode::Leaf(record))
             }
         } else {
-            Err("Bad xml element".into())
+            Err(err_msg("Bad xml element"))
         }
     }
 
@@ -208,7 +209,7 @@ pub fn record_tree_from_xml(elem: &Element) -> Result<RecordTree> {
     if elem.name() == "revelationdata" {
         read_records(elem)
     } else {
-        Err("Bad xml element".into())
+        Err(err_msg("Bad xml element"))
     }
 }
 
