@@ -13,40 +13,40 @@ fn adjust_password(password: &str) -> Vec<u8> {
     bytes
 }
 
-fn encrypt_all(decrypted_data: &[u8], encryptor: &mut Box<Encryptor>) -> Result<Vec<u8>> {
-    let mut final_result = Vec::<u8>::new();
-    let mut read_buffer = RefReadBuffer::new(decrypted_data);
-    let mut buffer = [0; 4096];
-    let mut write_buffer = RefWriteBuffer::new(&mut buffer);
+trait ProcessAll {
+    fn process(&mut self, read_buffer: &mut RefReadBuffer, write_buffer: &mut RefWriteBuffer) -> Result<BufferResult>;
 
-    loop {
-        let result = encryptor.encrypt(&mut read_buffer, &mut write_buffer, true).map_err(EncryptError)?;
-        final_result.extend(write_buffer.take_read_buffer().take_remaining());
-        match result {
-            BufferResult::BufferUnderflow => break,
-            BufferResult::BufferOverflow => { }
+    fn process_all(&mut self, decrypted_data: &[u8]) -> Result<Vec<u8>> {
+        let mut final_result = Vec::<u8>::new();
+        let mut read_buffer = RefReadBuffer::new(decrypted_data);
+        let mut buffer = [0; 4096];
+        let mut write_buffer = RefWriteBuffer::new(&mut buffer);
+
+        loop {
+            let result = self.process(&mut read_buffer, &mut write_buffer)?;
+            final_result.extend(write_buffer.take_read_buffer().take_remaining());
+            match result {
+                BufferResult::BufferUnderflow => break,
+                BufferResult::BufferOverflow => { }
+            }
         }
-    }
 
-    Ok(final_result)
+        Ok(final_result)
+    }
 }
 
-fn decrypt_all(encrypted_data: &[u8], decryptor: &mut Box<Decryptor>) -> Result<Vec<u8>> {
-    let mut final_result = Vec::<u8>::new();
-    let mut read_buffer = RefReadBuffer::new(encrypted_data);
-    let mut buffer = [0; 4096];
-    let mut write_buffer = RefWriteBuffer::new(&mut buffer);
-
-    loop {
-        let result = decryptor.decrypt(&mut read_buffer, &mut write_buffer, true).map_err(DecryptError)?;
-        final_result.extend(write_buffer.take_read_buffer().take_remaining());
-        match result {
-            BufferResult::BufferUnderflow => break,
-            BufferResult::BufferOverflow => { }
-        }
+impl ProcessAll for Encryptor {
+    fn process(&mut self, read_buffer: &mut RefReadBuffer, write_buffer: &mut RefWriteBuffer) -> Result<BufferResult> {
+        let result = self.encrypt(read_buffer, write_buffer, true).map_err(EncryptError)?;
+        Ok(result)
     }
+}
 
-    Ok(final_result)
+impl ProcessAll for Decryptor {
+    fn process(&mut self, read_buffer: &mut RefReadBuffer, write_buffer: &mut RefWriteBuffer) -> Result<BufferResult> {
+        let result = self.decrypt(read_buffer, write_buffer, true).map_err(DecryptError)?;
+        Ok(result)
+    }
 }
 
 const MAGIC: [u8; 12] = [
@@ -79,8 +79,8 @@ pub fn decrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
         )
         .map_err(DecryptError)?;
 
-    let mut body_decryptor = cbc_decryptor(KeySize::KeySize256, &password, &iv, PkcsPadding);
-    let decrypted = decrypt_all(&buffer[28..], &mut body_decryptor)?;
+    let decrypted = cbc_decryptor(KeySize::KeySize256, &password, &iv, PkcsPadding)
+        .process_all(&buffer[28..])?;
 
     inflate_bytes_zlib(&decrypted).map_err(err_msg)
 }
@@ -92,8 +92,8 @@ pub fn encrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
 
     let iv: [u8; 16] = ::rand::random::<[u8; 16]>();
 
-    let mut body_encryptor = cbc_encryptor(KeySize::KeySize256, &password, &iv, PkcsPadding);
-    let encrypted = encrypt_all(&deflated, &mut body_encryptor)?;
+    let encrypted = cbc_encryptor(KeySize::KeySize256, &password, &iv, PkcsPadding)
+        .process_all(&deflated)?;
 
     let mut encrypted_iv: [u8; 16] = [0u8; 16];
     ecb_encryptor(KeySize::KeySize256, &password, NoPadding)
