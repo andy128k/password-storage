@@ -325,7 +325,7 @@ fn save_data(win: &PSMainWindow, filename: &PathBuf) -> Result<()> {
 
         set_status(win, &format!("File '{}' was saved", filename.to_string_lossy()));
         win.borrow_mut().changed = false;
-        win.borrow().app.get_cache().add_file(&filename);
+        win.borrow().app.get_cache().add_file(filename);
     }
     Ok(())
 }
@@ -356,7 +356,7 @@ fn set_data(win: &PSMainWindow, data: PSStore) {
 pub fn do_open_file(win: &PSMainWindow, filename: &PathBuf) {
     let window = &win.borrow().main_window.clone().upcast();
     if let Some((entries, password)) = load_data(filename, window) {
-        win.borrow().app.get_cache().add_file(&filename);
+        win.borrow().app.get_cache().add_file(filename);
 
         let data = PSStore::from_tree(&entries);
         set_data(win, data);
@@ -684,7 +684,7 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
             let config = win1.borrow().app.get_config();    
             let look_at_secrets = config.search_in_secrets;
             if let Some(ref text) = search_text {
-                record.has_text(&text, look_at_secrets)
+                record.has_text(text, look_at_secrets)
             } else {
                 true
             }
@@ -759,7 +759,7 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     {
         let win1 = win.retain();
         win.borrow_mut().dashboard.connect_activate(move |filename| {
-            do_open_file(&win1, &filename);
+            do_open_file(&win1, filename);
         });
     }
 

@@ -23,7 +23,7 @@ pub enum TreeStoreColumn {
 }
 
 impl TreeStoreColumn {
-    fn into_primitive(self) -> i8 {
+    fn into_primitive(self) -> u8 {
         match self {
             TreeStoreColumn::Record => 0,
             TreeStoreColumn::Name => 1,
@@ -37,13 +37,13 @@ impl TreeStoreColumn {
 
 impl Into<u32> for TreeStoreColumn {
     fn into(self) -> u32 {
-        self.into_primitive() as u32
+        u32::from(self.into_primitive())
     }
 }
 
 impl Into<i32> for TreeStoreColumn {
     fn into(self) -> i32 {
-        self.into_primitive() as i32
+        i32::from(self.into_primitive())
     }
 }
 

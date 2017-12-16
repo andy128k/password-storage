@@ -68,7 +68,7 @@ pub struct Name {
     entry: Entry,
 }
 
-fn build_completion_model(items: &Vec<String>) -> ListStore {
+fn build_completion_model(items: &[String]) -> ListStore {
     let model = ListStore::new(&[Type::String]);
     for item in items {
         let iter = model.append();
@@ -78,7 +78,7 @@ fn build_completion_model(items: &Vec<String>) -> ListStore {
 }
 
 impl Name {
-    pub fn new(names: &Vec<String>) -> Self {
+    pub fn new(names: &[String]) -> Self {
         let completion = EntryCompletion::new();
         completion.set_text_column(0);
         completion.set_model(&build_completion_model(names));

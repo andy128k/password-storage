@@ -28,9 +28,9 @@ struct RecordForm {
 }
 
 impl RecordForm {
-    fn new(record_type: &'static RecordType, names: &Vec<String>) -> Self {
+    fn new(record_type: &'static RecordType, names: &[String]) -> Self {
         let mut form = Form::new();
-        for field in record_type.fields.iter() {
+        for field in &record_type.fields {
             let fw: Box<FormWidget<String>> = match field.field_type {
                 FieldType::Text => Box::new(Text::new()),
                 FieldType::MultiLine => Box::new(MultiLine::new()),
@@ -67,7 +67,7 @@ impl FormWidget<Record> for RecordForm {
     }
 }
 
-pub fn edit_record(record: &Record, parent_window: &Window, title: &str, names: &Vec<String>) -> Option<Record> {
+pub fn edit_record(record: &Record, parent_window: &Window, title: &str, names: &[String]) -> Option<Record> {
     edit_object(
         Some(record),
         RecordForm::new(record.record_type, names),

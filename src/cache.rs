@@ -44,7 +44,7 @@ impl Cache {
 
     pub fn add_file(&self, filename: &PathBuf) {
         let mut private = self.borrow_mut();
-        private.recent_files.retain(|ref f| *f != filename);
+        private.recent_files.retain(|f| f != filename);
         private.recent_files.insert(0, filename.clone());
     }
 }

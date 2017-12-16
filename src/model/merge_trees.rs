@@ -48,7 +48,7 @@ pub fn merge_subtries(tree1: &mut RecordTree, tree2: &RecordTree) {
             &RecordNode::Group(ref group, ref subtree) => {
                 let mut found = false;
                 for t1_node in tree1.iter_mut() {
-                    if let &mut RecordNode::Group(ref mut dst_group, ref mut dst_subtree) = t1_node {
+                    if let RecordNode::Group(ref mut dst_group, ref mut dst_subtree) = *t1_node {
                         if dst_group.name() == group.name() {
                             dst_group.join(group);
                             merge_subtries(dst_subtree, subtree);
