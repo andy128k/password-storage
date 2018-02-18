@@ -16,9 +16,11 @@ extern crate gtk;
 extern crate gtk_sys;
 extern crate libc;
 extern crate debug_cell;
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
+extern crate bincode;
 
 pub mod error;
 pub mod icons;

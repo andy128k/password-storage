@@ -16,6 +16,7 @@ inflate = "0.3.3"
 minidom = "0.7.0"
 
 toml = "0.4.5"
+bincode = "1.0.0"
 serde = "1.0.17"
 serde_derive = "1.0.17"
 

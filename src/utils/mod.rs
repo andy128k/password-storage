@@ -3,3 +3,4 @@ pub mod string;
 pub mod file;
 pub mod tree;
 pub mod clipboard;
+pub mod object_data;
