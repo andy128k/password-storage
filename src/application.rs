@@ -22,7 +22,7 @@ impl PSApplication {
         let gtk_app = Application::new("net.andy128k.password-storage", ApplicationFlags::HANDLES_OPEN)
             .expect("Initialization of application failed.");
 
-        let app = PSApplication::new(PSApplicationPrivate {
+        let app = PSApplication::from_private(PSApplicationPrivate {
             gtk_app: gtk_app.clone(),
             config: Config::load(),
             cache: Cache::load(),

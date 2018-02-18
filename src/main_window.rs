@@ -657,7 +657,7 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     filter.set_model(Some(&data));
     view.set_model(Some(&data.as_model()));
 
-    let win = PSMainWindow::new(PSMainWindowPrivate {
+    let win = PSMainWindow::from_private(PSMainWindowPrivate {
         app: app1.retain(),
 
         mode: AppMode::Initial,

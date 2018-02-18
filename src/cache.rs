@@ -29,7 +29,7 @@ impl Cache {
     }
 
     pub fn load() -> Self {
-        Self::new(cache_path()
+        Self::from_private(cache_path()
             .and_then(|filename| Self::from_file(&filename))
             .ok_log()
             .unwrap_or_default())

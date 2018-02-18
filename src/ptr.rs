@@ -5,7 +5,7 @@ pub struct SharedPtr<T>(Rc<::debug_cell::RefCell<T>>);
 pub struct WeakPtr<T>(Weak<::debug_cell::RefCell<T>>);
 
 impl<T> SharedPtr<T> {
-    pub fn new(value: T) -> Self {
+    pub fn from_private(value: T) -> Self {
         SharedPtr::<T>(Rc::new(::debug_cell::RefCell::new(value)))
     }
 
