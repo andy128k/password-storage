@@ -1,3 +1,4 @@
+use glib;
 use gtk::prelude::*;
 use gtk::{Grid, Widget, Align, Image, Label};
 use model::record::Record;
@@ -17,7 +18,7 @@ impl PSPreviewPanel {
         grid.set_property_margin(16);
 
         let icon = Image::new();
-        icon.set_margin_right(8);
+        icon.set_margin_end(8);
         icon.set_halign(Align::Start);
         icon.set_valign(Align::Start);
         grid.attach(&icon, 0, 0, 1, 1);
@@ -63,7 +64,7 @@ fn record_to_markup(record: &Record, show_secrets: bool) -> String {
             match field.name {
                 "name" => {},
                 "description" => if !value.is_empty() {
-                    buf.push_str(&escape_markup(&value));
+                    buf.push_str(&glib::markup_escape_text(&value));
                     buf.push('\n');
                 },
                 "url" => {
@@ -76,7 +77,7 @@ fn record_to_markup(record: &Record, show_secrets: bool) -> String {
                     buf.push('\n');
                     buf.push_str(&bold(field.title));
                     buf.push(' ');
-                    buf.push_str(&escape_markup(&value));
+                    buf.push_str(&glib::markup_escape_text(&value));
                 },
             }
         }

@@ -1,8 +1,9 @@
 use std::rc::Rc;
 use gtk::prelude::*;
-use gdk::{WindowTypeHint, Gravity, RGBA};
-use gtk::{Window, Dialog, ResponseType, StateFlags, Grid, Label, Entry, EditableSignals};
+use gdk::{WindowTypeHint, Gravity};
+use gtk::{Window, Dialog, ResponseType, Grid, Label, Entry, EditableSignals};
 use error::*;
+use ui::error_label::create_error_label;
 
 pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<(T, String)>
     where R: Fn(&str) -> Result<T>
@@ -25,11 +26,7 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
     dlg.add_button("_Open", ResponseType::Accept.into());
     dlg.set_default_response(ResponseType::Accept.into());
 
-    let error_label = Label::new(None);
-    error_label.set_xalign(0.5);
-    error_label.set_yalign(0.5);
-    error_label.set_no_show_all(true);
-    error_label.override_color(StateFlags::empty(), &RGBA { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 });
+    let error_label = create_error_label().expect("Error label is created.");
 
     let label = Label::new("Password");
     label.set_xalign(0f32);

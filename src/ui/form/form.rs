@@ -133,7 +133,7 @@ impl Form {
         let mut private = self.0.borrow_mut();
 
         let index = private.fields.len();
-        let error_label = create_error_label();
+        let error_label = create_error_label().expect("Error label is created.");
         private.grid.attach(&error_label, 0, index as i32, 2, 1);
 
         (*private).validation = Some(FormValidation { label: error_label, callback: validate });

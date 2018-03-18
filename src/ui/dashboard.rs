@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use gtk::prelude::*;
 use gtk::{Widget, Grid, Frame, ShadowType, ListBox, ListBoxRow, Align, Label};
-use markup_builder::*;
+use markup_builder::bold;
 use cache::Cache;
 use utils::object_data::{object_get_data, object_set_data};
 use ptr::*;
