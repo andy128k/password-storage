@@ -6,7 +6,7 @@ use gtk::{TreeModel, TreeStore, TreeIter};
 use model::record::Record;
 use model::tree::{RecordTree, RecordNode};
 use entropy::*;
-use self::transform::*;
+use utils::hash_table::*;
 
 #[derive(Clone)]
 pub struct PSStore {
@@ -73,7 +73,7 @@ fn delete_checked(model: &TreeStore, parent: Option<&TreeIter>) {
 impl PSStore {
     pub fn new() -> Self {
         let model = TreeStore::new(&[
-            record_glib_type(),
+            HashTable::glib_type(),
             Type::String,
             Type::String,
             Type::Bool,

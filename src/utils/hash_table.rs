@@ -5,7 +5,8 @@ use std::convert::Into;
 use std::fmt;
 use std::iter::Iterator;
 use glib::Value;
-use glib::translate::{FromGlibPtrNone, Uninitialized, ToGlib, ToGlibPtr, ToGlibPtrMut};
+use glib::types::Type;
+use glib::translate::{FromGlib, FromGlibPtrNone, Uninitialized, ToGlib, ToGlibPtr, ToGlibPtrMut};
 use glib_sys::{
     GHashTable,
     GHashTableIter,
@@ -51,6 +52,10 @@ impl<'h> Iterator for HashTableIter<'h> {
 }
 
 impl HashTable {
+    pub fn glib_type() -> Type {
+        Type::from_glib(unsafe { g_hash_table_get_type() })
+    }
+
     pub fn new() -> Self {
         let ptr = unsafe { g_hash_table_new_full(Some(g_str_hash), Some(g_str_equal), Some(g_free), Some(g_free)) };
         HashTable(ptr)

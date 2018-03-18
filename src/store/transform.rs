@@ -1,14 +1,7 @@
 use std::convert::Into;
 use glib::Value;
-use glib::types::Type;
-use glib::translate::{FromGlib};
-use glib_sys::{g_hash_table_get_type};
 use model::record::{Record, RecordType, RECORD_TYPE_FIELD};
 use utils::hash_table::*;
-
-pub fn record_glib_type() -> Type {
-    Type::from_glib(unsafe { g_hash_table_get_type() })
-}
 
 impl Record {
     pub fn try_from_value(value: &Value) -> Option<Self> {
