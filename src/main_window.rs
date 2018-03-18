@@ -272,7 +272,7 @@ fn cb_merge(win: &PSMainWindow) -> Result<()> {
         let mut message = String::from("Do you want to merge following items?\n");
         for record in &records {
             message.push('\n');
-            message.push_str(record.name());
+            message.push_str(&record.name());
         }
 
         if !ask(&win.borrow().main_window.clone().upcast(), &message) {
@@ -452,7 +452,7 @@ fn cb_copy_name(win: &PSMainWindow) -> Result<()> {
     if let Some((iter, _path)) = win.borrow().view.get_selected_iter() {
         if let Some(record) = win.borrow().data.get(&iter) {
             if let Some(username) = record.username() {
-                get_clipboard().set_text(username);
+                get_clipboard().set_text(&username);
                 set_status(win, "Name was copied to clipboard");
             }
         }
@@ -464,7 +464,7 @@ fn cb_copy_password(win: &PSMainWindow) -> Result<()> {
     if let Some((iter, _path)) = win.borrow().view.get_selected_iter() {
         if let Some(record) = win.borrow().data.get(&iter) {
             if let Some(password) = record.password() {
-                get_clipboard().set_text(password);
+                get_clipboard().set_text(&password);
                 set_status(win, "Secret (password) was copied to clipboard");
             }
         }

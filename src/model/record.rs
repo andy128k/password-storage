@@ -1,4 +1,4 @@
-use std::collections::hash_map::HashMap;
+use utils::hash_table::HashTable;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldType {
@@ -45,7 +45,7 @@ pub struct RecordType {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Record {
     pub record_type: &'static RecordType,
-    pub values: HashMap<String, String>,
+    pub values: HashTable,
 }
 
 lazy_static!{
@@ -248,6 +248,8 @@ lazy_static!{
     ];
 }
 
+pub const RECORD_TYPE_FIELD: &str = "__record_type";
+
 impl RecordType {
     pub fn find(name: &str) -> Option<&'static RecordType> {
         for record_type in RECORD_TYPES.iter() {
@@ -259,9 +261,10 @@ impl RecordType {
     }
 
     pub fn new_record(&'static self) -> Record {
-        let mut values = HashMap::new();
+        let mut values = HashTable::new();
+        values.insert(RECORD_TYPE_FIELD, &self.name);
         for field in &self.fields {
-            values.insert(field.name.to_string(), String::new());
+            values.insert(field.name, "");
         }
         Record { record_type: self, values }
     }
@@ -280,7 +283,7 @@ fn common_type(types: &[&'static RecordType]) -> &'static RecordType {
     &RECORD_TYPE_GENERIC
 }
 
-fn common_name(names: &[&str]) -> String {
+fn common_name(names: &[String]) -> String {
     if let Some((first, rest)) = names.split_first() {
         if rest.iter().all(|name| name == first) {
             return first.to_string();
@@ -290,11 +293,8 @@ fn common_name(names: &[&str]) -> String {
 }
 
 impl Record {
-    pub fn name(&self) -> &str {
-        match self.values.get("name") {
-            Some(name) => name,
-            None => ""
-        }
+    pub fn name(&self) -> String {
+        self.values.get("name").unwrap_or_default()
     }
 
     pub fn get_field(&self, field: &Field) -> String {
@@ -305,19 +305,17 @@ impl Record {
     }
 
     pub fn set_field(&mut self, field: &Field, value: &str) {
-        self.values.insert(field.name.to_string(), value.to_string());
+        self.values.insert(field.name, value);
     }
 
-    pub fn username(&self) -> Option<&str> {
+    pub fn username(&self) -> Option<String> {
         self.record_type.username_field
             .and_then(|field| self.values.get(field))
-            .map(|s| s.as_ref())
     }
 
-    pub fn password(&self) -> Option<&str> {
+    pub fn password(&self) -> Option<String> {
         self.record_type.password_field
             .and_then(|field| self.values.get(field))
-            .map(|s| s.as_ref())
     }
 
     pub fn has_text(&self, text: &str, look_at_secrets: bool) -> bool {
@@ -346,7 +344,7 @@ impl Record {
             result.join(record);
         }
 
-        let names: Vec<&str> = records.iter().map(|p| p.name()).collect();
+        let names: Vec<String> = records.iter().map(|p| p.name()).collect();
         result.set_field(&FIELD_NAME, &common_name(&names));
         result
     }
@@ -411,9 +409,9 @@ mod test {
         let generic = RECORD_TYPE_GENERIC.new_record();
 
         assert_eq!(group.record_type.name, "group");
-        assert_eq!(group.values.keys().len(), 2);
+        assert_eq!(group.values.keys().len(), 2 + 1);
 
         assert_eq!(generic.record_type.name, "generic");
-        assert_eq!(generic.values.keys().len(), 5);
+        assert_eq!(generic.values.keys().len(), 5 + 1);
     }
 }

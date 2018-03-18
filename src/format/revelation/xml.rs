@@ -143,11 +143,11 @@ fn record_from_xml(xml_type: &str, xml_node: &Element) -> Result<Record> {
     let mappings = get_fields_mapping(record_type).ok_or_else(|| format_err!("Bad entry type '{}'.", xml_type))?;
 
     let mut record = record_type.new_record();
-    record.values.insert("name".to_string(), entry_node_get_value(xml_node, "name"));
-    record.values.insert("description".to_string(), entry_node_get_value(xml_node, "description"));
+    record.values.insert("name", &entry_node_get_value(xml_node, "name"));
+    record.values.insert("description", &entry_node_get_value(xml_node, "description"));
 
     for &(ref field, ref id) in mappings {
-        record.values.insert(field.to_string(), entry_field_by_id(xml_node, id));
+        record.values.insert(field, &entry_field_by_id(xml_node, id));
     }
 
     Ok(record)
@@ -167,7 +167,7 @@ fn record_to_xml(record: &Record) -> Result<Element> {
     );
     for &(ref field, ref id) in mappings {
         elem = elem.append(
-            Element::builder("field").attr("id", *id).append(&record.values[*field]).build()
+            Element::builder("field").attr("id", *id).append(&record.values.get(field).unwrap()).build()
         );
     }
 
