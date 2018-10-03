@@ -9,8 +9,8 @@ pub struct BadFile;
 
 #[derive(Fail, Debug)]
 #[fail(display = "File cannot be encrypted")]
-pub struct EncryptError(pub crypto::symmetriccipher::SymmetricCipherError);
+pub struct EncryptError;
 
 #[derive(Fail, Debug)]
 #[fail(display = "File cannot be decrypted")]
-pub struct DecryptError(pub crypto::symmetriccipher::SymmetricCipherError);
+pub struct DecryptError;

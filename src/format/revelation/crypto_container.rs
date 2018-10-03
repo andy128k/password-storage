@@ -1,8 +1,9 @@
 use failure::err_msg;
-use crypto::symmetriccipher::{Encryptor, Decryptor};
-use crypto::aes::{ecb_encryptor, ecb_decryptor, cbc_encryptor, cbc_decryptor, KeySize};
-use crypto::blockmodes::{NoPadding, PkcsPadding};
-use crypto::buffer::{RefReadBuffer, RefWriteBuffer, BufferResult, WriteBuffer, ReadBuffer};
+use rand::random;
+use generic_array::{GenericArray, typenum::U16};
+use aes::{Aes256, block_cipher_trait::BlockCipher};
+use block_modes::{BlockMode, Cbc};
+use block_modes::block_padding::Pkcs7;
 use inflate::inflate_bytes_zlib;
 use deflate::deflate_bytes_zlib;
 use crate::error::*;
@@ -15,42 +16,6 @@ fn adjust_password(password: &str) -> [u8; 32] {
     array
 }
 
-trait ProcessAll {
-    fn process(&mut self, read_buffer: &mut RefReadBuffer<'_>, write_buffer: &mut RefWriteBuffer<'_>) -> Result<BufferResult>;
-
-    fn process_all(&mut self, decrypted_data: &[u8]) -> Result<Vec<u8>> {
-        let mut final_result = Vec::<u8>::new();
-        let mut read_buffer = RefReadBuffer::new(decrypted_data);
-        let mut buffer = [0; 4096];
-        let mut write_buffer = RefWriteBuffer::new(&mut buffer);
-
-        loop {
-            let result = self.process(&mut read_buffer, &mut write_buffer)?;
-            final_result.extend(write_buffer.take_read_buffer().take_remaining());
-            match result {
-                BufferResult::BufferUnderflow => break,
-                BufferResult::BufferOverflow => { }
-            }
-        }
-
-        Ok(final_result)
-    }
-}
-
-impl ProcessAll for dyn Encryptor {
-    fn process(&mut self, read_buffer: &mut RefReadBuffer<'_>, write_buffer: &mut RefWriteBuffer<'_>) -> Result<BufferResult> {
-        let result = self.encrypt(read_buffer, write_buffer, true).map_err(EncryptError)?;
-        Ok(result)
-    }
-}
-
-impl ProcessAll for dyn Decryptor {
-    fn process(&mut self, read_buffer: &mut RefReadBuffer<'_>, write_buffer: &mut RefWriteBuffer<'_>) -> Result<BufferResult> {
-        let result = self.decrypt(read_buffer, write_buffer, true).map_err(DecryptError)?;
-        Ok(result)
-    }
-}
-
 const MAGIC: [u8; 12] = [
     0x72, 0x76, 0x6C, 0x00, // magic string
     0x01,                   // data version
@@ -60,8 +25,6 @@ const MAGIC: [u8; 12] = [
 ];
 
 pub fn decrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
-    let password = adjust_password(password);
-
     if buffer.len() < 28 || (buffer.len() - 28) % 16 != 0 {
         return Err(BadFile.into());
     }
@@ -70,45 +33,34 @@ pub fn decrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
         return Err(BadFile.into());
     }
 
+    let password = adjust_password(password).into();
+
     // decrypt the initial vector for CBC decryption
-    let mut iv: [u8; 16] = [0u8; 16];
+    let mut iv = GenericArray::<u8, U16>::clone_from_slice(&buffer[12..28]);
+    Aes256::new(&password).decrypt_block(&mut iv);
 
-    ecb_decryptor(KeySize::KeySize256, &password, NoPadding)
-        .decrypt(
-            &mut RefReadBuffer::new(&buffer[12..28]),
-            &mut RefWriteBuffer::new(&mut iv),
-            true
-        )
-        .map_err(DecryptError)?;
-
-    let decrypted = cbc_decryptor(KeySize::KeySize256, &password, &iv, PkcsPadding)
-        .process_all(&buffer[28..])?;
+    let decrypted = Cbc::<Aes256, Pkcs7>::new_fix(&password, &iv)
+        .decrypt_vec(&buffer[28..])
+        .map_err(|_| DecryptError)?;
 
     inflate_bytes_zlib(&decrypted).map_err(err_msg)
 }
 
 pub fn encrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
-    let password = adjust_password(password);
+    let password = adjust_password(password).into();
 
     let deflated = deflate_bytes_zlib(buffer);
 
-    let iv: [u8; 16] = ::rand::random::<[u8; 16]>();
+    let mut iv = random::<[u8; 16]>().into();
 
-    let encrypted = cbc_encryptor(KeySize::KeySize256, &password, &iv, PkcsPadding)
-        .process_all(&deflated)?;
+    let encrypted = Cbc::<Aes256, Pkcs7>::new_fix(&password, &iv)
+        .encrypt_vec(&deflated);
 
-    let mut encrypted_iv: [u8; 16] = [0u8; 16];
-    ecb_encryptor(KeySize::KeySize256, &password, NoPadding)
-        .encrypt(
-            &mut RefReadBuffer::new(&iv),
-            &mut RefWriteBuffer::new(&mut encrypted_iv),
-            true
-        )
-        .map_err(EncryptError)?;
+    Aes256::new(&password).encrypt_block(&mut iv);
 
-    let mut result = Vec::with_capacity(MAGIC.len() + encrypted_iv.len() + encrypted.len());
+    let mut result = Vec::with_capacity(MAGIC.len() + iv.len() + encrypted.len());
     result.extend_from_slice(&MAGIC);
-    result.extend_from_slice(&encrypted_iv);
+    result.extend_from_slice(&iv);
     result.extend_from_slice(&encrypted);
 
     Ok(result)
