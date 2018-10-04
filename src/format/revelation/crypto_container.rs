@@ -7,10 +7,12 @@ use inflate::inflate_bytes_zlib;
 use deflate::deflate_bytes_zlib;
 use error::*;
 
-fn adjust_password(password: &str) -> Vec<u8> {
-    let mut bytes: Vec<u8> = password.as_bytes().to_vec();
-    bytes.resize(32, 0);
-    bytes
+fn adjust_password(password: &str) -> [u8; 32] {
+    let bytes = password.as_bytes();
+    let len = usize::min(32, bytes.len());
+    let mut array = [0; 32];
+    array[..len].copy_from_slice(&bytes[..len]);
+    array
 }
 
 trait ProcessAll {
