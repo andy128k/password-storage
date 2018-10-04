@@ -116,6 +116,25 @@ pub fn encrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
 mod test {
     use super::*;
 
+    #[test]
+    fn test_adjust_password() {
+        assert_eq!(
+            adjust_password("secr3t"),
+            [0x73,0x65,0x63,0x72,0x33,0x74,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        );
+        assert_eq!(
+            adjust_password("secr3tsecr3tsecr3tsecr3tsecr3tsecr3tsecr3t"),
+            [
+                0x73,0x65,0x63,0x72,0x33,0x74,
+                0x73,0x65,0x63,0x72,0x33,0x74,
+                0x73,0x65,0x63,0x72,0x33,0x74,
+                0x73,0x65,0x63,0x72,0x33,0x74,
+                0x73,0x65,0x63,0x72,0x33,0x74,
+                0x73,0x65
+            ]
+        );
+    }
+
     const EMPTY_RVL: &[u8] = include_bytes!("./fixtures/empty.rvl");
 
     fn empty_xml() -> &'static [u8] {
