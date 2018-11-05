@@ -237,7 +237,7 @@ dependencies = [
  "glib 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gobject-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -260,7 +260,7 @@ dependencies = [
  "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gobject-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -302,7 +302,7 @@ dependencies = [
  "glib-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gobject-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "pango 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -334,11 +334,8 @@ dependencies = [
 
 [[package]]
 name = "lazy_static"
-version = "1.1.0"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "version_check 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "libc"
@@ -382,7 +379,7 @@ dependencies = [
  "glib 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gobject-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "pango-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -414,7 +411,7 @@ dependencies = [
  "gtk 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "inflate 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "minidom 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -655,7 +652,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum gtk 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "56a6b30f194f09a17bb7ffa95c3ecdb405abd3b75ff981f831b1f6d18fe115ff"
 "checksum gtk-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d487d333a4b87072e6bf9f2e55befa0ebef01b9496c2e263c0f4a1ff3d6c04b1"
 "checksum inflate 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "6f53b811ee8e2057ccf9643ca6b4277de90efaf5e61e55fd5254576926bb4245"
-"checksum lazy_static 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ca488b89a5657b0a2ecd45b95609b3e848cf1755da332a0da46e2b2b1cb371a7"
+"checksum lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a374c89b9db55895453a74c1e38861d9deec0b01b405a82516e9d5de4820dea1"
 "checksum libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)" = "76e3a3ef172f1a0b9a9ff0dd1491ae5e6c948b94479a3021819ba7d860c8645d"
 "checksum log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "d4fcce5fa49cc693c312001daf1d13411c4a5283796bac1084299ea3e567113f"
 "checksum memchr 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4b3629fe9fdbff6daa6c33b90f7c08355c1aca05a3d01fa8063b822fcf185f3b"
