@@ -1,4 +1,4 @@
-use rand::{thread_rng, Rng};
+use rand::{thread_rng, seq::SliceRandom};
 
 const GENERATE_PASSWORD_ALPHABET: &[char] = &[
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
@@ -9,12 +9,8 @@ const GENERATE_PASSWORD_ALPHABET: &[char] = &[
 const GENERATE_PASSWORD_LENGTH: usize = 16;
 
 pub fn generate_password() -> String {
-    let mut password = String::new();
     let mut rnd = thread_rng();
-    for _ in 0..GENERATE_PASSWORD_LENGTH {
-        password.push(*rnd.choose(GENERATE_PASSWORD_ALPHABET).unwrap());
-    }
-    password
+    GENERATE_PASSWORD_ALPHABET.choose_multiple(&mut rnd, GENERATE_PASSWORD_LENGTH).cloned().collect()
 }
 
 #[cfg(test)]
