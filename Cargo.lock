@@ -326,7 +326,7 @@ dependencies = [
 
 [[package]]
 name = "inflate"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "adler32 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -410,7 +410,7 @@ dependencies = [
  "gobject-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "inflate 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "inflate 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.44 (registry+https://github.com/rust-lang/crates.io-index)",
  "minidom 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -702,7 +702,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum gobject-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "08475e4a08f27e6e2287005950114735ed61cec2cb8c1187682a5aec8c69b715"
 "checksum gtk 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "56a6b30f194f09a17bb7ffa95c3ecdb405abd3b75ff981f831b1f6d18fe115ff"
 "checksum gtk-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d487d333a4b87072e6bf9f2e55befa0ebef01b9496c2e263c0f4a1ff3d6c04b1"
-"checksum inflate 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "6f53b811ee8e2057ccf9643ca6b4277de90efaf5e61e55fd5254576926bb4245"
+"checksum inflate 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "84c683bde2d8413b8f1be3e459c30e4817672b6e7a31d9212b0323154e76eba7"
 "checksum lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a374c89b9db55895453a74c1e38861d9deec0b01b405a82516e9d5de4820dea1"
 "checksum libc 0.2.44 (registry+https://github.com/rust-lang/crates.io-index)" = "10923947f84a519a45c8fefb7dd1b3e8c08747993381adee176d7a82b4195311"
 "checksum log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "c84ec4b527950aa83a329754b01dbe3f58361d1c5efacd1f6d68c494d08a17c6"
