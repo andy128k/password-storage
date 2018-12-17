@@ -20,7 +20,7 @@ bincode = "1.0.0"
 serde = "1.0.79"
 serde_derive = "1.0.79"
 
-glib = { version = "0.6.0", features = ["v2_40"] }
+glib = { version = "0.6.1", features = ["v2_40"] }
 glib-sys = { version = "0.7.0", features = ["v2_40"] }
 gobject-sys = "0.7.0"
 gio = "0.5.0"
