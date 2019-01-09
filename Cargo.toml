@@ -9,7 +9,7 @@ lazy_static = "1.0.0"
 failure = "0.1.1"
 debug-cell = "0.1.0"
 
-rand = "0.6.0"
+rand = "0.6.4"
 rust-crypto = "0.2.36"
 deflate = "0.7.17"
 inflate = "0.4.0"
