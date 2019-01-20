@@ -3,10 +3,10 @@ mod transform;
 use glib::{Type, Value};
 use gtk::prelude::*;
 use gtk::{TreeModel, TreeStore, TreeIter};
-use model::record::Record;
-use model::tree::{RecordTree, RecordNode};
-use entropy::*;
-use utils::hash_table::*;
+use crate::model::record::Record;
+use crate::model::tree::{RecordTree, RecordNode};
+use crate::entropy::*;
+use crate::utils::hash_table::*;
 
 #[derive(Clone)]
 pub struct PSStore {
@@ -131,7 +131,7 @@ impl PSStore {
     pub fn parents(&self, iter: &TreeIter) -> Vec<(TreeIter, Record)> {
         let model = self.as_model();
         let mut result = Vec::new();
-        for i in ::utils::tree::tree_parents_entries(&model, iter) {
+        for i in crate::utils::tree::tree_parents_entries(&model, iter) {
             if let Some(record) = Record::try_from_value(&model.get_value(&i, TreeStoreColumn::Record.into())) {
                 result.push((i, record));
             }
@@ -142,7 +142,7 @@ impl PSStore {
     pub fn children(&self, iter: Option<&TreeIter>) -> Vec<(TreeIter, Record)> {
         let model = self.as_model();
         let mut result = Vec::new();
-        for i in ::utils::tree::tree_children_entries(&model, iter) {
+        for i in crate::utils::tree::tree_children_entries(&model, iter) {
             if let Some(record) = Record::try_from_value(&model.get_value(&i, TreeStoreColumn::Record.into())) {
                 result.push((i, record));
             }
@@ -195,7 +195,7 @@ impl PSStore {
 
     pub fn uncheck_all(&self) {
         fn uncheck(model: &TreeStore, parent: Option<&TreeIter>) {
-            for i in ::utils::tree::tree_children_entries(&model.clone().upcast(), parent) {
+            for i in crate::utils::tree::tree_children_entries(&model.clone().upcast(), parent) {
                 model.set_value(&i, TreeStoreColumn::Selection.into(), &Value::from(&false));
                 uncheck(model, Some(&i));
             }

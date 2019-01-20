@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 use failure::err_msg;
+use serde::{Serialize, Deserialize};
 use glib::get_user_config_dir;
-use error::*;
-use utils::result_ext::ResultLogExt;
+use crate::error::*;
+use crate::utils::result_ext::ResultLogExt;
+use crate::utils::file::{read_file, write_file};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Config {
@@ -21,8 +23,8 @@ fn config_path() -> Result<PathBuf> {
 
 impl Config {
     fn from_file(filename: &PathBuf) -> Result<Self> {
-        let buf = ::utils::file::read_file(filename)?;
-        let config = ::toml::from_slice(&buf)?;
+        let buf = read_file(filename)?;
+        let config = toml::from_slice(&buf)?;
         Ok(config)
     }
 
@@ -35,8 +37,8 @@ impl Config {
 
     pub fn save(&self) -> Result<()> {
         let filename = config_path()?;
-        let dump = ::toml::to_vec(self)?;
-        ::utils::file::write_file(&filename, &dump)?;
+        let dump = toml::to_vec(self)?;
+        write_file(&filename, &dump)?;
         Ok(())
     }
 }

@@ -1,8 +1,8 @@
 use glib;
 use gtk::prelude::*;
 use gtk::{Grid, Widget, Align, Image, Label};
-use model::record::Record;
-use markup_builder::*;
+use crate::model::record::Record;
+use crate::markup_builder::*;
 
 pub struct PSPreviewPanel {
     grid: Grid,

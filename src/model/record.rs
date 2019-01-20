@@ -1,4 +1,5 @@
-use utils::hash_table::HashTable;
+use lazy_static::lazy_static;
+use crate::utils::hash_table::HashTable;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldType {

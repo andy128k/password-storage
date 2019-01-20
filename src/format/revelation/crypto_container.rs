@@ -5,7 +5,7 @@ use crypto::blockmodes::{NoPadding, PkcsPadding};
 use crypto::buffer::{RefReadBuffer, RefWriteBuffer, BufferResult, WriteBuffer, ReadBuffer};
 use inflate::inflate_bytes_zlib;
 use deflate::deflate_bytes_zlib;
-use error::*;
+use crate::error::*;
 
 fn adjust_password(password: &str) -> [u8; 32] {
     let bytes = password.as_bytes();
@@ -16,7 +16,7 @@ fn adjust_password(password: &str) -> [u8; 32] {
 }
 
 trait ProcessAll {
-    fn process(&mut self, read_buffer: &mut RefReadBuffer, write_buffer: &mut RefWriteBuffer) -> Result<BufferResult>;
+    fn process(&mut self, read_buffer: &mut RefReadBuffer<'_>, write_buffer: &mut RefWriteBuffer<'_>) -> Result<BufferResult>;
 
     fn process_all(&mut self, decrypted_data: &[u8]) -> Result<Vec<u8>> {
         let mut final_result = Vec::<u8>::new();
@@ -37,15 +37,15 @@ trait ProcessAll {
     }
 }
 
-impl ProcessAll for Encryptor {
-    fn process(&mut self, read_buffer: &mut RefReadBuffer, write_buffer: &mut RefWriteBuffer) -> Result<BufferResult> {
+impl ProcessAll for dyn Encryptor {
+    fn process(&mut self, read_buffer: &mut RefReadBuffer<'_>, write_buffer: &mut RefWriteBuffer<'_>) -> Result<BufferResult> {
         let result = self.encrypt(read_buffer, write_buffer, true).map_err(EncryptError)?;
         Ok(result)
     }
 }
 
-impl ProcessAll for Decryptor {
-    fn process(&mut self, read_buffer: &mut RefReadBuffer, write_buffer: &mut RefWriteBuffer) -> Result<BufferResult> {
+impl ProcessAll for dyn Decryptor {
+    fn process(&mut self, read_buffer: &mut RefReadBuffer<'_>, write_buffer: &mut RefWriteBuffer<'_>) -> Result<BufferResult> {
         let result = self.decrypt(read_buffer, write_buffer, true).map_err(DecryptError)?;
         Ok(result)
     }

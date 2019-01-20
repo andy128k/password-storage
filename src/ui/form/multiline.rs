@@ -1,7 +1,7 @@
 use super::base::*;
 use gtk::prelude::*;
 use gtk::{Widget, TextView, TextBuffer, ScrolledWindow, PolicyType, ShadowType};
-use utils::string::non_empty;
+use crate::utils::string::non_empty;
 
 pub struct MultiLine {
     scrolled_window: ScrolledWindow,
@@ -57,7 +57,7 @@ impl FormWidget<String> for MultiLine {
             });
     }
 
-    fn connect_changed(&mut self, callback: Box<Fn(Option<&String>)>) {
+    fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&String>)>) {
         self.text_view.get_buffer()
             .map(|buffer| {
                 buffer.connect_changed(move |buffer| {

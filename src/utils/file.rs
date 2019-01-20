@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::path::PathBuf;
 use std::io::{Read, Write};
-use error::*;
+use crate::error::*;
 
 pub fn read_file(filename: &PathBuf) -> Result<Vec<u8>> {
     let mut file = File::open(filename)?;

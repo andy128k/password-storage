@@ -1,17 +1,17 @@
 use std::path::PathBuf;
 use gtk::prelude::*;
 use gtk::{Widget, Grid, Frame, ShadowType, ListBox, ListBoxRow, Align, Label};
-use markup_builder::bold;
-use cache::Cache;
-use utils::object_data::{object_get_data, object_set_data};
-use ptr::*;
+use crate::markup_builder::bold;
+use crate::cache::Cache;
+use crate::utils::object_data::{object_get_data, object_set_data};
+use crate::ptr::*;
 
 pub struct PSDashboardPrivate {
     container: Widget,
     content: Widget,
     listbox: ListBox,
     cache: Cache,
-    on_activate: Option<Box<Fn(&PathBuf)>>
+    on_activate: Option<Box<dyn Fn(&PathBuf)>>
 }
 
 pub type PSDashboard = SharedPtr<PSDashboardPrivate>;

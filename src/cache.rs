@@ -1,9 +1,11 @@
 use std::path::PathBuf;
 use failure::err_msg;
+use serde::{Serialize, Deserialize};
 use glib::get_user_cache_dir;
-use error::*;
-use utils::result_ext::ResultLogExt;
-use ptr::*;
+use crate::error::*;
+use crate::utils::result_ext::ResultLogExt;
+use crate::utils::file::{read_file, write_file};
+use crate::ptr::*;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct CachePrivate {
@@ -23,22 +25,24 @@ fn cache_path() -> Result<PathBuf> {
 
 impl Cache {
     fn from_file(filename: &PathBuf) -> Result<CachePrivate> {
-        let buf = ::utils::file::read_file(filename)?;
-        let config: CachePrivate = ::toml::from_slice(&buf)?;
+        let buf = read_file(filename)?;
+        let config: CachePrivate = toml::from_slice(&buf)?;
         Ok(config)
     }
 
     pub fn load() -> Self {
-        Self::from_private(cache_path()
-            .and_then(|filename| Self::from_file(&filename))
-            .ok_log()
-            .unwrap_or_default())
+        Self::from_private(
+            cache_path()
+                .and_then(|filename| Self::from_file(&filename))
+                .ok_log()
+                .unwrap_or_default()
+        )
     }
 
     pub fn save(&self) -> Result<()> {
         let filename = cache_path()?;
-        let dump = ::toml::to_vec(&*self.borrow())?;
-        ::utils::file::write_file(&filename, &dump)?;
+        let dump = toml::to_vec(&*self.borrow())?;
+        write_file(&filename, &dump)?;
         Ok(())
     }
 

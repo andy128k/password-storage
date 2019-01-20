@@ -1,6 +1,7 @@
+use lazy_static::lazy_static;
 use glib::Bytes;
 use gio::{Resource, resources_register};
-use error::*;
+use crate::error::*;
 
 lazy_static! {
     static ref ICONS_RESOURCE_BUNDLE: Bytes = {

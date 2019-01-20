@@ -3,6 +3,7 @@ name = "password-storage"
 version = "0.17.1"
 authors = ["Andrey Kutejko <andy128k@gmail.com>"]
 build = "build.rs"
+edition = "2018"
 
 [dependencies]
 lazy_static = "1.0.0"
@@ -17,8 +18,7 @@ minidom = "0.10.0"
 
 toml = "0.4.5"
 bincode = "1.0.0"
-serde = "1.0.79"
-serde_derive = "1.0.79"
+serde = { version = "1", features = ["derive"] }
 
 glib = { version = "0.6.0", features = ["v2_40"] }
 glib-sys = { version = "0.7.0", features = ["v2_40"] }

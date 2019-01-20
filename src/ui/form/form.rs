@@ -2,22 +2,22 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use gtk::prelude::*;
 use gtk::{Grid, Label, Widget};
-use ui::error_label::create_error_label;
+use crate::ui::error_label::create_error_label;
 use super::base::*;
 
 pub type FormData = Vec<String>;
-pub type FormDataChanged = Box<Fn(Option<&FormData>)>;
+pub type FormDataChanged = Box<dyn Fn(Option<&FormData>)>;
 
 pub enum ValidationResult {
     Valid,
     Invalid(String)
 }
 
-pub type FormDataValidate = Box<Fn(&FormData) -> ValidationResult>;
+pub type FormDataValidate = Box<dyn Fn(&FormData) -> ValidationResult>;
 
 struct FormEntry {
     label: String,
-    widget: Box<FormWidget<String>>,
+    widget: Box<dyn FormWidget<String>>,
     required: bool,
 }
 
@@ -112,7 +112,7 @@ impl Form {
         Form(private_ref)
     }
 
-    pub fn add(&mut self, label: &str, mut widget: Box<FormWidget<String>>, required: bool) {
+    pub fn add(&mut self, label: &str, mut widget: Box<dyn FormWidget<String>>, required: bool) {
         let index = self.0.borrow().fields.len();
 
         let label_widget = Label::new(label);

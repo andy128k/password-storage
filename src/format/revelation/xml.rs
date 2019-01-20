@@ -1,8 +1,9 @@
-use failure::err_msg;
+use failure::{err_msg, format_err};
+use lazy_static::lazy_static;
 use minidom::{Node, Element};
-use error::*;
-use model::record::*;
-use model::tree::{RecordTree, RecordNode};
+use crate::error::*;
+use crate::model::record::*;
+use crate::model::tree::{RecordTree, RecordNode};
 
 type TypeMapping = Vec<(&'static str, &'static RecordType)>;
 

@@ -4,7 +4,7 @@ use super::form::entry::*;
 use super::form::multiline::*;
 use super::form::form::*;
 use super::edit_object::edit_object;
-use model::record::{Record, RecordType, FieldType};
+use crate::model::record::{Record, RecordType, FieldType};
 
 fn record_to_vec(record_type: &'static RecordType, record: &Record) -> Vec<String> {
     let mut values = Vec::new();
@@ -31,7 +31,7 @@ impl RecordForm {
     fn new(record_type: &'static RecordType, names: &[String]) -> Self {
         let mut form = Form::new();
         for field in &record_type.fields {
-            let fw: Box<FormWidget<String>> = match field.field_type {
+            let fw: Box<dyn FormWidget<String>> = match field.field_type {
                 FieldType::Text => Box::new(Text::new()),
                 FieldType::MultiLine => Box::new(MultiLine::new()),
                 FieldType::Name => Box::new(Name::new(names)),
@@ -58,7 +58,7 @@ impl FormWidget<Record> for RecordForm {
         self.form.set_value(value.map(|record| record_to_vec(self.record_type, record)).as_ref());
     }
 
-    fn connect_changed(&mut self, callback: Box<Fn(Option<&Record>)>) {
+    fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&Record>)>) {
         let record_type = self.record_type;
         self.form.connect_changed(Box::new(move |values| {
             let record = values.map(|vec| vec_to_record(record_type, vec));

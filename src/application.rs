@@ -2,11 +2,11 @@ use gio::prelude::*;
 use gio::ApplicationFlags;
 use gtk::{Application, ClipboardExt};
 
-use ptr::*;
-use config::Config;
-use cache::Cache;
-use main_window::{PSMainWindow, PSMainWindowWeak, old_main, do_open_file};
-use utils::clipboard::get_clipboard;
+use crate::ptr::*;
+use crate::config::Config;
+use crate::cache::Cache;
+use crate::main_window::{PSMainWindow, PSMainWindowWeak, old_main, do_open_file};
+use crate::utils::clipboard::get_clipboard;
 
 pub struct PSApplicationPrivate {
     gtk_app: Application,
@@ -31,7 +31,7 @@ impl PSApplication {
 
         {
             gtk_app.connect_startup(move |_app| {
-                ::icons::load_icons().unwrap();
+                crate::icons::load_icons().unwrap();
             });
         }
         {

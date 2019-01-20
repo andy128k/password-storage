@@ -2,9 +2,9 @@ use super::base::*;
 use glib::{Type, Value};
 use gtk::prelude::*;
 use gtk::{Widget, Entry, EntryIconPosition, EntryCompletion, InputPurpose, ListStore};
-use ui::dialogs::ask::ask;
-use utils::string::non_empty;
-use password::generate_password;
+use crate::ui::dialogs::ask::ask;
+use crate::utils::string::non_empty;
+use crate::password::generate_password;
 
 // Common part
 
@@ -32,7 +32,7 @@ impl<T> FormWidget<String> for T where T: EntryBasedWidget {
         }
     }
 
-    fn connect_changed(&mut self, callback: Box<Fn(Option<&String>)>) {
+    fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&String>)>) {
         self.entry().connect_changed(move |entry| {
             let value = get_value(entry);
             callback(value.as_ref());

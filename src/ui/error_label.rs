@@ -1,7 +1,7 @@
 use failure::err_msg;
 use gtk::prelude::*;
 use gtk::{Label, STYLE_CLASS_ERROR, STYLE_PROVIDER_PRIORITY_FALLBACK, CssProvider};
-use error::*;
+use crate::error::*;
 
 fn create_style_provider() -> Result<CssProvider> {
     let provider = CssProvider::new();

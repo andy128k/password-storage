@@ -2,8 +2,8 @@ use std::rc::Rc;
 use gtk::prelude::*;
 use gdk::{WindowTypeHint, Gravity};
 use gtk::{Window, Dialog, ResponseType, Grid, Label, Entry, EditableSignals};
-use error::*;
-use ui::error_label::create_error_label;
+use crate::error::*;
+use crate::ui::error_label::create_error_label;
 
 pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<(T, String)>
     where R: Fn(&str) -> Result<T>

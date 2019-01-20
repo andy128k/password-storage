@@ -1,8 +1,8 @@
 use gtk::prelude::*;
 use gtk::{Window, Widget, Grid, CheckButton};
-use ui::form::base::FormWidget;
-use ui::edit_object::edit_object;
-use config::Config;
+use crate::ui::form::base::FormWidget;
+use crate::ui::edit_object::edit_object;
+use crate::config::Config;
 
 struct ConfigForm {
     grid: Grid,
@@ -59,7 +59,7 @@ impl FormWidget<Config> for ConfigForm {
         };
     }
 
-    fn connect_changed(&mut self, _callback: Box<Fn(Option<&Config>)>) {
+    fn connect_changed(&mut self, _callback: Box<dyn Fn(Option<&Config>)>) {
         // unused
     }
 }

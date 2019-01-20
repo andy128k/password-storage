@@ -2,10 +2,9 @@ use std::mem::size_of;
 use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
 use libc::{malloc, memcpy, free, c_void};
-use bincode;
 use gobject_sys::{g_object_set_data_full, g_object_get_data};
 use glib::{Object, IsA};
-use error::*;
+use crate::error::*;
 
 unsafe fn buf_to_ptr(buffer: &[u8]) -> *mut c_void {
     let len = buffer.len();

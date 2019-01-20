@@ -1,8 +1,8 @@
 use glib::prelude::*;
 use gio::prelude::*;
 use gio::{MenuModel, Menu, MenuItem, Icon};
-use actions::*;
-use model::record::RECORD_TYPES;
+use crate::actions::*;
+use crate::model::record::RECORD_TYPES;
 
 fn item(label: &str, action: &PSAction, accel: Option<&str>, icon: Option<&str>) -> MenuItem {
     let item = MenuItem::new(label, Some(action.full_name().as_ref()));

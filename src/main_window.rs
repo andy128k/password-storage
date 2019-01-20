@@ -14,32 +14,32 @@ use gtk::{
     TreeViewExt, TreeIter,
     License
 };
-use ptr::*;
-use actions;
-use actions::*;
-use ui;
-use ui::dashboard::PSDashboard;
-use ui::search::PSSearchEntry;
-use ui::filter::PSTreeFilter;
-use ui::tree_view::PSTreeView;
-use ui::preview_panel::PSPreviewPanel;
-use ui::edit_record::edit_record;
-use ui::dialogs::say::{say_error, say_info};
-use ui::dialogs::ask::ask;
-use ui::dialogs::ask_save::{AskSave, ask_save};
-use ui::dialogs::open_file::open_file;
-use ui::dialogs::read_file::read_file;
-use ui::dialogs::save_file::save_file;
-use ui::dialogs::change_password::change_password;
-use ui::dialogs::preferences::preferences;
-use error::*;
-use model::record::{Record, RecordType, RECORD_TYPES, FIELD_NAME};
-use model::tree::RecordTree;
-use utils::clipboard::get_clipboard;
-use format;
-use store::PSStore;
-use version;
-use application::PSApplication;
+use crate::ptr::*;
+use crate::actions;
+use crate::actions::*;
+use crate::ui;
+use crate::ui::dashboard::PSDashboard;
+use crate::ui::search::PSSearchEntry;
+use crate::ui::filter::PSTreeFilter;
+use crate::ui::tree_view::PSTreeView;
+use crate::ui::preview_panel::PSPreviewPanel;
+use crate::ui::edit_record::edit_record;
+use crate::ui::dialogs::say::{say_error, say_info};
+use crate::ui::dialogs::ask::ask;
+use crate::ui::dialogs::ask_save::{AskSave, ask_save};
+use crate::ui::dialogs::open_file::open_file;
+use crate::ui::dialogs::read_file::read_file;
+use crate::ui::dialogs::save_file::save_file;
+use crate::ui::dialogs::change_password::change_password;
+use crate::ui::dialogs::preferences::preferences;
+use crate::error::*;
+use crate::model::record::{Record, RecordType, RECORD_TYPES, FIELD_NAME};
+use crate::model::tree::RecordTree;
+use crate::utils::clipboard::get_clipboard;
+use crate::format;
+use crate::store::PSStore;
+use crate::version;
+use crate::application::PSApplication;
 
 enum AppMode {
     Initial,
@@ -387,7 +387,7 @@ fn cb_merge_file(win: &PSMainWindow) -> Result<()> {
     if let Some(filename) = open_file(&window) {
         if let Some((extra_records, _password)) = load_data(&filename, &window) {
             let mut records_tree = win.borrow().data.to_tree();
-            ::model::merge_trees::merge_trees(&mut records_tree, &extra_records);
+            crate::model::merge_trees::merge_trees(&mut records_tree, &extra_records);
 
             let data = PSStore::from_tree(&records_tree);
             set_data(win, data);
@@ -611,7 +611,7 @@ fn create_main_window(gtk_app: &Application, content: &Widget) -> (ApplicationWi
     (main_window, search_entry, statusbar)
 }
 
-fn create_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<Fn(&PSMainWindow) -> Result<()>>) {
+fn create_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<dyn Fn(&PSMainWindow) -> Result<()>>) {
     let (_action_group_name, action_name) = ps_action_name.name();
     let action = ::gio::SimpleAction::new(&action_name, None);
     let win1 = win.retain();
@@ -624,7 +624,7 @@ fn create_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<
     win.borrow_mut().actions.insert(ps_action_name, action);
 }
 
-fn create_toggle_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<Fn(&PSMainWindow, bool) -> Result<()>>) {
+fn create_toggle_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<dyn Fn(&PSMainWindow, bool) -> Result<()>>) {
     let (_action_group_name, action_name) = ps_action_name.name();
     let action = ::gio::SimpleAction::new_stateful(&action_name, None, &false.into());
     let win1 = win.retain();

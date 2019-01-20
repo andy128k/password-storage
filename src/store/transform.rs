@@ -1,7 +1,7 @@
 use std::convert::Into;
 use glib::Value;
-use model::record::{Record, RecordType, RECORD_TYPE_FIELD};
-use utils::hash_table::*;
+use crate::model::record::{Record, RecordType, RECORD_TYPE_FIELD};
+use crate::utils::hash_table::*;
 
 impl Record {
     pub fn try_from_value(value: &Value) -> Option<Self> {
@@ -23,7 +23,7 @@ impl<'any> Into<Value> for &'any Record {
 #[cfg(test)]
 mod test {
     use super::*;
-    use model::record::*;
+    use crate::model::record::*;
 
     #[test]
     fn to_glib_and_back() {

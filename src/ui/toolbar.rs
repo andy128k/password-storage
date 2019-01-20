@@ -1,8 +1,8 @@
 use gtk::prelude::*;
 use gtk::{Widget, Toolbar, ToolItem, SeparatorToolItem, ToolButton, MenuToolButton, Menu, ToggleToolButton, Image, IconSize};
 
-use model::record::RECORD_TYPE_GENERIC;
-use actions::*;
+use crate::model::record::RECORD_TYPE_GENERIC;
+use crate::actions::*;
 use super::menu::create_add_entity_menu;
 
 fn button(label: &str, icon: &str, action: &PSAction) -> ToolButton {

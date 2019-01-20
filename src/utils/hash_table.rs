@@ -77,7 +77,7 @@ impl HashTable {
         }
     }
 
-    pub fn iter(&self) -> HashTableIter {
+    pub fn iter(&self) -> HashTableIter<'_> {
         unsafe {
             let mut iter = GHashTableIter {
                 dummy1: ::std::ptr::null_mut::<c_void>(),
@@ -148,7 +148,7 @@ impl PartialEq<HashTable> for HashTable {
 impl Eq for HashTable {}
 
 impl fmt::Debug for HashTable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         let mut s = f.debug_struct("HashTable");
         for (key, value) in self.iter() {
             s.field(&key, &value);

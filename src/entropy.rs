@@ -80,7 +80,7 @@ fn character_distance(ch1: u8, ch2: u8) -> i32 {
     ((ch1 as i32) - (ch2 as i32)).abs()
 }
 
-pub fn password_entropy<T>(classifier: &CharClassifier<T>, passw: &[u8]) -> f32
+pub fn password_entropy<T>(classifier: &dyn CharClassifier<T>, passw: &[u8]) -> f32
     where T: Eq + ::std::hash::Hash
 {
     let mut classes = HashSet::new();

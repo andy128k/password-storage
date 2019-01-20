@@ -8,7 +8,7 @@ use gtk::{
     TreeModelFilter, TreeModelFilterExt, TreeIter, TreePath, TreeModel, TreeStore,
     TreeViewDropPosition, MenuExt
 };
-use store::TreeStoreColumn;
+use crate::store::TreeStoreColumn;
 
 const GDK_BUTTON_SECONDARY: u32 = 3;
 

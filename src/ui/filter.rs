@@ -2,19 +2,19 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use gtk::prelude::*;
 use gtk::{TreeModel, TreeModelFilter, TreeModelFilterExt, TreeModelFilterExtManual, TreeIter};
-use model::record::Record;
-use store::PSStore;
+use crate::model::record::Record;
+use crate::store::PSStore;
 
 pub struct PSTreeFilterPrivate {
     model: Option<PSStore>,
     filter: Option<TreeModelFilter>,
-    filter_func: Option<Box<Fn(&Record) -> bool>>,
+    filter_func: Option<Box<dyn Fn(&Record) -> bool>>,
 }
 
 #[derive(Clone)]
 pub struct PSTreeFilter(Rc<RefCell<PSTreeFilterPrivate>>);
 
-fn record_satisfies(store: &PSStore, filter_func: &(Fn(&Record) -> bool + 'static), iter: &TreeIter) -> bool {
+fn record_satisfies(store: &PSStore, filter_func: &(dyn Fn(&Record) -> bool + 'static), iter: &TreeIter) -> bool {
     if let Some(record) = store.get(iter) {
         if filter_func(&record) {
             return true;
@@ -80,7 +80,7 @@ impl PSTreeFilter {
         };
     }
 
-    pub fn set_filter_func(&self, filter_func: Option<Box<Fn(&Record) -> bool>>) {
+    pub fn set_filter_func(&self, filter_func: Option<Box<dyn Fn(&Record) -> bool>>) {
         self.0.borrow_mut().filter_func = filter_func;
     }
 

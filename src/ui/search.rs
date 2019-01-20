@@ -1,7 +1,7 @@
 use glib::Cast;
 use gtk::prelude::*;
 use gtk::{Widget, Entry, EntryExt, EntryIconPosition, EditableSignals};
-use utils::string::non_empty;
+use crate::utils::string::non_empty;
 
 pub struct PSSearchEntry(Entry);
 

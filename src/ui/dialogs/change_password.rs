@@ -1,7 +1,7 @@
 use gtk::Window;
-use ui::form::entry::Password;
-use ui::form::form::{Form, ValidationResult};
-use ui::edit_object::edit_object;
+use crate::ui::form::entry::Password;
+use crate::ui::form::form::{Form, ValidationResult};
+use crate::ui::edit_object::edit_object;
 
 pub fn change_password(parent_window: &Window) -> Option<String> {
     let mut form = Form::new();
