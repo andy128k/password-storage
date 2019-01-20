@@ -20,7 +20,7 @@ pub fn save_revelation_file(filename: &PathBuf, password: &str, tree: &RecordTre
     let mut buf: Vec<u8> = Vec::new();
     element.write_to(&mut buf)?;
 
-    let file_dump = crypto_container::encrypt_file(&buf, password)?;
+    let file_dump = crypto_container::encrypt_file(&buf, password);
     crate::utils::file::write_file(filename, &file_dump)?;
     Ok(())
 }

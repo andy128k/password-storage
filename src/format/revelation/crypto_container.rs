@@ -1,4 +1,3 @@
-use failure::err_msg;
 use rand::random;
 use generic_array::{GenericArray, typenum::U16};
 use aes::{Aes256, block_cipher_trait::BlockCipher};
@@ -6,7 +5,27 @@ use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
 use inflate::inflate_bytes_zlib;
 use deflate::deflate_bytes_zlib;
-use crate::error::*;
+
+#[derive(Debug)]
+pub enum CryptoError {
+    UnknownFormat,
+    WrongSize,
+    CorruptedFile(String),
+    DecryptError,
+}
+
+impl std::error::Error for CryptoError {}
+
+impl std::fmt::Display for CryptoError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CryptoError::UnknownFormat => write!(f, "Bad file (unknown format)"),
+            CryptoError::WrongSize => write!(f, "Bad file (wrong size)"),
+            CryptoError::CorruptedFile(_) => write!(f, "Bad file (corrupted)"),
+            CryptoError::DecryptError => write!(f, "File cannot be decrypted"),
+        }
+    }
+}
 
 fn adjust_password(password: &str) -> [u8; 32] {
     let bytes = password.as_bytes();
@@ -24,13 +43,13 @@ const MAGIC: [u8; 12] = [
     0x00, 0x00, 0x00        // separator
 ];
 
-pub fn decrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
+pub fn decrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>, CryptoError> {
     if buffer.len() < 28 || (buffer.len() - 28) % 16 != 0 {
-        return Err(BadFile.into());
+        return Err(CryptoError::WrongSize);
     }
 
     if buffer[0..MAGIC.len()] != MAGIC {
-        return Err(BadFile.into());
+        return Err(CryptoError::UnknownFormat);
     }
 
     let password = adjust_password(password).into();
@@ -41,12 +60,12 @@ pub fn decrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
 
     let decrypted = Cbc::<Aes256, Pkcs7>::new_fix(&password, &iv)
         .decrypt_vec(&buffer[28..])
-        .map_err(|_| DecryptError)?;
+        .map_err(|_| CryptoError::DecryptError)?;
 
-    inflate_bytes_zlib(&decrypted).map_err(err_msg)
+    inflate_bytes_zlib(&decrypted).map_err(CryptoError::CorruptedFile)
 }
 
-pub fn encrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
+pub fn encrypt_file(buffer: &[u8], password: &str) -> Vec<u8> {
     let password = adjust_password(password).into();
 
     let deflated = deflate_bytes_zlib(buffer);
@@ -63,7 +82,7 @@ pub fn encrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>> {
     result.extend_from_slice(&iv);
     result.extend_from_slice(&encrypted);
 
-    Ok(result)
+    result
 }
 
 #[cfg(test)]
@@ -112,7 +131,7 @@ mod test {
     #[test]
     fn test_encrypt_and_decrypt_back() {
         let password = "qwerty123456";
-        let encrypted = encrypt_file(empty_xml(), password).unwrap();
+        let encrypted = encrypt_file(empty_xml(), password);
         assert_eq!(108, encrypted.len());
         assert_eq!(114, encrypted[0]);
         let decrypted = decrypt_file(&encrypted, password).unwrap();
