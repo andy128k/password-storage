@@ -82,11 +82,11 @@ impl PSApplication {
     }
 
     pub fn run(&self) {
-        let argv: Vec<String> = ::std::env::args().collect();
+        let argv: Vec<String> = std::env::args().collect();
         let gtk_app = self.borrow().gtk_app.clone();
         let code = gtk_app.run(&argv);
 
-        ::std::process::exit(code);
+        std::process::exit(code);
     }
 
     pub fn quit(&self) {

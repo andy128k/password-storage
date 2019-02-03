@@ -37,9 +37,10 @@ pub struct HashTableIter<'h>(GHashTableIter, &'h HashTable);
 
 impl<'h> Iterator for HashTableIter<'h> {
     type Item = (String, String);
+
     fn next(&mut self) -> Option<Self::Item> {
-        let mut key: *mut c_void = ::std::ptr::null_mut::<c_void>();
-        let mut value: *mut c_void = ::std::ptr::null_mut::<c_void>();
+        let mut key: *mut c_void = std::ptr::null_mut::<c_void>();
+        let mut value: *mut c_void = std::ptr::null_mut::<c_void>();
         if unsafe { g_hash_table_iter_next(&mut self.0 as *mut GHashTableIter, &mut key, &mut value) } != 0 {
             Some((
                 unsafe { String::from_glib_none(key as *const c_char) },
@@ -80,12 +81,12 @@ impl HashTable {
     pub fn iter(&self) -> HashTableIter<'_> {
         unsafe {
             let mut iter = GHashTableIter {
-                dummy1: ::std::ptr::null_mut::<c_void>(),
-                dummy2: ::std::ptr::null_mut::<c_void>(),
-                dummy3: ::std::ptr::null_mut::<c_void>(),
+                dummy1: std::ptr::null_mut::<c_void>(),
+                dummy2: std::ptr::null_mut::<c_void>(),
+                dummy3: std::ptr::null_mut::<c_void>(),
                 dummy4: 0,
                 dummy5: 0,
-                dummy6: ::std::ptr::null_mut::<c_void>(),
+                dummy6: std::ptr::null_mut::<c_void>(),
             };
             g_hash_table_iter_init(&mut iter as *mut GHashTableIter, self.0);
 

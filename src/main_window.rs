@@ -613,7 +613,7 @@ fn create_main_window(gtk_app: &Application, content: &Widget) -> (ApplicationWi
 
 fn create_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<dyn Fn(&PSMainWindow) -> Result<()>>) {
     let (_action_group_name, action_name) = ps_action_name.name();
-    let action = ::gio::SimpleAction::new(&action_name, None);
+    let action = gio::SimpleAction::new(&action_name, None);
     let win1 = win.retain();
     action.connect_activate(move |_, _| {
         if let Err(error) = cb(&win1) {
@@ -626,7 +626,7 @@ fn create_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<
 
 fn create_toggle_action(win: &PSMainWindow, ps_action_name: actions::PSAction, cb: Box<dyn Fn(&PSMainWindow, bool) -> Result<()>>) {
     let (_action_group_name, action_name) = ps_action_name.name();
-    let action = ::gio::SimpleAction::new_stateful(&action_name, None, &false.into());
+    let action = gio::SimpleAction::new_stateful(&action_name, None, &false.into());
     let win1 = win.retain();
     action.connect_activate(move |action, _| {
         let prev_state: bool = action.get_state().and_then(|state| state.get()).unwrap_or(false);

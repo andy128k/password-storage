@@ -128,10 +128,10 @@ impl PSTreeView {
     }
 
     pub fn set_popup(&self, popup_model: &MenuModel) {
-        let popup = ::gtk::Menu::new_from_model(&popup_model.clone());
+        let popup = gtk::Menu::new_from_model(&popup_model.clone());
         unsafe {
             use glib::translate::ToGlibPtr;
-            ::gtk_sys::gtk_menu_attach_to_widget(popup.to_glib_none().0, self.view.to_glib_none().0, None);
+            gtk_sys::gtk_menu_attach_to_widget(popup.to_glib_none().0, self.view.to_glib_none().0, None);
         }
 
         let popup1 = popup.clone();
@@ -157,7 +157,7 @@ impl PSTreeView {
         let popup2 = popup.clone();
         self.view.connect_popup_menu(move |view| {
             view.grab_focus();
-            popup2.popup_at_widget(view, ::gdk::Gravity::Center, ::gdk::Gravity::Center, None);
+            popup2.popup_at_widget(view, gdk::Gravity::Center, gdk::Gravity::Center, None);
             true
         });
     }
