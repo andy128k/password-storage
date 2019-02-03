@@ -795,33 +795,28 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
         });
     }
 
-    {
-        let win1 = win.retain();
-        win.borrow().view.connect_drop(move |iter| {
-            let record_opt = win1.borrow().data.get(&iter);
-            if let Some(record) = record_opt {
-                record.record_type.is_group
-            } else {
-                false
-            }
-        });
-    }
+    win.borrow().view.connect_drop(win.handler(move |win, iter| {
+        let record_opt = win.borrow().data.get(&iter);
+        if let Some(record) = record_opt {
+            Ok(record.record_type.is_group)
+        } else {
+            Ok(false)
+        }
+    }));
 
-    {
-        let win1 = win.retain();
-        win.borrow().view.connect_row_activated(move |selection| {
-            if let Some((iter, path)) = selection {
-                let record_opt = win1.borrow().data.get(&iter);
-                if let Some(record) = record_opt {
-                    if record.record_type.is_group {
-                        win1.borrow().view.toggle_group(&path);
-                    } else {
-                        cb_edit_record(&win1);
-                    }
+    win.borrow().view.connect_row_activated(win.handler(move |win, selection| {
+        if let Some((iter, path)) = selection {
+            let record_opt = win.borrow().data.get(&iter);
+            if let Some(record) = record_opt {
+                if record.record_type.is_group {
+                    win.borrow().view.toggle_group(&path);
+                } else {
+                    cb_edit_record(&win)?;
                 }
             }
-        });
-    }
+        }
+        Ok(())
+    }));
 
     let popup = ui::menu::create_tree_popup();
     win.borrow().view.set_popup(&popup);
