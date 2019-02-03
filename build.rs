@@ -1,12 +1,14 @@
+use std::error::Error;
 use std::process::Command;
 use std::env;
 
-fn main() {
-    let out_dir = env::var("OUT_DIR").unwrap();
+fn main() -> Result<(), Box<dyn Error>> {
+    let out_dir = env::var("OUT_DIR")?;
 
     Command::new("glib-compile-resources")
         .arg(&format!("--target={}/icons.gresource", out_dir))
         .arg("icons.gresource.xml")
-        .status()
-        .unwrap();
+        .status()?;
+
+    Ok(())
 }

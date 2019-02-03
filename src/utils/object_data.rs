@@ -31,7 +31,7 @@ pub fn object_set_data<O, T>(obj: &O, key: &str, value: &T) -> Result<()>
 {
     let buffer = bincode::serialize(value)?;
 
-    let ckey = std::ffi::CString::new(key).unwrap();
+    let ckey = std::ffi::CString::new(key)?;
     unsafe {
         let ptr = buf_to_ptr(&buffer);
         g_object_set_data_full(obj.to_glib_none().0, ckey.as_ptr(), ptr, Some(free));
@@ -44,7 +44,7 @@ pub fn object_get_data<O, T>(obj: &O, key: &str) -> Result<T>
         O: IsA<Object>,
         T: DeserializeOwned
 {
-    let ckey = std::ffi::CString::new(key).unwrap();
+    let ckey = std::ffi::CString::new(key)?;
     let buffer = unsafe {
         let ptr = g_object_get_data(obj.to_glib_none().0, ckey.as_ptr());
         ptr_to_buf(ptr)

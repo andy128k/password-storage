@@ -168,7 +168,7 @@ fn record_to_xml(record: &Record) -> Result<Element> {
     );
     for &(ref field, ref id) in mappings {
         elem = elem.append(
-            Element::builder("field").attr("id", *id).append(&record.values.get(field).unwrap()).build()
+            Element::builder("field").attr("id", *id).append(&record.values.get(field).unwrap_or_default()).build()
         );
     }
 
