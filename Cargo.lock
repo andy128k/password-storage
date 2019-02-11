@@ -72,9 +72,10 @@ dependencies = [
 
 [[package]]
 name = "bincode"
-version = "1.0.1"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "autocfg 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -463,7 +464,7 @@ name = "password-storage"
 version = "0.17.1"
 dependencies = [
  "aes 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bincode 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "block-modes 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "debug-cell 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "deflate 0.7.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -732,7 +733,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum autocfg 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a6d640bee2da49f60a4068a7fae53acde8982514ab7bae8b8cea9e88cbcfd799"
 "checksum backtrace 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)" = "b5b493b66e03090ebc4343eb02f94ff944e0cbc9ac6571491d170ba026741eb5"
 "checksum backtrace-sys 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)" = "797c830ac25ccc92a7f8a7b9862bde440715531514594a6154e3d4a54dd769b6"
-"checksum bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9f2fb9e29e72fd6bc12071533d5dc7664cb01480c59406f656d7ac25c7bd8ff7"
+"checksum bincode 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "58470ad6460f0b0e89b0df5f17b8bd77ebae26af69dca0bd9ddc8b9e38abb2ff"
 "checksum bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "228047a76f468627ca71776ecdebd732a3423081fcf5125585bcd7c49886ce12"
 "checksum block-cipher-trait 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1c924d49bd09e7c06003acda26cd9742e796e34282ec6c1189404dee0c1f4774"
 "checksum block-modes 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d90b1e3da95151ddacfa78aa46d1a9173e28a8a11625102e088562d3407bf3b9"
