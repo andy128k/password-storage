@@ -1,14 +1,15 @@
 use glib::{Value};
 use gio::MenuModel;
-use gdk::{DragAction, DragContextExtManual, Event};
+use gdk::{DragAction, Event};
 use gtk::prelude::*;
 use gtk::{
     TreeView, TreeViewExt, Widget, WidgetExt,
     TreeViewColumn, TreeViewColumnSizing, CellRendererToggle, CellRendererPixbuf, CellRendererText,
     TreeModelFilter, TreeModelFilterExt, TreeIter, TreePath, TreeModel, TreeStore,
-    TreeViewDropPosition, MenuExt
+    TreeViewDropPosition, IconSize,
 };
 use crate::store::TreeStoreColumn;
+use crate::utils::menu::MenuExtManual;
 
 const GDK_BUTTON_SECONDARY: u32 = 3;
 
@@ -46,7 +47,7 @@ pub fn select_iter(view: &TreeView, iter: &TreeIter) {
         };
         iter_to_select.and_then(|iter| current_model.get_path(&iter)).map(|path| {
             view.expand_to_path(&path);
-            view.set_cursor(&path, None, false);
+            view.set_cursor(&path, None::<&TreeViewColumn>, false);
         });
     }
 }
@@ -72,7 +73,7 @@ impl PSTreeView {
         column.pack_start(&check_renderer, false);
 
         let icon = CellRendererPixbuf::new();
-        icon.set_property_stock_size(1);
+        icon.set_property_stock_size(IconSize::Menu);
         column.pack_start(&icon, false);
         column.add_attribute(&icon, "icon-name", TreeStoreColumn::TypeIcon.into());
 
@@ -87,7 +88,7 @@ impl PSTreeView {
             column.set_sizing(TreeViewColumnSizing::Fixed);
 
             let strength = CellRendererPixbuf::new();
-            strength.set_property_stock_size(1);
+            strength.set_property_stock_size(IconSize::Menu);
             strength.set_padding(16, 0);
             column.pack_start(&strength, false);
             column.add_attribute(&strength, "icon-name", TreeStoreColumn::Strength.into());
@@ -129,10 +130,7 @@ impl PSTreeView {
 
     pub fn set_popup(&self, popup_model: &MenuModel) {
         let popup = gtk::Menu::new_from_model(&popup_model.clone());
-        unsafe {
-            use glib::translate::ToGlibPtr;
-            gtk_sys::gtk_menu_attach_to_widget(popup.to_glib_none().0, self.view.to_glib_none().0, None);
-        }
+        popup.attach_to_widget_no_detacher(&self.view);
 
         let popup1 = popup.clone();
         self.view.connect_button_press_event(move |view, event| {
@@ -142,7 +140,7 @@ impl PSTreeView {
 
                 let (x, y) = event.get_position();
                 if let Some((Some(path), _, _, _)) = view.get_path_at_pos(x as i32, y as i32) {
-                    view.set_cursor(&path, None, false);
+                    view.set_cursor(&path, None::<&TreeViewColumn>, false);
                 }
 
                 let base_event: &Event = event;

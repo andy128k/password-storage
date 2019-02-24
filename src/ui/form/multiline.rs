@@ -1,6 +1,6 @@
 use super::base::*;
 use gtk::prelude::*;
-use gtk::{Widget, TextView, TextBuffer, ScrolledWindow, PolicyType, ShadowType};
+use gtk::{Widget, TextView, TextBuffer, ScrolledWindow, Adjustment, PolicyType, ShadowType};
 use crate::utils::string::non_empty;
 
 pub struct MultiLine {
@@ -18,7 +18,7 @@ impl MultiLine {
         text_view.set_top_margin(8);
         text_view.set_bottom_margin(8);
 
-        let scrolled_window = ScrolledWindow::new(None, None);
+        let scrolled_window = ScrolledWindow::new(None::<&Adjustment>, None::<&Adjustment>);
         scrolled_window.set_can_focus(true);
         scrolled_window.set_property_hscrollbar_policy(PolicyType::Automatic);
         scrolled_window.set_property_vscrollbar_policy(PolicyType::Automatic);

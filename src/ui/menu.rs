@@ -1,5 +1,4 @@
 use glib::prelude::*;
-use gio::prelude::*;
 use gio::{MenuModel, Menu, MenuItem, Icon};
 use crate::actions::*;
 use crate::model::record::RECORD_TYPES;

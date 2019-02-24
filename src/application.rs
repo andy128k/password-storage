@@ -1,6 +1,6 @@
 use gio::prelude::*;
 use gio::ApplicationFlags;
-use gtk::{Application, ClipboardExt};
+use gtk::{Application};
 
 use crate::ptr::*;
 use crate::config::Config;

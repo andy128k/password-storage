@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use gtk::prelude::*;
-use gtk::{TreeModel, TreeModelFilter, TreeModelFilterExt, TreeModelFilterExtManual, TreeIter};
+use gtk::{TreeModel, TreeModelFilter, TreeModelFilterExt, TreeIter};
 use crate::model::record::Record;
 use crate::store::PSStore;
 

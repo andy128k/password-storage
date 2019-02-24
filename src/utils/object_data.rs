@@ -2,8 +2,8 @@ use std::mem::size_of;
 use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
 use libc::{malloc, memcpy, free, c_void};
-use gobject_sys::{g_object_set_data_full, g_object_get_data};
-use glib::{Object, IsA};
+use glib::gobject_ffi::{g_object_set_data_full, g_object_get_data};
+use glib::{Object, IsA, translate::ToGlibPtr};
 use crate::error::*;
 
 unsafe fn buf_to_ptr(buffer: &[u8]) -> *mut c_void {
@@ -34,7 +34,7 @@ pub fn object_set_data<O, T>(obj: &O, key: &str, value: &T) -> Result<()>
     let ckey = std::ffi::CString::new(key)?;
     unsafe {
         let ptr = buf_to_ptr(&buffer);
-        g_object_set_data_full(obj.to_glib_none().0, ckey.as_ptr(), ptr, Some(free));
+        g_object_set_data_full(obj.as_ref().to_glib_none().0, ckey.as_ptr(), ptr, Some(free));
     }
     Ok(())
 }
@@ -46,7 +46,7 @@ pub fn object_get_data<O, T>(obj: &O, key: &str) -> Result<T>
 {
     let ckey = std::ffi::CString::new(key)?;
     let buffer = unsafe {
-        let ptr = g_object_get_data(obj.to_glib_none().0, ckey.as_ptr());
+        let ptr = g_object_get_data(obj.as_ref().to_glib_none().0, ckey.as_ptr());
         ptr_to_buf(ptr)
     };
     let value = bincode::deserialize(&buffer)?;

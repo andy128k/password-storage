@@ -4,12 +4,12 @@ use std::iter::Iterator;
 use std::path::PathBuf;
 use gio::prelude::*;
 use gio::{
-    SimpleAction, SimpleActionExt, SimpleActionGroup,
+    SimpleAction, SimpleActionGroup,
 };
 use gtk::prelude::*;
 use gtk::{
     Application, ApplicationWindow, GtkApplicationExt, WindowPosition, Grid, ContainerExt, Statusbar, Align,
-    Widget, Window, Stack, Paned, Orientation, ScrolledWindow, ScrolledWindowExt, PolicyType, ShadowType,
+    Widget, Window, Stack, Paned, Orientation, ScrolledWindow, ScrolledWindowExt, Adjustment, PolicyType, ShadowType,
     AboutDialog,
     TreeViewExt, TreeIter,
     License
@@ -553,7 +553,7 @@ fn set_merge_mode(win: &PSMainWindow, merge: bool) -> Result<()> {
 fn create_file_widget(tree_view: &PSTreeView, preview: &PSPreviewPanel) -> Widget {
     let paned = Paned::new(Orientation::Horizontal);
 
-    let sw = ScrolledWindow::new(None, None);
+    let sw = ScrolledWindow::new(None::<&Adjustment>, None::<&Adjustment>);
     sw.set_can_focus(true);
     sw.set_property_hscrollbar_policy(PolicyType::Automatic);
     sw.set_property_vscrollbar_policy(PolicyType::Automatic);

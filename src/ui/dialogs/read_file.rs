@@ -1,6 +1,6 @@
 use std::rc::Rc;
-use gtk::prelude::*;
 use gdk::{WindowTypeHint, Gravity};
+use gtk::prelude::*;
 use gtk::{Window, Dialog, ResponseType, Grid, Label, Entry, EditableSignals};
 use crate::error::*;
 use crate::ui::error_label::create_error_label;
@@ -64,7 +64,7 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
             break;
         }
 
-        let password: String = entry.get_text().unwrap_or_default();
+        let password: String = entry.get_text().map_or_else(String::new, |s| s.to_string());
         match read_file_callback(&password) {
             Ok(document) => {
                 result = Some((document, password));
