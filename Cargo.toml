@@ -23,8 +23,6 @@ bincode = "1.0.0"
 serde = { version = "1", features = ["derive"] }
 
 glib = { version = "0.7.0" }
-glib-sys = { version = "0.8.0" }
-gobject-sys = "0.8.0"
 gio = "0.6.0"
 gdk = "0.10.0"
 libc = "*"

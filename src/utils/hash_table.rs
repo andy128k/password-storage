@@ -7,7 +7,7 @@ use std::iter::Iterator;
 use glib::Value;
 use glib::types::Type;
 use glib::translate::{FromGlib, FromGlibPtrNone, Uninitialized, ToGlib, ToGlibPtr, ToGlibPtrMut};
-use glib_sys::{
+use glib::ffi::{
     GHashTable,
     GHashTableIter,
     g_hash_table_get_type,
@@ -24,7 +24,7 @@ use glib_sys::{
     gpointer,
     gconstpointer,
 };
-use gobject_sys::{
+use glib::gobject_ffi::{
     g_value_init,
     g_value_set_boxed_take_ownership,
     g_value_get_boxed,

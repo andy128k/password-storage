@@ -483,8 +483,6 @@ dependencies = [
  "generic-array 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gio 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "glib-sys 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gobject-sys 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk-sys 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "inflate 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
