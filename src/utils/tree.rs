@@ -1,24 +1,4 @@
-use gtk::prelude::*;
-use gtk::{
-    TreeModel, TreeModelExt, TreeIter, TreePath,
-    TreeView,
-};
-
-pub fn tree_iter_and_path(model: &TreeModel, iter: TreeIter) -> Option<(TreeIter, TreePath)> {
-    if let Some(path) = model.get_path(&iter) {
-        Some((iter, path))
-    } else {
-        None
-    }
-}
-
-pub fn tree_view_toggle_group(view: &TreeView, path: &TreePath) {
-    if view.row_expanded(path) {
-        view.collapse_row(path);
-    } else {
-        view.expand_row(path, false);
-    }
-}
+use gtk::{TreeModel, TreeModelExt, TreeIter};
 
 pub struct TreeChildrenIter {
     model: TreeModel,
