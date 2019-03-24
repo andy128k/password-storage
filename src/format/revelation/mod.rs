@@ -1,12 +1,12 @@
 mod crypto_container;
 mod xml;
 
-use std::path::PathBuf;
+use std::path::Path;
 use std::fs::{read, write};
 use crate::model::tree::RecordTree;
 use crate::error::*;
 
-pub fn load_revelation_file(filename: &PathBuf, password: &str) -> Result<RecordTree> {
+pub fn load_revelation_file(filename: &Path, password: &str) -> Result<RecordTree> {
     let buf = read(filename)?;
     let decrypted = crypto_container::decrypt_file(&buf, password)?;
     let string: String = String::from_utf8(decrypted)?;
@@ -15,7 +15,7 @@ pub fn load_revelation_file(filename: &PathBuf, password: &str) -> Result<Record
     Ok(tree)
 }
 
-pub fn save_revelation_file(filename: &PathBuf, password: &str, tree: &RecordTree) -> Result<()> {
+pub fn save_revelation_file(filename: &Path, password: &str, tree: &RecordTree) -> Result<()> {
     let element = xml::record_tree_to_xml(tree)?;
 
     let mut buf: Vec<u8> = Vec::new();

@@ -18,7 +18,7 @@ deflate = "0.7.17"
 inflate = "0.4.0"
 minidom = "0.10.0"
 
-toml = "0.4.5"
+toml = "0.5"
 bincode = "1.0.0"
 serde = { version = "1", features = ["derive"] }
 

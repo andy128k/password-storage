@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::fs::{read, write};
 use failure::err_msg;
 use serde::{Serialize, Deserialize};
@@ -21,7 +21,7 @@ fn config_path() -> Result<PathBuf> {
 }
 
 impl Config {
-    fn from_file(filename: &PathBuf) -> Result<Self> {
+    fn from_file(filename: &Path) -> Result<Self> {
         let buf = read(filename)?;
         let config = toml::from_slice(&buf)?;
         Ok(config)

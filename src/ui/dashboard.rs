@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use gtk::prelude::*;
 use gtk::{Widget, Grid, Frame, ShadowType, ListBox, ListBoxRow, Align, Label};
 use crate::markup_builder::bold;
@@ -11,7 +11,7 @@ pub struct PSDashboardPrivate {
     content: Widget,
     listbox: ListBox,
     cache: Cache,
-    on_activate: Option<Box<dyn Fn(&PathBuf)>>
+    on_activate: Option<Box<dyn Fn(&Path)>>
 }
 
 pub type PSDashboard = SharedPtr<PSDashboardPrivate>;
@@ -125,7 +125,7 @@ impl PSDashboard {
         self.borrow().container.clone().upcast()
     }
 
-    pub fn connect_activate<F: Fn(&PathBuf) + 'static>(&mut self, callback: F) {
+    pub fn connect_activate<F: Fn(&Path) + 'static>(&mut self, callback: F) {
         self.borrow_mut().on_activate = Some(Box::new(callback));
     }
 }

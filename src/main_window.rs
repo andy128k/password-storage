@@ -1,7 +1,7 @@
 use std::convert::Into;
 use std::collections::{HashSet, HashMap};
 use std::iter::Iterator;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use gio::prelude::*;
 use gio::{
     SimpleAction, SimpleActionGroup,
@@ -295,7 +295,7 @@ fn cb_merge(win: &PSMainWindow) -> Result<()> {
     Ok(())
 }
 
-fn load_data(filename: &PathBuf, parent_window: &Window) -> Option<(RecordTree, String)> {
+fn load_data(filename: &Path, parent_window: &Window) -> Option<(RecordTree, String)> {
     read_file(parent_window, |password| {
         format::revelation::load_revelation_file(filename, password)
     })
@@ -317,7 +317,7 @@ fn ensure_password_is_set(win: &PSMainWindow) -> Option<String> {
     win.borrow().password.clone()
 }
 
-fn save_data(win: &PSMainWindow, filename: &PathBuf) -> Result<()> {
+fn save_data(win: &PSMainWindow, filename: &Path) -> Result<()> {
     if let Some(password) = ensure_password_is_set(win) {
         let tree = win.borrow().data.to_tree();
 
@@ -330,11 +330,26 @@ fn save_data(win: &PSMainWindow, filename: &PathBuf) -> Result<()> {
     Ok(())
 }
 
+const WINDOW_TITLE: &str = "Password Storage";
+
+fn set_filename(win: &PSMainWindow, filename: Option<&Path>) {
+    match filename {
+        Some(filename) => {
+            win.borrow_mut().filename = Some(filename.to_owned());
+            win.borrow().main_window.set_title(&format!("{} - {}", WINDOW_TITLE, &filename.to_string_lossy()));
+        },
+        None => {
+            win.borrow_mut().filename = None;
+            win.borrow().main_window.set_title(WINDOW_TITLE);
+        }
+    }
+}
+
 fn cb_new(win: &PSMainWindow) -> Result<()> {
     if ensure_data_is_saved(win)? {
         win.borrow_mut().changed = false;
         set_data(win, PSStore::new());
-        win.borrow_mut().filename = None;
+        set_filename(win, None);
         win.borrow_mut().password = None;
         listview_cursor_changed(win, None);
         set_status(win, "New file was created");
@@ -353,7 +368,7 @@ fn set_data(win: &PSMainWindow, data: PSStore) {
     win.borrow().filter.set_model(Some(&data));
 }
 
-pub fn do_open_file(win: &PSMainWindow, filename: &PathBuf) {
+pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
     let window = &win.borrow().main_window.clone().upcast();
     if let Some((entries, password)) = load_data(filename, window) {
         win.borrow().app.get_cache().add_file(filename);
@@ -361,8 +376,8 @@ pub fn do_open_file(win: &PSMainWindow, filename: &PathBuf) {
         let data = PSStore::from_tree(&entries);
         set_data(win, data);
         {
+            set_filename(win, Some(filename));
             let mut this = win.borrow_mut();
-            this.filename = Some(filename.clone());
             this.password = Some(password);
             this.changed = false;
         }
@@ -399,9 +414,9 @@ fn cb_merge_file(win: &PSMainWindow) -> Result<()> {
 
 fn cb_save_as(win: &PSMainWindow) -> Result<()> {
     let window = win.borrow().main_window.clone().upcast();
-    if let Some(filename) = save_file(&window) {
-        win.borrow_mut().filename = Some(filename.clone());
-        save_data(win, &filename)?;
+    if let Some(ref filename) = save_file(&window) {
+        set_filename(win, Some(filename));
+        save_data(win, filename)?;
     }
     Ok(())
 }
@@ -420,7 +435,7 @@ fn cb_close(win: &PSMainWindow) -> Result<()> {
     if ensure_data_is_saved(win)? {
         win.borrow_mut().changed = false;
         set_data(win, PSStore::new());
-        win.borrow_mut().filename = None;
+        set_filename(win, None);
         win.borrow_mut().password = None;
         listview_cursor_changed(win, None);
         set_mode(win, AppMode::Initial);
@@ -580,7 +595,7 @@ fn create_content_widget(dashboard: &Widget, file_widget: &Widget) -> Stack {
 fn create_main_window(gtk_app: &Application, content: &Widget) -> (ApplicationWindow, PSSearchEntry, Statusbar) {
     let main_window = ApplicationWindow::new(gtk_app);
     gtk_app.set_menubar(&ui::menu::create_menu_bar());
-    main_window.set_title("Password Storage");
+    main_window.set_title(WINDOW_TITLE);
     main_window.set_icon_name("password-storage");
     main_window.set_property_window_position(WindowPosition::Center);
     main_window.set_default_size(1000, 800);

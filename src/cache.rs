@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::fs::{read, write};
 use failure::err_msg;
 use serde::{Serialize, Deserialize};
@@ -23,7 +23,7 @@ fn cache_path() -> Result<PathBuf> {
 }
 
 impl Cache {
-    fn from_file(filename: &PathBuf) -> Result<CachePrivate> {
+    fn from_file(filename: &Path) -> Result<CachePrivate> {
         let buf = read(filename)?;
         let config: CachePrivate = toml::from_slice(&buf)?;
         Ok(config)
@@ -47,9 +47,9 @@ impl Cache {
         Ok(())
     }
 
-    pub fn add_file(&self, filename: &PathBuf) {
+    pub fn add_file(&self, filename: &Path) {
         let mut private = self.borrow_mut();
         private.recent_files.retain(|f| f != filename);
-        private.recent_files.insert(0, filename.clone());
+        private.recent_files.insert(0, filename.to_owned());
     }
 }
