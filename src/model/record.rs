@@ -320,9 +320,10 @@ impl Record {
     }
 
     pub fn has_text(&self, text: &str, look_at_secrets: bool) -> bool {
+        let needle = text.to_lowercase();
         for field in &self.record_type.fields {
             if look_at_secrets || !field.field_type.is_secret() {
-                if self.get_field(field).contains(text) {
+                if self.get_field(field).to_lowercase().contains(&needle) {
                     return true;
                 }
             }
