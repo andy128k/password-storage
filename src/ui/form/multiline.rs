@@ -66,3 +66,49 @@ impl FormWidget<String> for MultiLine {
             });
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test::test_gtk_init;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    #[test]
+    fn test_multiline() {
+        test_gtk_init();
+
+        let w = MultiLine::new();
+        w.get_widget(); // ensure get_widget doesn't panic
+    }
+
+    #[test]
+    fn test_multiline_value() {
+        test_gtk_init();
+
+        let w = MultiLine::new();
+        assert_eq!(w.get_value(), None);
+
+        let new_value = "new\nvalue".to_string();
+        w.set_value(Some(&new_value));
+        assert_eq!(w.get_value(), Some(new_value));
+
+        w.set_value(None);
+        assert_eq!(w.get_value(), None);
+    }
+
+    #[test]
+    fn test_multiline_event() {
+        test_gtk_init();
+
+        let value = Rc::new(RefCell::new(None));
+
+        let mut w = MultiLine::new();
+        let value2 = value.clone();
+        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.clone().cloned()));
+
+        let new_value = "new\nvalue".to_string();
+        w.set_value(Some(&new_value));
+        assert_eq!(*value.borrow(), Some(new_value));
+    }
+}

@@ -162,3 +162,163 @@ impl EntryBasedWidget for Password {
         self.entry.clone()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test::test_gtk_init;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    #[test]
+    fn test_text() {
+        test_gtk_init();
+
+        let w = Text::new();
+        w.get_widget(); // ensure get_widget doesn't panic
+    }
+
+    #[test]
+    fn test_text_value() {
+        test_gtk_init();
+
+        let w = Text::new();
+        assert_eq!(w.get_value(), None);
+
+        let new_value = "new value".to_string();
+        w.set_value(Some(&new_value));
+        assert_eq!(w.get_value(), Some(new_value));
+
+        w.set_value(None);
+        assert_eq!(w.get_value(), None);
+    }
+
+    #[test]
+    fn test_text_event() {
+        test_gtk_init();
+
+        let value = Rc::new(RefCell::new(None));
+
+        let mut w = Text::new();
+        let value2 = value.clone();
+        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.clone().cloned()));
+
+        let new_value = "new value".to_string();
+        w.set_value(Some(&new_value));
+        assert_eq!(*value.borrow(), Some(new_value));
+    }
+
+    #[test]
+    fn test_name() {
+        test_gtk_init();
+
+        let w = Name::new(&[]);
+        w.get_widget(); // ensure get_widget doesn't panic
+    }
+
+    #[test]
+    fn test_name_value() {
+        test_gtk_init();
+
+        let w = Name::new(&[]);
+        assert_eq!(w.get_value(), None);
+
+        let new_value = "new value".to_string();
+        w.set_value(Some(&new_value));
+        assert_eq!(w.get_value(), Some(new_value));
+
+        w.set_value(None);
+        assert_eq!(w.get_value(), None);
+    }
+
+    #[test]
+    fn test_name_event() {
+        test_gtk_init();
+
+        let value = Rc::new(RefCell::new(None));
+
+        let mut w = Name::new(&[]);
+        let value2 = value.clone();
+        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.clone().cloned()));
+
+        let new_value = "new value".to_string();
+        w.set_value(Some(&new_value));
+        assert_eq!(*value.borrow(), Some(new_value));
+    }
+
+    #[test]
+    fn test_open_password() {
+        test_gtk_init();
+
+        let w = OpenPassword::new();
+        w.get_widget(); // ensure get_widget doesn't panic
+    }
+
+    #[test]
+    fn test_open_password_value() {
+        test_gtk_init();
+
+        let w = OpenPassword::new();
+        assert_eq!(w.get_value(), None);
+
+        let new_value = "passw0rd".to_string();
+        w.set_value(Some(&new_value));
+        assert_eq!(w.get_value(), Some(new_value));
+
+        w.set_value(None);
+        assert_eq!(w.get_value(), None);
+    }
+
+    #[test]
+    fn test_open_password_event() {
+        test_gtk_init();
+
+        let value = Rc::new(RefCell::new(None));
+
+        let mut w = OpenPassword::new();
+        let value2 = value.clone();
+        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.clone().cloned()));
+
+        let new_value = "passw0rd".to_string();
+        w.set_value(Some(&new_value));
+        assert_eq!(*value.borrow(), Some(new_value));
+    }
+
+    #[test]
+    fn test_password() {
+        test_gtk_init();
+
+        let w = Password::new();
+        w.get_widget(); // ensure get_widget doesn't panic
+    }
+
+    #[test]
+    fn test_password_value() {
+        test_gtk_init();
+
+        let w = Password::new();
+        assert_eq!(w.get_value(), None);
+
+        let new_value = "secret".to_string();
+        w.set_value(Some(&new_value));
+        assert_eq!(w.get_value(), Some(new_value));
+
+        w.set_value(None);
+        assert_eq!(w.get_value(), None);
+    }
+
+    #[test]
+    fn test_password_event() {
+        test_gtk_init();
+
+        let value = Rc::new(RefCell::new(None));
+
+        let mut w = Password::new();
+        let value2 = value.clone();
+        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.clone().cloned()));
+
+        let new_value = "secret".to_string();
+        w.set_value(Some(&new_value));
+        assert_eq!(*value.borrow(), Some(new_value));
+    }
+}

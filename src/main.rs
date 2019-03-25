@@ -15,6 +15,7 @@ mod ui;
 mod application;
 mod main_window;
 mod format;
+mod test;
 
 fn main() {
     let app = application::PSApplication::new_app();
