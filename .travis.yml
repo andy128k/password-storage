@@ -37,3 +37,10 @@ before_script:
 script:
   - cargo build --verbose
   - cargo test --no-fail-fast -- --nocapture --test-threads 1
+
+after_success:
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker run --security-opt seccomp=unconfined -v "$PWD:/volume" xd009642/tarpaulin:latest sh -c "cargo tarpaulin -f -t 5 --out Xml"
+      bash <(curl -s https://codecov.io/bash)
+    fi
