@@ -1,0 +1,39 @@
+language: rust
+cache: cargo
+sudo: required
+dist: xenial
+services:
+  - xvfb
+
+rust:
+  - stable
+
+os:
+  - linux
+  - osx
+
+addons:
+  apt:
+    sources:
+      - sourceline: 'ppa:jonathonf/gtk3.22'
+    packages:
+      - libssl-dev
+      - libgtk-3-dev
+      - openbox
+  homebrew:
+    packages:
+      - gtk+3
+
+env:
+  global:
+    - RUST_BACKTRACE=1
+
+before_script:
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      openbox &
+    fi
+
+script:
+  - cargo build --verbose
+  - cargo test --no-fail-fast -- --nocapture --test-threads 1
