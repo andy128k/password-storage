@@ -31,6 +31,7 @@ env:
 before_script:
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin
       openbox &
     fi
 
@@ -41,6 +42,6 @@ script:
 after_success:
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      docker run --security-opt seccomp=unconfined -v "$PWD:/volume" xd009642/tarpaulin:latest sh -c "cargo tarpaulin -f -t 5 --out Xml"
+      cargo tarpaulin -f -t 5 --out Xml -v
       bash <(curl -s https://codecov.io/bash)
     fi
