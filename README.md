@@ -1,5 +1,9 @@
 # PassStorage
 
+[![Build Status](https://travis-ci.com/andy128k/PassStorage.svg?branch=master)](https://travis-ci.com/andy128k/PassStorage)
+[![Build status](https://ci.appveyor.com/api/projects/status/cdyuc8jvu9r5r58c/branch/master?svg=true)](https://ci.appveyor.com/project/andy128k/passstorage/branch/master)
+[![codecov](https://codecov.io/gh/andy128k/PassStorage/branch/master/graph/badge.svg)](https://codecov.io/gh/andy128k/PassStorage)
+
 Password storing program
 
 ## License for source code
