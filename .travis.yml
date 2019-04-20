@@ -1,3 +1,5 @@
+language: minimal
+
 env:
   global:
     - RUST_BACKTRACE=1
@@ -19,7 +21,6 @@ matrix:
     - name: linux
       os: linux
       sudo: required
-      language: minimal
       services:
         - docker
       script:
@@ -30,4 +31,15 @@ matrix:
         - docker exec -it rust-gtk-container make coverage
         - bash <(curl -s https://codecov.io/bash)
 
-script:
+before_deploy: docker exec -it rust-gtk-container make deb
+deploy:
+  provider: releases
+  api_key:
+    secure: vDDmfazPnwY1+h95R5xFrLdUFs4XFj4C4hPcL7dIwfPBSKOOnU5md0SWuZx9djrqJH+FbTiaxgRf+T1AiiB/LfadJLjFw0qe4tgx7FeNGcofkAtiwmgeBRvHNhJ0d46WlGvTnJQGuQGo+vr8d+fk7bbCvwa/lde0FQ00P3sAB/U6Hp+PagkgtC5QPkYr64sZt+8dwlxcfleo4P1k5QZB1YG7RYaQA50FheEDN1saecZfY5VD0nOxM2/1EwNf2irntORpf9HXvr4kmLXUnvmFuFV3CamDCwBKzx0yzr1FXyxJgVcxQ+xzHhR1FxCdOLFUOUJ3leY4MAmy/548FxAU92qsQOyinBIx7pS7nX34ApVPe6SNl5dn+6UI8er77zZvU7p4nqsFJXmZyOtszjaJuflLuzlIobLCr/V656cGXMqUGdUrz75I9t3htya19Sh5LaRUgMDi5891g64tzlQCjelA1eXp4zm45RSmQiy+NSrVD77hXpQ5+65V9yi+bSupZ+jQ3bmWi2G8AWMTyNOMyIDFCAWQoTnvICCTtfey4fw2SlRnf4okNgXIeHe1xD0DrBBnkP9qRMc+5SZeQLs4Q7UQwIwbkaTjjVcoxPq1AkAo6BE1imTsukq3l+AcnUO/VenTnd6N9A7yl/LJpjrKrxvrHoOmqDRzEGWgxc/zKXk=
+  on:
+    tags: true
+    condition: $TRAVIS_OS_NAME = linux
+    repo: andy128k/PassStorage
+  skip_cleanup: true
+  file_glob: true
+  file: "target/debian/password-storage*.deb"
