@@ -3,3 +3,6 @@ test:
 
 coverage:
 	cargo tarpaulin --out Xml -v -- --nocapture --test-threads 1
+
+deb:
+	cargo deb
