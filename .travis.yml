@@ -4,7 +4,8 @@ env:
 
 matrix:
   include:
-    - os: osx
+    - name: macos
+      os: osx
       addons:
         homebrew:
           packages:
@@ -15,11 +16,14 @@ matrix:
       script:
         - cargo build --verbose
         - make test
-    - os: linux
+    - name: linux
+      os: linux
       sudo: required
+      language: minimal
       services:
         - docker
       script:
+        - docker pull andy128k/rust-gtk
         - docker run -d --name rust-gtk-container -v `pwd`:/volume --security-opt seccomp=unconfined andy128k/rust-gtk:latest
         - docker exec -it rust-gtk-container cargo build
         - docker exec -it rust-gtk-container make test
