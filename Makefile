@@ -29,11 +29,11 @@ osx_icon:
 osx_app: release osx_icon
 	mkdir -p target/dmg/root/PasswordStorage.app/Contents/MacOS
 	mkdir -p target/dmg/root/PasswordStorage.app/Contents/Resources
-	cp macos/PkgInfo                    target/dmg/root/PasswordStorage.app/Contents/
-	cp macos/Info.plist                 target/dmg/root/PasswordStorage.app/Contents/
-	cp macos/PasswordStorage            target/dmg/root/PasswordStorage.app/Contents/MacOS/
-	cp PasswordStorage.icns             target/dmg/root/PasswordStorage.app/Contents/Resources/
-	cp target/release/password-storage  target/dmg/root/PasswordStorage.app/Contents/Resources/
+	cp macos/PkgInfo                                  target/dmg/root/PasswordStorage.app/Contents/
+	sed 's/{VERSION}/$(VERSION)/' macos/Info.plist >  target/dmg/root/PasswordStorage.app/Contents/Info.plist
+	cp macos/PasswordStorage                          target/dmg/root/PasswordStorage.app/Contents/MacOS/
+	cp PasswordStorage.icns                           target/dmg/root/PasswordStorage.app/Contents/Resources/
+	cp target/release/password-storage                target/dmg/root/PasswordStorage.app/Contents/Resources/
 	rm -f PasswordStorage.dmg
 	create-dmg \
 		--volname "Password Storage" \

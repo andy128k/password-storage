@@ -38,7 +38,7 @@ before_deploy:
     fi
   - |
     if [ "$TRAVIS_OS_NAME" == osx ] ; then
-      make osx_app
+      VERSION=${TRAVIS_TAG} make osx_app
       mv target/dmg/PasswordStorage.dmg target/dmg/PasswordStorage-${TRAVIS_TAG}.dmg
     fi
 
