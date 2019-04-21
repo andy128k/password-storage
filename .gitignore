@@ -3,3 +3,5 @@
 data
 /target/
 *.deb
+PasswordStorage.iconset
+PasswordStorage.icns

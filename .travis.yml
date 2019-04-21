@@ -8,14 +8,14 @@ matrix:
   include:
     - name: macos
       os: osx
-      addons:
-        homebrew:
-          packages:
-            - gtk+3
       language: rust
       cache: cargo
       rust: stable
+      install:
+        - brew update
+        - brew install pkg-config gtk+3 librsvg create-dmg
       script:
+        - export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:/usr/local/opt/libffi/lib/pkgconfig"
         - cargo build --verbose
         - make test
     - name: linux
@@ -31,15 +31,35 @@ matrix:
         - docker exec -it rust-gtk-container make coverage
         - bash <(curl -s https://codecov.io/bash)
 
-before_deploy: docker exec -it rust-gtk-container make deb
-deploy:
+before_deploy:
+  - |
+    if [ "$TRAVIS_OS_NAME" == linux ] ; then
+      docker exec -it rust-gtk-container make deb
+    fi
+  - |
+    if [ "$TRAVIS_OS_NAME" == osx ] ; then
+      make osx_app
+      mv target/dmg/PasswordStorage.dmg target/dmg/PasswordStorage-${TRAVIS_TAG}.dmg
+    fi
+
+_deploy_github: &_deploy_github
   provider: releases
   api_key:
     secure: vDDmfazPnwY1+h95R5xFrLdUFs4XFj4C4hPcL7dIwfPBSKOOnU5md0SWuZx9djrqJH+FbTiaxgRf+T1AiiB/LfadJLjFw0qe4tgx7FeNGcofkAtiwmgeBRvHNhJ0d46WlGvTnJQGuQGo+vr8d+fk7bbCvwa/lde0FQ00P3sAB/U6Hp+PagkgtC5QPkYr64sZt+8dwlxcfleo4P1k5QZB1YG7RYaQA50FheEDN1saecZfY5VD0nOxM2/1EwNf2irntORpf9HXvr4kmLXUnvmFuFV3CamDCwBKzx0yzr1FXyxJgVcxQ+xzHhR1FxCdOLFUOUJ3leY4MAmy/548FxAU92qsQOyinBIx7pS7nX34ApVPe6SNl5dn+6UI8er77zZvU7p4nqsFJXmZyOtszjaJuflLuzlIobLCr/V656cGXMqUGdUrz75I9t3htya19Sh5LaRUgMDi5891g64tzlQCjelA1eXp4zm45RSmQiy+NSrVD77hXpQ5+65V9yi+bSupZ+jQ3bmWi2G8AWMTyNOMyIDFCAWQoTnvICCTtfey4fw2SlRnf4okNgXIeHe1xD0DrBBnkP9qRMc+5SZeQLs4Q7UQwIwbkaTjjVcoxPq1AkAo6BE1imTsukq3l+AcnUO/VenTnd6N9A7yl/LJpjrKrxvrHoOmqDRzEGWgxc/zKXk=
-  on:
+  on: &_deploy_github_on
     tags: true
-    condition: $TRAVIS_OS_NAME = linux
     repo: andy128k/PassStorage
   skip_cleanup: true
   file_glob: true
-  file: "target/debian/password-storage*.deb"
+
+deploy:
+  - <<: *_deploy_github
+    file: "target/debian/password-storage*.deb"
+    on:
+      <<: *_deploy_github_on
+      condition: $TRAVIS_OS_NAME = linux
+  - <<: *_deploy_github
+    on:
+      <<: *_deploy_github_on
+      condition: $TRAVIS_OS_NAME = osx
+    file: "target/dmg/PasswordStorage*.dmg"
