@@ -14,5 +14,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .arg("icons.gresource.xml")
         .status()?;
 
+    #[cfg(target_os = "windows")]
+    embed_resource::compile("./icons.rc");
+
     Ok(())
 }

@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 mod error;
 mod icons;
 mod password;
