@@ -1,4 +1,3 @@
-use std::convert::Into;
 use gdk::{WindowTypeHint, Gravity};
 use gtk::prelude::*;
 use gtk::{Window, Dialog, WindowPosition, ResponseType};
@@ -18,8 +17,8 @@ pub fn make_std_dialog(parent_window: &Window, title: &str, icon: &str) -> Dialo
     dlg.set_skip_taskbar_hint(true);
     dlg.set_skip_pager_hint(true);
 
-    dlg.add_button("_Cancel", ResponseType::Cancel.into());
-    dlg.add_button("_Ok", ResponseType::Ok.into());
-    dlg.set_default_response(ResponseType::Ok.into());
+    dlg.add_button("_Cancel", ResponseType::Cancel);
+    dlg.add_button("_Ok", ResponseType::Ok);
+    dlg.set_default_response(ResponseType::Ok);
     dlg
 }

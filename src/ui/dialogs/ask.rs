@@ -14,7 +14,7 @@ pub fn ask(parent_window: &Window, message: &str) -> bool {
     dlg.set_transient_for(parent_window);
     dlg.set_property_use_markup(false);
     dlg.set_property_window_position(WindowPosition::CenterOnParent);
-    dlg.set_default_response(ResponseType::Yes.into());
+    dlg.set_default_response(ResponseType::Yes);
 
     let answer = dlg.run();
     dlg.destroy();

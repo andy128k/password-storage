@@ -119,7 +119,7 @@ fn get_selected_group_iter(win: &PSMainWindow) -> Option<TreeIter> {
 
 fn listview_cursor_changed(win: &PSMainWindow, record: Option<Record>) {
     for (action_name, action) in &win.borrow().actions {
-        if let &PSAction::Record(ref record_action_name) = action_name {
+        if let PSAction::Record(ref record_action_name) = *action_name {
             let enabled = match *record_action_name {
                 RecordAction::CopyName => record.is_some(),
                 RecordAction::CopyPassword => record.as_ref().and_then(|e| e.password()).is_some(),

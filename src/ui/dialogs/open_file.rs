@@ -12,9 +12,9 @@ pub fn open_file(parent_window: &Window) -> Option<PathBuf> {
     dlg.set_property_window_position(WindowPosition::CenterOnParent);
     dlg.set_transient_for(parent_window);
 
-    dlg.add_button("_Cancel", ResponseType::Cancel.into());
-    dlg.add_button("_Open", ResponseType::Ok.into());
-    dlg.set_default_response(ResponseType::Ok.into());
+    dlg.add_button("_Cancel", ResponseType::Cancel);
+    dlg.add_button("_Open", ResponseType::Ok);
+    dlg.set_default_response(ResponseType::Ok);
     let open_clicked = dlg.run() == ResponseType::Ok.into();
     let filename = dlg.get_filename();
     dlg.destroy();

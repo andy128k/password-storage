@@ -8,7 +8,7 @@ pub fn edit_object<T, W: FormWidget<T>>(object: Option<&T>, mut widget: W, paren
     dlg.get_content_area().pack_start(&widget.get_widget(), true, true, 8);
     dlg.show_all();
 
-    dlg.set_response_sensitive(ResponseType::Ok.into(), widget.get_value().is_some());
+    dlg.set_response_sensitive(ResponseType::Ok, widget.get_value().is_some());
     {
         let dlg1 = dlg.clone();
         widget.connect_changed(Box::new(move |value| {

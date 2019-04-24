@@ -1,4 +1,3 @@
-use std::convert::Into;
 use gtk::prelude::*;
 use gtk::{Window, MessageDialog, WindowPosition, ResponseType, DialogFlags, MessageType, ButtonsType};
 
@@ -15,7 +14,7 @@ pub fn say_error(parent_window: &Window, message: &str) {
     dlg.set_transient_for(parent_window);
     dlg.set_property_use_markup(false);
     dlg.set_property_window_position(WindowPosition::CenterOnParent);
-    dlg.set_default_response(ResponseType::Ok.into());
+    dlg.set_default_response(ResponseType::Ok);
     dlg.run();
     dlg.destroy();
 }
@@ -33,7 +32,7 @@ pub fn say_info(parent_window: &Window, message: &str) {
     dlg.set_transient_for(parent_window);
     dlg.set_property_use_markup(false);
     dlg.set_property_window_position(WindowPosition::CenterOnParent);
-    dlg.set_default_response(ResponseType::Ok.into());
+    dlg.set_default_response(ResponseType::Ok);
     dlg.run();
     dlg.destroy();
 }

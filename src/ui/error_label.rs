@@ -4,7 +4,7 @@ use crate::error::*;
 
 fn create_style_provider() -> Result<CssProvider> {
     let provider = CssProvider::new();
-    provider.load_from_data(r##"label.error { color: #FF3333; }"##.as_bytes())?;
+    provider.load_from_data(br##"label.error { color: #FF3333; }"##)?;
     Ok(provider)
 }
 

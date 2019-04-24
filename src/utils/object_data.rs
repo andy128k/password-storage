@@ -11,7 +11,7 @@ unsafe fn buf_to_ptr(buffer: &[u8]) -> *mut c_void {
     let prefix_len = size_of::<usize>();
     let ptr = malloc(prefix_len + len);
     *(ptr as *mut usize) = len;
-    memcpy(ptr.offset(prefix_len as isize), buffer.as_ptr() as *const c_void, len);
+    memcpy(ptr.add(prefix_len), buffer.as_ptr() as *const c_void, len);
     ptr
 }
 
@@ -20,7 +20,7 @@ unsafe fn ptr_to_buf(ptr: *const c_void) -> Vec<u8> {
     let len = *(ptr as *const usize);
     buffer.resize(len, 0u8);
     let prefix_len = size_of::<usize>();
-    memcpy(buffer.as_ptr() as *mut c_void, ptr.offset(prefix_len as isize), len);
+    memcpy(buffer.as_ptr() as *mut c_void, ptr.add(prefix_len), len);
     buffer
 }
 

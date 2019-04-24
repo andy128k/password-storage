@@ -22,9 +22,9 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
 
     dlg.set_icon_name("password-storage");
 
-    dlg.add_button("_Cancel", ResponseType::Cancel.into());
-    dlg.add_button("_Open", ResponseType::Accept.into());
-    dlg.set_default_response(ResponseType::Accept.into());
+    dlg.add_button("_Cancel", ResponseType::Cancel);
+    dlg.add_button("_Open", ResponseType::Accept);
+    dlg.set_default_response(ResponseType::Accept);
 
     let error_label = create_error_label().expect("Error label is created.");
 

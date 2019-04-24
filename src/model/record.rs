@@ -11,8 +11,8 @@ pub enum FieldType {
 }
 
 impl FieldType {
-    pub fn is_secret(&self) -> bool {
-        match *self {
+    pub fn is_secret(self) -> bool {
+        match self {
             FieldType::Password | FieldType::Secret => true,
             _ => false
         }

@@ -21,19 +21,17 @@ pub fn ask_save(parent_window: &Window, message: &str) -> AskSave {
     dlg.set_property_use_markup(false);
     dlg.set_property_window_position(WindowPosition::CenterOnParent);
 
-    dlg.add_button("_Discard changes", ResponseType::Reject.into());
-    dlg.add_button("_Cancel", ResponseType::Cancel.into());
-    dlg.add_button("_Save", ResponseType::Ok.into());
-    dlg.set_default_response(ResponseType::Ok.into());
+    dlg.add_button("_Discard changes", ResponseType::Reject);
+    dlg.add_button("_Cancel", ResponseType::Cancel);
+    dlg.add_button("_Save", ResponseType::Ok);
+    dlg.set_default_response(ResponseType::Ok);
 
-    let answer = dlg.run();
+    let answer = dlg.run().into();
     dlg.destroy();
 
-    if answer == ResponseType::Reject.into() {
-        AskSave::Discard
-    } else if answer == ResponseType::Ok.into() {
-        AskSave::Save
-    } else {
-        AskSave::Cancel
+    match answer {
+        ResponseType::Reject => AskSave::Discard,
+        ResponseType::Ok => AskSave::Save,
+        _ => AskSave::Cancel
     }
 }
