@@ -9,7 +9,7 @@
 	<key>CFBundleGetInfoString</key>
 	<string>{VERSION}</string>
 	<key>CFBundleIconFile</key>
-	<string>PassStorage.icns</string>
+	<string>PasswordStorage.icns</string>
 	<key>CFBundleIdentifier</key>
 	<string>net.andy128k.password-storage</string>
 	<key>CFBundleInfoDictionaryVersion</key>
