@@ -22,7 +22,7 @@ inflate = "0.4.0"
 minidom = "0.10.0"
 
 toml = "0.5"
-bincode = "1.0.0"
+bincode = "1.1.4"
 serde = { version = "1", features = ["derive"] }
 
 glib = { version = "0.7.0" }
