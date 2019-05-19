@@ -27,7 +27,7 @@ pub struct Field {
 }
 
 impl Field {
-    fn new(name: &'static str, title: &'static str, field_type: FieldType) -> Self {
+    const fn new(name: &'static str, title: &'static str, field_type: FieldType) -> Self {
         Field { name, title, field_type }
     }
 }
@@ -49,20 +49,20 @@ pub struct Record {
     pub values: HashTable,
 }
 
-lazy_static!{
-    pub static ref FIELD_NAME: Field = Field::new("name", "Name", FieldType::Text);
-    pub static ref FIELD_DESCRIPTION: Field = Field::new("description", "Description", FieldType::MultiLine);
-    pub static ref FIELD_HOSTNAME: Field = Field::new("hostname", "Hostname", FieldType::Text);
-    pub static ref FIELD_USERNAME: Field = Field::new("username", "Username", FieldType::Name);
-    pub static ref FIELD_PASSWORD: Field = Field::new("password", "Password", FieldType::Password);
+pub const FIELD_NAME: Field = Field::new("name", "Name", FieldType::Text);
+pub const FIELD_DESCRIPTION: Field = Field::new("description", "Description", FieldType::MultiLine);
+pub const FIELD_HOSTNAME: Field = Field::new("hostname", "Hostname", FieldType::Text);
+pub const FIELD_USERNAME: Field = Field::new("username", "Username", FieldType::Name);
+pub const FIELD_PASSWORD: Field = Field::new("password", "Password", FieldType::Password);
 
+lazy_static!{
     pub static ref RECORD_TYPE_GROUP: RecordType = RecordType {
         name: "group",
         title: "group",
         is_group: true,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
         ],
         icon: "folder",
         username_field: None,
@@ -74,11 +74,11 @@ lazy_static!{
         title: "generic entry",
         is_group: false,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
-            *FIELD_HOSTNAME,
-            *FIELD_USERNAME,
-            *FIELD_PASSWORD,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
+            FIELD_HOSTNAME,
+            FIELD_USERNAME,
+            FIELD_PASSWORD,
         ],
         icon: "entry-generic",
         username_field: Some("username"),
@@ -90,8 +90,8 @@ lazy_static!{
         title: "credit card",
         is_group: false,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
             Field::new("cardtype", "Card type", FieldType::Text),
             Field::new("cardnumber", "Card number", FieldType::Text),
             Field::new("expirydate", "Expiry date", FieldType::Secret),
@@ -108,12 +108,12 @@ lazy_static!{
         title: "crypto key",
         is_group: false,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
-            *FIELD_HOSTNAME,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
+            FIELD_HOSTNAME,
             Field::new("certificate", "Certificate", FieldType::Text),
             Field::new("keyfile", "Key file", FieldType::Text),
-            *FIELD_PASSWORD,
+            FIELD_PASSWORD,
         ],
         icon: "entry-keyring",
         username_field: Some("hostname"),
@@ -125,11 +125,11 @@ lazy_static!{
         title: "database",
         is_group: false,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
-            *FIELD_HOSTNAME,
-            *FIELD_USERNAME,
-            *FIELD_PASSWORD,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
+            FIELD_HOSTNAME,
+            FIELD_USERNAME,
+            FIELD_PASSWORD,
             Field::new("database", "Database", FieldType::Text),
         ],
         icon: "entry-database",
@@ -142,8 +142,8 @@ lazy_static!{
         title: "door",
         is_group: false,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
             Field::new("location", "Location", FieldType::Text),
             Field::new("code", "Code", FieldType::Secret),
         ],
@@ -157,12 +157,12 @@ lazy_static!{
         title: "e-mail",
         is_group: false,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
             Field::new("email", "E-mail", FieldType::Text),
-            *FIELD_HOSTNAME,
-            *FIELD_USERNAME,
-            *FIELD_PASSWORD,
+            FIELD_HOSTNAME,
+            FIELD_USERNAME,
+            FIELD_PASSWORD,
         ],
         icon: "entry-email",
         username_field: Some("username"),
@@ -174,12 +174,12 @@ lazy_static!{
         title: "FTP",
         is_group: false,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
-            *FIELD_HOSTNAME,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
+            FIELD_HOSTNAME,
             Field::new("port", "Port", FieldType::Text),
-            *FIELD_USERNAME,
-            *FIELD_PASSWORD,
+            FIELD_USERNAME,
+            FIELD_PASSWORD,
         ],
         icon: "entry-ftp",
         username_field: Some("username"),
@@ -191,8 +191,8 @@ lazy_static!{
         title: "phone",
         is_group: false,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
             Field::new("phonenumber", "Number", FieldType::Text),
             Field::new("pin", "PIN", FieldType::Secret),
         ],
@@ -206,12 +206,12 @@ lazy_static!{
         title: "shell",
         is_group: false,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
-            *FIELD_HOSTNAME,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
+            FIELD_HOSTNAME,
             Field::new("domain", "Domain", FieldType::Text),
-            *FIELD_USERNAME,
-            *FIELD_PASSWORD,
+            FIELD_USERNAME,
+            FIELD_PASSWORD,
         ],
         icon: "entry-shell",
         username_field: Some("username"),
@@ -223,11 +223,11 @@ lazy_static!{
         title: "website",
         is_group: false,
         fields: vec![
-            *FIELD_NAME,
-            *FIELD_DESCRIPTION,
+            FIELD_NAME,
+            FIELD_DESCRIPTION,
             Field::new("url", "URL", FieldType::Text),
-            *FIELD_USERNAME,
-            *FIELD_PASSWORD,
+            FIELD_USERNAME,
+            FIELD_PASSWORD,
         ],
         icon: "entry-website",
         username_field: Some("username"),
@@ -374,7 +374,7 @@ impl Record {
         {
             let desc = record.get_field(&FIELD_DESCRIPTION);
             if !desc.is_empty() {
-                unmapped.insert(0, &*FIELD_DESCRIPTION);
+                unmapped.insert(0, &FIELD_DESCRIPTION);
             }
         }
 
