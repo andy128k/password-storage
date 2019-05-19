@@ -14,9 +14,9 @@ impl Record {
     }
 }
 
-impl<'any> Into<Value> for &'any Record {
+impl<'any> Into<Value> for Record {
     fn into(self) -> Value {
-        self.values.clone().into()
+        self.values.into()
     }
 }
 
@@ -29,7 +29,7 @@ mod test {
     fn to_glib_and_back() {
         let mut generic = RECORD_TYPE_GENERIC.new_record();
         generic.values.insert("username", "andy");
-        let value: Value = (&generic).into();
+        let value: Value = generic.into();
         let generic2 = Record::try_from_value(&value).unwrap();
         assert_eq!(generic2.values.get("username"), Some("andy".to_string()));
         assert_eq!(generic2.values.get("password"), Some("".to_string()));
@@ -39,7 +39,7 @@ mod test {
     fn to_glib_and_back_website() {
         let mut generic = RECORD_TYPE_WEBSITE.new_record();
         generic.values.insert("username", "andy");
-        let value: Value = (&generic).into();
+        let value: Value = generic.into();
         let generic2 = Record::try_from_value(&value).unwrap();
         assert_eq!(generic2.values.get("username"), Some("andy".to_string()));
         assert_eq!(generic2.values.get("password"), Some("".to_string()));

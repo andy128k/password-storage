@@ -151,7 +151,7 @@ impl PSStore {
     }
 
     pub fn update(&self, iter: &TreeIter, record: &Record) {
-        self.model.set_value(iter, TreeStoreColumn::Record.into(), &record.into());
+        self.model.set_value(iter, TreeStoreColumn::Record.into(), &record.clone().into());
         self.model.set_value(iter, TreeStoreColumn::Name.into(), &Value::from(&record.name()));
         self.model.set_value(iter, TreeStoreColumn::TypeIcon.into(), &Value::from(record.record_type.icon));
         if let Some(password) = record.password() {
