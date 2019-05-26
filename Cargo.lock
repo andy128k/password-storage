@@ -65,11 +65,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "backtrace"
-version = "0.3.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.3.16"
+source = "git+https://github.com/andy128k/backtrace-rs?rev=0fdcf49ce46a42a8a3d4ce80c470dc032aedb613#0fdcf49ce46a42a8a3d4ce80c470dc032aedb613"
 dependencies = [
  "autocfg 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "backtrace-sys 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "backtrace-sys 0.1.28 (git+https://github.com/andy128k/backtrace-rs?rev=0fdcf49ce46a42a8a3d4ce80c470dc032aedb613)",
  "cfg-if 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.55 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-demangle 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -78,7 +78,7 @@ dependencies = [
 [[package]]
 name = "backtrace-sys"
 version = "0.1.28"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/andy128k/backtrace-rs?rev=0fdcf49ce46a42a8a3d4ce80c470dc032aedb613#0fdcf49ce46a42a8a3d4ce80c470dc032aedb613"
 dependencies = [
  "cc 1.0.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.55 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -181,7 +181,7 @@ name = "debug-cell"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "backtrace 0.3.26 (registry+https://github.com/rust-lang/crates.io-index)",
+ "backtrace 0.3.16 (git+https://github.com/andy128k/backtrace-rs?rev=0fdcf49ce46a42a8a3d4ce80c470dc032aedb613)",
 ]
 
 [[package]]
@@ -215,7 +215,7 @@ name = "failure"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "backtrace 0.3.26 (registry+https://github.com/rust-lang/crates.io-index)",
+ "backtrace 0.3.16 (git+https://github.com/andy128k/backtrace-rs?rev=0fdcf49ce46a42a8a3d4ce80c470dc032aedb613)",
  "failure_derive 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -484,7 +484,6 @@ name = "password-storage"
 version = "0.17.3"
 dependencies = [
  "aes 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "backtrace 0.3.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "block-modes 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "debug-cell 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -757,8 +756,8 @@ dependencies = [
 "checksum atk 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7ce8fd2055aa2ce617754c5a701682a06b4b57093cbbcbd8f068622a8debae96"
 "checksum atk-sys 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "83744274abbcc2242f845a25cf84b9adb5991eaecc8f7c67cffd69ea636f4ff8"
 "checksum autocfg 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a6d640bee2da49f60a4068a7fae53acde8982514ab7bae8b8cea9e88cbcfd799"
-"checksum backtrace 0.3.26 (registry+https://github.com/rust-lang/crates.io-index)" = "1a13fc43f04daf08ab4f71e3d27e1fc27fc437d3e95ac0063a796d92fb40f39b"
-"checksum backtrace-sys 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)" = "797c830ac25ccc92a7f8a7b9862bde440715531514594a6154e3d4a54dd769b6"
+"checksum backtrace 0.3.16 (git+https://github.com/andy128k/backtrace-rs?rev=0fdcf49ce46a42a8a3d4ce80c470dc032aedb613)" = "<none>"
+"checksum backtrace-sys 0.1.28 (git+https://github.com/andy128k/backtrace-rs?rev=0fdcf49ce46a42a8a3d4ce80c470dc032aedb613)" = "<none>"
 "checksum bincode 1.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "959c8e54c1ad412ffeeb95f05a9cade02d2d40a7b3c2f852d3353148f4beff35"
 "checksum bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "228047a76f468627ca71776ecdebd732a3423081fcf5125585bcd7c49886ce12"
 "checksum block-cipher-trait 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1c924d49bd09e7c06003acda26cd9742e796e34282ec6c1189404dee0c1f4774"
