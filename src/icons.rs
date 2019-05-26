@@ -1,18 +1,20 @@
-use lazy_static::lazy_static;
-use glib::Bytes;
+use glib::{Bytes, error::Error};
 use gio::{Resource, resources_register};
-use crate::error::*;
 
-lazy_static! {
-    static ref ICONS_RESOURCE_BUNDLE: Bytes = {
+fn load_icons_resource() -> Result<Resource, Error> {
+    const ICONS_RESOURCE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/icons.gresource"));
+
+    let bytes = {
         // https://github.com/gtk-rs/glib/issues/120
-        let aligned = &include_bytes!(concat!(env!("OUT_DIR"), "/icons.gresource"))[..];
+        let aligned = &ICONS_RESOURCE[..];
         Bytes::from(aligned)
     };
+
+    Resource::new_from_data(&bytes)
 }
 
-pub fn load_icons() -> Result<()> {
-    let resource = Resource::new_from_data(&ICONS_RESOURCE_BUNDLE)?;
+pub fn load_icons() -> Result<(), Error> {
+    let resource = load_icons_resource()?;
     resources_register(&resource);
     Ok(())
 }
