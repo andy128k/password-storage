@@ -33,7 +33,7 @@ gtk = { version = "0.6.0", features = ["v3_22"] }
 gtk-sys = "0.8.0"
 
 [patch.crates-io]
-backtrace = { git = "https://github.com/andy128k/backtrace-rs", rev = "0fdcf49ce46a42a8a3d4ce80c470dc032aedb613" }
+backtrace = { git = "https://github.com/andy128k/backtrace-rs", rev = "fbe462a768cf62f2ce31e7769bfb7d78d9ada452" }
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
 embed-resource = "1.2.0"
