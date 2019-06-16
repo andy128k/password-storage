@@ -49,10 +49,10 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
 
     let dlg1 = dlg.clone();
     entry.connect_changed(move |e| {
-        dlg1.set_response_sensitive(ResponseType::Accept.into(), e.get_chars(0, -1).map_or(0, |t| t.len()) > 0);
+        dlg1.set_response_sensitive(ResponseType::Accept, e.get_chars(0, -1).map_or(0, |t| t.len()) > 0);
     });
 
-    dlg.set_response_sensitive(ResponseType::Accept.into(), false);
+    dlg.set_response_sensitive(ResponseType::Accept, false);
 
     dlg.show_all();
 

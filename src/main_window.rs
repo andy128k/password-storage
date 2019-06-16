@@ -237,12 +237,12 @@ fn cb_uncheck_all(win: &PSMainWindow) -> Result<()> {
 
 fn cb_merge(win: &PSMainWindow) -> Result<()> {
     let checked = {
-        fn collect_checked(model: &PSStore, parent: Option<&TreeIter>, path: &Vec<String>, result: &mut Vec<(Record, Vec<String>)>) {
+        fn collect_checked(model: &PSStore, parent: Option<&TreeIter>, path: &[String], result: &mut Vec<(Record, Vec<String>)>) {
             for (i, record) in model.children(parent) {
                 if model.is_selected(&i) {
-                    result.push((record.clone(), path.clone()));
+                    result.push((record.clone(), path.to_vec()));
                 }
-                let mut p = path.clone();
+                let mut p = path.to_vec();
                 p.push(record.name().to_string());
                 collect_checked(model, Some(&i), &p, result);
             }

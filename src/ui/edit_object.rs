@@ -12,7 +12,7 @@ pub fn edit_object<T, W: FormWidget<T>>(object: Option<&T>, mut widget: W, paren
     {
         let dlg1 = dlg.clone();
         widget.connect_changed(Box::new(move |value| {
-            dlg1.set_response_sensitive(ResponseType::Ok.into(), value.is_some());
+            dlg1.set_response_sensitive(ResponseType::Ok, value.is_some());
         }));
     }
 
