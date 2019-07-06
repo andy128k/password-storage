@@ -491,15 +491,15 @@ fn cb_about(win: &PSMainWindow) -> Result<()> {
     let window = &win.borrow().main_window;
     let dlg = AboutDialog::new();
     dlg.set_property_window_position(WindowPosition::CenterOnParent);
-    dlg.set_transient_for(window);
+    dlg.set_transient_for(Some(window));
     dlg.set_authors(&["Andrey Kutejko <andy128k@gmail.com>"]);
-    dlg.set_copyright("Copyright 2009-2017, Andrey Kutejko");
+    dlg.set_copyright(Some("Copyright 2009-2017, Andrey Kutejko"));
     dlg.set_license_type(License::Lgpl30);
-    dlg.set_logo_icon_name("password-storage");
-    dlg.set_icon_name("password-storage");
+    dlg.set_logo_icon_name(Some("password-storage"));
+    dlg.set_icon_name(Some("password-storage"));
     dlg.set_program_name("PassStorage");
-    dlg.set_version(version::VERSION);
-    dlg.set_website("http://andy128k.github.com/PassStorage");
+    dlg.set_version(Some(version::VERSION));
+    dlg.set_website(Some("http://andy128k.github.com/PassStorage"));
     dlg.run();
     dlg.destroy();
     Ok(())
@@ -594,9 +594,9 @@ fn create_content_widget(dashboard: &Widget, file_widget: &Widget) -> Stack {
 
 fn create_main_window(gtk_app: &Application, content: &Widget) -> (ApplicationWindow, PSSearchEntry, Statusbar) {
     let main_window = ApplicationWindow::new(gtk_app);
-    gtk_app.set_menubar(&ui::menu::create_menu_bar());
+    gtk_app.set_menubar(Some(&ui::menu::create_menu_bar()));
     main_window.set_title(WINDOW_TITLE);
-    main_window.set_icon_name("password-storage");
+    main_window.set_icon_name(Some("password-storage"));
     main_window.set_property_window_position(WindowPosition::Center);
     main_window.set_default_size(1000, 800);
 

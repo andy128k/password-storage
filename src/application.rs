@@ -19,7 +19,7 @@ pub type PSApplication = SharedPtr<PSApplicationPrivate>;
 
 impl PSApplication {
     pub fn new_app() -> Self {
-        let gtk_app = Application::new("net.andy128k.password-storage", ApplicationFlags::HANDLES_OPEN)
+        let gtk_app = Application::new(Some("net.andy128k.password-storage"), ApplicationFlags::HANDLES_OPEN)
             .expect("Initialization of application failed.");
 
         let app = PSApplication::from_private(PSApplicationPrivate {

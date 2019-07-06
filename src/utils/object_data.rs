@@ -2,7 +2,7 @@ use std::mem::size_of;
 use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
 use libc::{malloc, memcpy, free, c_void};
-use glib::gobject_ffi::{g_object_set_data_full, g_object_get_data};
+use glib::gobject_sys::{g_object_set_data_full, g_object_get_data};
 use glib::{Object, IsA, translate::ToGlibPtr};
 use crate::error::*;
 

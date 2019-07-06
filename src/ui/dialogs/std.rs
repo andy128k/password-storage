@@ -5,9 +5,9 @@ use gtk::{Window, Dialog, WindowPosition, ResponseType};
 pub fn make_std_dialog(parent_window: &Window, title: &str, icon: &str) -> Dialog {
     let dlg = Dialog::new();
 
-    dlg.set_icon_name(icon);
+    dlg.set_icon_name(Some(icon));
     dlg.set_property_window_position(WindowPosition::CenterOnParent);
-    dlg.set_transient_for(parent_window);
+    dlg.set_transient_for(Some(parent_window));
     dlg.set_title(title);
     dlg.set_modal(true);
     dlg.set_resizable(true);

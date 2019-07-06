@@ -144,7 +144,7 @@ impl PSTreeView {
                 }
 
                 let base_event: &Event = event;
-                popup1.popup_at_pointer(base_event);
+                popup1.popup_at_pointer(Some(base_event));
 
                 Inhibit(true)
             } else {

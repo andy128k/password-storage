@@ -115,7 +115,7 @@ impl Form {
     pub fn add(&mut self, label: &str, mut widget: Box<dyn FormWidget<String>>, required: bool) {
         let index = self.0.borrow().fields.len();
 
-        let label_widget = Label::new(label);
+        let label_widget = Label::new(Some(label));
         label_widget.set_xalign(0f32);
         label_widget.set_yalign(0.5f32);
         self.0.borrow().grid.attach(&label_widget, 0, index as i32, 1, 1);

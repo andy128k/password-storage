@@ -12,7 +12,7 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
     dlg.set_border_width(8);
     dlg.set_modal(true);
     dlg.set_resizable(false);
-    dlg.set_transient_for(parent_window);
+    dlg.set_transient_for(Some(parent_window));
     dlg.set_title("Enter password");
 
     dlg.set_type_hint(WindowTypeHint::Dialog);
@@ -20,7 +20,7 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
     dlg.set_skip_taskbar_hint(true);
     dlg.set_skip_pager_hint(true);
 
-    dlg.set_icon_name("password-storage");
+    dlg.set_icon_name(Some("password-storage"));
 
     dlg.add_button("_Cancel", ResponseType::Cancel);
     dlg.add_button("_Open", ResponseType::Accept);
@@ -28,7 +28,7 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
 
     let error_label = create_error_label().expect("Error label is created.");
 
-    let label = Label::new("Password");
+    let label = Label::new(Some("Password"));
     label.set_xalign(0f32);
     label.set_yalign(0.5f32);
 

@@ -44,7 +44,7 @@ fn create_row(filename: &PathBuf, basename: &str, path: &str) -> ListBoxRow {
     label1.set_halign(Align::Start);
     grid.attach(&label1, 0, 0, 1, 1);
 
-    let label2 = Label::new(path);
+    let label2 = Label::new(Some(path));
     label2.set_halign(Align::Start);
     grid.attach(&label2, 0, 1, 1, 1);
 
@@ -58,7 +58,7 @@ fn create_row(filename: &PathBuf, basename: &str, path: &str) -> ListBoxRow {
 
 impl PSDashboard {
     pub fn new(cache: &Cache) -> PSDashboard {
-        let title = Label::new("Recent files");
+        let title = Label::new(Some("Recent files"));
         title.set_halign(Align::Start);
         title.set_margin_top(20);
         title.set_margin_bottom(5);
@@ -116,7 +116,7 @@ impl PSDashboard {
         }
         if let Some(row) = first_row {
             self.borrow().content.show_all();
-            self.borrow().listbox.select_row(&row);
+            self.borrow().listbox.select_row(Some(&row));
             row.grab_focus();
         }
     }

@@ -6,9 +6,9 @@ use crate::actions::*;
 use super::menu::create_add_entity_menu;
 
 fn button(label: &str, icon: &str, action: &PSAction) -> ToolButton {
-    let image = Image::new_from_icon_name(icon, IconSize::SmallToolbar.into());
-    let item = ToolButton::new(&image, label);
-    item.set_action_name(action.full_name().as_ref());
+    let image = Image::new_from_icon_name(Some(icon), IconSize::SmallToolbar.into());
+    let item = ToolButton::new(Some(&image), Some(label));
+    item.set_action_name(Some(action.full_name().as_ref()));
     item
 }
 
@@ -20,11 +20,11 @@ pub fn create_tool_bar(search_entry: &Widget) -> Toolbar {
     toolbar.add(&button("Save file", "document-save", &PSAction::ViewMode(ViewModeAction::Save)));
     toolbar.add(&SeparatorToolItem::new());
     toolbar.add(&{
-        let image = Image::new_from_icon_name("list-add", IconSize::SmallToolbar.into());
-        let item = MenuToolButton::new(&image, "Add entry");
+        let image = Image::new_from_icon_name(Some("list-add"), IconSize::SmallToolbar.into());
+        let item = MenuToolButton::new(Some(&image), Some("Add entry"));
         item.set_menu(&Menu::new_from_model(&create_add_entity_menu()));
         let default_action = PSAction::ViewMode(ViewModeAction::Add(RECORD_TYPE_GENERIC.name.to_string()));
-        item.set_action_name(default_action.full_name().as_ref());
+        item.set_action_name(Some(default_action.full_name().as_ref()));
         item
     });
 
@@ -32,9 +32,9 @@ pub fn create_tool_bar(search_entry: &Widget) -> Toolbar {
 
     toolbar.add(&{
         let item = ToggleToolButton::new();
-        item.set_label("Toggle merge mode");
-        item.set_icon_name("merge-mode");
-        item.set_action_name(PSAction::Doc(DocAction::MergeMode).full_name().as_ref());
+        item.set_label(Some("Toggle merge mode"));
+        item.set_icon_name(Some("merge-mode"));
+        item.set_action_name(Some(PSAction::Doc(DocAction::MergeMode).full_name().as_ref()));
         item
     });
 

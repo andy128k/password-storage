@@ -9,8 +9,8 @@ impl PSSearchEntry {
     pub fn new() -> Self {
         let entry = Entry::new();
 
-        entry.set_icon_from_icon_name(EntryIconPosition::Primary, "edit-find");
-        entry.set_icon_from_icon_name(EntryIconPosition::Secondary, "edit-clear");
+        entry.set_icon_from_icon_name(EntryIconPosition::Primary, Some("edit-find"));
+        entry.set_icon_from_icon_name(EntryIconPosition::Secondary, Some("edit-clear"));
 
         entry.connect_icon_release(move |e, pos, _button| {
             if pos == EntryIconPosition::Secondary {

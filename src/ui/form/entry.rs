@@ -81,13 +81,13 @@ impl Name {
     pub fn new(names: &[String]) -> Self {
         let completion = EntryCompletion::new();
         completion.set_text_column(0);
-        completion.set_model(&build_completion_model(names));
+        completion.set_model(Some(&build_completion_model(names)));
         completion.set_popup_set_width(false);
 
         let entry = Entry::new();
         entry.set_can_focus(true);
         entry.set_activates_default(true);
-        entry.set_completion(&completion);
+        entry.set_completion(Some(&completion));
         entry.set_hexpand(true);
         Name { entry }
     }
@@ -114,8 +114,8 @@ impl OpenPassword {
         let entry = Entry::new();
         entry.set_can_focus(true);
         entry.set_activates_default(true);
-        entry.set_icon_from_icon_name(EntryIconPosition::Secondary, "system-run");
-        entry.set_icon_tooltip_text(EntryIconPosition::Secondary, "Generate password");
+        entry.set_icon_from_icon_name(EntryIconPosition::Secondary, Some("system-run"));
+        entry.set_icon_tooltip_text(EntryIconPosition::Secondary, Some("Generate password"));
 
         entry.connect_icon_release(move |e, pos, _button| {
             if pos == EntryIconPosition::Secondary {

@@ -4,7 +4,7 @@ use crate::actions::*;
 use crate::model::record::RECORD_TYPES;
 
 fn item(label: &str, action: &PSAction, accel: Option<&str>, icon: Option<&str>) -> MenuItem {
-    let item = MenuItem::new(label, Some(action.full_name().as_ref()));
+    let item = MenuItem::new(Some(label), Some(action.full_name().as_ref()));
 
     if let Some(accel) = accel {
         item.set_attribute_value("accel", Some(&accel.into()));
@@ -38,7 +38,7 @@ impl MenuBuilderExt for Menu {
     }
 
     fn submenu(self, label: &str, submenu: MenuModel) -> Self {
-        self.append_submenu(label, &submenu);
+        self.append_submenu(Some(label), &submenu);
         self
     }
 }
@@ -69,7 +69,7 @@ pub fn create_convert_entity_menu() -> MenuModel {
 
 pub fn create_menu_bar() -> MenuModel {
     let menu = Menu::new();
-    menu.append_submenu("_File", &{
+    menu.append_submenu(Some("_File"), &{
         let menu = Menu::new();
         menu.append_section(None, &{
             Menu::new()
@@ -89,7 +89,7 @@ pub fn create_menu_bar() -> MenuModel {
         });
         menu
     });
-    menu.append_submenu("_Edit", &{
+    menu.append_submenu(Some("_Edit"), &{
         let menu = Menu::new();
         menu.append_section(None, &{
             Menu::new()
@@ -115,7 +115,7 @@ pub fn create_menu_bar() -> MenuModel {
         });
         menu
     });
-    menu.append_submenu("_Entry", &{
+    menu.append_submenu(Some("_Entry"), &{
         Menu::new()
             .submenu("_Add", create_add_entity_menu())
             .item("_Edit", &PSAction::Record(RecordAction::Edit))
@@ -123,7 +123,7 @@ pub fn create_menu_bar() -> MenuModel {
             .item("_Delete", &PSAction::Record(RecordAction::Delete))
             .item("_Merge", &PSAction::MergeMode(MergeModeAction::Merge))
     });
-    menu.append_submenu("_Help", &{
+    menu.append_submenu(Some("_Help"), &{
         Menu::new()
             .item("_About...", &PSAction::App(AppAction::About))
     });

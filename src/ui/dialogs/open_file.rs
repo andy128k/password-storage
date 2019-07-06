@@ -8,9 +8,9 @@ pub fn open_file(parent_window: &Window) -> Option<PathBuf> {
         Some(parent_window),
         FileChooserAction::Open
     );
-    dlg.set_icon_name("password-storage");
+    dlg.set_icon_name(Some("password-storage"));
     dlg.set_property_window_position(WindowPosition::CenterOnParent);
-    dlg.set_transient_for(parent_window);
+    dlg.set_transient_for(Some(parent_window));
 
     dlg.add_button("_Cancel", ResponseType::Cancel);
     dlg.add_button("_Open", ResponseType::Ok);
