@@ -116,8 +116,9 @@ impl OpenPassword {
         entry.set_activates_default(true);
         entry.set_icon_from_icon_name(EntryIconPosition::Secondary, Some("system-run"));
         entry.set_icon_tooltip_text(EntryIconPosition::Secondary, Some("Generate password"));
+        entry.set_size_request(300, -1);
 
-        entry.connect_icon_release(move |e, pos, _button| {
+        entry.connect_icon_release(|e, pos, _button| {
             if pos == EntryIconPosition::Secondary {
                 let is_empty = e.get_text().map_or(true, |t| t.is_empty());
                 if is_empty || confirm_password_overwrite(e) {

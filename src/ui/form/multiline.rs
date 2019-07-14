@@ -27,6 +27,7 @@ impl MultiLine {
 
         scrolled_window.set_hexpand(true);
         scrolled_window.set_vexpand(true);
+        scrolled_window.set_size_request(300, 200);
 
         MultiLine { scrolled_window, text_view }
     }
