@@ -497,7 +497,7 @@ fn cb_about(win: &PSMainWindow) -> Result<()> {
     dlg.set_license_type(License::Lgpl30);
     dlg.set_logo_icon_name(Some("password-storage"));
     dlg.set_icon_name(Some("password-storage"));
-    dlg.set_program_name("PassStorage");
+    dlg.set_program_name("PasswordStorage");
     dlg.set_version(Some(version::VERSION));
     dlg.set_website(Some("http://andy128k.github.com/PassStorage"));
     dlg.run();
