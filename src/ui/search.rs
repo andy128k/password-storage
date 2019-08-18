@@ -43,4 +43,8 @@ impl PSSearchEntry {
     pub fn get_text(&self) -> Option<String> {
         self.0.get_text().and_then(non_empty)
     }
+
+    pub fn set_text(&self, text: &str) {
+        self.0.set_text(text);
+    }
 }
