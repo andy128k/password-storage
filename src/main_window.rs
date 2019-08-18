@@ -350,6 +350,7 @@ fn cb_new(win: &PSMainWindow) -> Result<()> {
         win.borrow_mut().changed = false;
         set_data(win, PSStore::new());
         set_filename(win, None);
+        win.borrow().search_entry.set_text("");
         win.borrow_mut().password = None;
         listview_cursor_changed(win, None);
         set_status(win, "New file was created");
@@ -372,6 +373,7 @@ pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
     let window = &win.borrow().main_window.clone().upcast();
     if let Some((entries, password)) = load_data(filename, window) {
         win.borrow().app.get_cache().add_file(filename);
+        win.borrow().search_entry.set_text("");
 
         let data = PSStore::from_tree(&entries);
         set_data(win, data);
@@ -434,6 +436,7 @@ fn cb_save(win: &PSMainWindow) -> Result<()> {
 fn cb_close(win: &PSMainWindow) -> Result<()> {
     if ensure_data_is_saved(win)? {
         win.borrow_mut().changed = false;
+        win.borrow().search_entry.set_text("");
         set_data(win, PSStore::new());
         set_filename(win, None);
         win.borrow_mut().password = None;
