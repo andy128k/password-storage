@@ -155,7 +155,7 @@ impl PSStore {
         self.model.set_value(iter, TreeStoreColumn::Name.into(), &Value::from(&record.name()));
         self.model.set_value(iter, TreeStoreColumn::TypeIcon.into(), &Value::from(record.record_type.icon));
         if let Some(password) = record.password() {
-            let entropy = password_entropy(&AsciiClasses::new(), password.as_bytes());
+            let entropy = password_entropy(&AsciiClassifier, password.as_bytes());
             let strength_icon = match entropy.into() {
                 PasswordStrenth::VeryWeak => "strength-very-weak",
                 PasswordStrenth::Weak => "strength-weak",

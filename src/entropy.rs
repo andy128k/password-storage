@@ -1,8 +1,13 @@
 use std::convert::Into;
 use std::collections::{HashMap, HashSet};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CharClass {
+pub trait CharClassifier<T> {
+    fn classify(&self, ch: u8) -> T;
+    fn class_size(&self, class: T) -> u32;
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum AsciiCharClass {
     Control,
     Number,
     Upper,
@@ -12,72 +17,38 @@ pub enum CharClass {
     Extended
 }
 
-fn create_classes() -> [CharClass; 256] {
-    let mut classes = [CharClass::Extended; 256];
-    for c in 0..32 {
-        classes[c] = CharClass::Control;
-    }
-    for c in 48..58 {
-        classes[c] = CharClass::Number;
-    }
-    for c in 65..91 {
-        classes[c] = CharClass::Upper;
-    }
-    for c in 97..123 {
-        classes[c] = CharClass::Lower;
-    }
-    for c in &[32, 33, 35, 36, 37, 38, 40, 41, 42, 43, 45, 47, 61, 64, 94, 95] {
-        classes[*c] = CharClass::Punct1;
-    }
-    for c in &[34, 39, 44, 46, 58, 59, 60, 62, 63, 91, 92, 93, 96, 123, 127] {
-        classes[*c] = CharClass::Punct2;
-    }
-    for c in 128..256 {
-        classes[c] = CharClass::Extended;
-    }
-    classes
-}
+#[derive(Default)]
+pub struct AsciiClassifier;
 
-fn class_sizes(map: &[CharClass]) -> HashMap<CharClass, u8> {
-    let mut result = HashMap::new();
-    for class in map.iter() {
-        let counter = result.entry(*class).or_insert(0);
-        *counter += 1;
-    }
-    result
-}
-
-pub struct AsciiClasses {
-    classes: [CharClass; 256],
-    sizes: HashMap<CharClass, u8>,
-}
-
-impl AsciiClasses {
-    pub fn new() -> Self {
-        let classes = create_classes();
-        let sizes = class_sizes(&classes);
-        Self { classes, sizes }
-    }
-}
-
-pub trait CharClassifier<T> {
-    fn classify(&self, ch: u8) -> T;
-    fn class_size(&self, class: T) -> u32;
-}
-
-impl CharClassifier<CharClass> for AsciiClasses {
-    fn classify(&self, ch: u8) -> CharClass {
-        self.classes[ch as usize]
+impl CharClassifier<AsciiCharClass> for AsciiClassifier {
+    fn classify(&self, ch: u8) -> AsciiCharClass {
+        match ch {
+            0..=31 | 127 => AsciiCharClass::Control,
+            48..=57 => AsciiCharClass::Number,
+            65..=90 => AsciiCharClass::Upper,
+            97..=122 => AsciiCharClass::Lower,
+            32 | 33 | 35 | 36 | 37 | 38 | 40 | 41 | 42 | 43 | 45 | 47 | 61 | 64 | 94 | 95 => AsciiCharClass::Punct1,
+            34 | 39 | 44 | 46 | 58 | 59 | 60 | 62 | 63 | 91 | 92 | 93 | 96 | 123 | 124 | 125 | 126 => AsciiCharClass::Punct2,
+            128..=255 => AsciiCharClass::Extended,
+        }
     }
 
-    fn class_size(&self, class: CharClass) -> u32 {
-        *self.sizes.get(&class).unwrap_or(&0u8) as u32
+    fn class_size(&self, class: AsciiCharClass) -> u32 {
+        match class {
+            AsciiCharClass::Control => 33,
+            AsciiCharClass::Number => 10,
+            AsciiCharClass::Upper => 26,
+            AsciiCharClass::Lower => 26,
+            AsciiCharClass::Punct1 => 16,
+            AsciiCharClass::Punct2 => 17,
+            AsciiCharClass::Extended => 128,
+        }
     }
 }
 
 fn character_distance(ch1: u8, ch2: u8) -> i32 {
     // TODO: check in known sequences... qwertyuiop, PI digits...
-    ((ch1 as i32) - (ch2 as i32)).abs()
+    (i32::from(ch1) - i32::from(ch2)).abs()
 }
 
 pub fn password_entropy<T>(classifier: &dyn CharClassifier<T>, passw: &[u8]) -> f32
@@ -158,50 +129,64 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_ascii_classifier() {
+        let classifier = AsciiClassifier;
+        let mut map = HashMap::new();
+        for ch in 0..=255 {
+            let class = classifier.classify(ch);
+            let class_chars = map.entry(class).or_insert(vec![]);
+            class_chars.push(ch);
+        }
+        for (class, chars) in &map {
+            assert_eq!(chars.len() as u32, classifier.class_size(*class), "Size of {:?} class.", class);
+        }
+    }
+
+    #[test]
     fn test_entropy_1() {
-        let classifier = AsciiClasses::new();
+        let classifier = AsciiClassifier;
         let entropy: PasswordStrenth = password_entropy(&classifier, b"1").into();
         assert_eq!(entropy, PasswordStrenth::VeryWeak);
     }
 
     #[test]
     fn test_entropy_123456() {
-        let classifier = AsciiClasses::new();
+        let classifier = AsciiClassifier;
         let entropy: PasswordStrenth = password_entropy(&classifier, b"123456").into();
         assert_eq!(entropy, PasswordStrenth::VeryWeak);
     }
 
     #[test]
     fn test_entropy_alphabet() {
-        let classifier = AsciiClasses::new();
+        let classifier = AsciiClassifier;
         let entropy: PasswordStrenth = password_entropy(&classifier, b"abcdef").into();
         assert_eq!(entropy, PasswordStrenth::VeryWeak);
     }
 
     #[test]
     fn test_entropy_qwerty() {
-        let classifier = AsciiClasses::new();
+        let classifier = AsciiClassifier;
         let entropy: PasswordStrenth = password_entropy(&classifier, b"QWERTY").into();
         assert_eq!(entropy, PasswordStrenth::Weak);
     }
 
     #[test]
     fn test_entropy_random_weak() {
-        let classifier = AsciiClasses::new();
+        let classifier = AsciiClassifier;
         let entropy: PasswordStrenth = password_entropy(&classifier, b"vsPi0v").into();
         assert_eq!(entropy, PasswordStrenth::Weak);
     }
 
     #[test]
     fn test_entropy_random_reasonable() {
-        let classifier = AsciiClasses::new();
+        let classifier = AsciiClassifier;
         let entropy: PasswordStrenth = password_entropy(&classifier, b"vsPi0vQk").into();
         assert_eq!(entropy, PasswordStrenth::Reasonable);
     }
 
     #[test]
     fn test_entropy_random_strong() {
-        let classifier = AsciiClasses::new();
+        let classifier = AsciiClassifier;
         let entropy: PasswordStrenth = password_entropy(&classifier, b"vsPi0vQk8J0KSHlG").into();
         assert_eq!(entropy, PasswordStrenth::Strong);
     }
