@@ -26,7 +26,7 @@ pub fn ask_save(parent_window: &Window, message: &str) -> AskSave {
     dlg.add_button("_Save", ResponseType::Ok);
     dlg.set_default_response(ResponseType::Ok);
 
-    let answer = dlg.run().into();
+    let answer = dlg.run();
     dlg.destroy();
 
     match answer {

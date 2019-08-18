@@ -60,7 +60,7 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
     loop {
         let button = dlg.run();
 
-        if button != ResponseType::Accept.into() {
+        if button != ResponseType::Accept {
             break;
         }
 

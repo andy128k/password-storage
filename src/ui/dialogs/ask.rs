@@ -19,5 +19,5 @@ pub fn ask(parent_window: &Window, message: &str) -> bool {
     let answer = dlg.run();
     dlg.destroy();
 
-    answer == ResponseType::Yes.into()
+    answer == ResponseType::Yes
 }

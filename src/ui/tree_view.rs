@@ -45,10 +45,10 @@ pub fn select_iter(view: &TreeView, iter: &TreeIter) {
             Ok(filter) => filter.convert_child_iter_to_iter(iter),
             Err(_) => Some(iter.clone())
         };
-        iter_to_select.and_then(|iter| current_model.get_path(&iter)).map(|path| {
+        if let Some(path) = iter_to_select.and_then(|iter| current_model.get_path(&iter)) {
             view.expand_to_path(&path);
             view.set_cursor(&path, None::<&TreeViewColumn>, false);
-        });
+        }
     }
 }
 

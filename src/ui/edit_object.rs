@@ -18,7 +18,7 @@ pub fn edit_object<T, W: FormWidget<T>>(object: Option<&T>, mut widget: W, paren
 
     widget.set_value(object);
 
-    let ok = dlg.run() == ResponseType::Ok.into();
+    let ok = dlg.run() == ResponseType::Ok;
 
     if ok {
         let new_object = widget.get_value();

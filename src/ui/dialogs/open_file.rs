@@ -15,7 +15,7 @@ pub fn open_file(parent_window: &Window) -> Option<PathBuf> {
     dlg.add_button("_Cancel", ResponseType::Cancel);
     dlg.add_button("_Open", ResponseType::Ok);
     dlg.set_default_response(ResponseType::Ok);
-    let open_clicked = dlg.run() == ResponseType::Ok.into();
+    let open_clicked = dlg.run() == ResponseType::Ok;
     let filename = dlg.get_filename();
     dlg.destroy();
 
