@@ -88,7 +88,9 @@ impl FormPrivate {
     }
 
     fn notify_change(&self, value: Option<&FormData>) {
-        self.change_callback.as_ref().map(|cb| cb(value));
+        if let Some(ref cb) = self.change_callback {
+            cb(value);
+        }
     }
 }
 

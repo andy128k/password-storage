@@ -49,22 +49,20 @@ impl FormWidget<String> for MultiLine {
     }
 
     fn set_value(&self, value: Option<&String>) {
-        self.text_view.get_buffer()
-            .map(|buffer| {
-                match value {
-                    Some(text) => buffer.set_text(text),
-                    None => buffer.set_text("")
-                }
-            });
+        if let Some(buffer) = self.text_view.get_buffer() {
+            match value {
+                Some(text) => buffer.set_text(text),
+                None => buffer.set_text("")
+            }
+        }
     }
 
     fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&String>)>) {
-        self.text_view.get_buffer()
-            .map(|buffer| {
-                buffer.connect_changed(move |buffer| {
-                    callback(buffer_get_text(buffer).as_ref());
-                });
+        if let Some(buffer) = self.text_view.get_buffer() {
+            buffer.connect_changed(move |buffer| {
+                callback(buffer_get_text(buffer).as_ref());
             });
+        }
     }
 }
 

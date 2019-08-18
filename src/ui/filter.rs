@@ -85,6 +85,8 @@ impl PSTreeFilter {
     }
 
     pub fn refilter(&self) {
-        self.0.borrow().filter.as_ref().map(|f| f.refilter());
+        if let Some(ref model_filter) = self.0.borrow().filter {
+            model_filter.refilter();
+        }
     }
 }

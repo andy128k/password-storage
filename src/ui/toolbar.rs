@@ -6,7 +6,7 @@ use crate::actions::*;
 use super::menu::create_add_entity_menu;
 
 fn button(label: &str, icon: &str, action: &PSAction) -> ToolButton {
-    let image = Image::new_from_icon_name(Some(icon), IconSize::SmallToolbar.into());
+    let image = Image::new_from_icon_name(Some(icon), IconSize::SmallToolbar);
     let item = ToolButton::new(Some(&image), Some(label));
     item.set_action_name(Some(action.full_name().as_ref()));
     item
@@ -20,7 +20,7 @@ pub fn create_tool_bar(search_entry: &Widget) -> Toolbar {
     toolbar.add(&button("Save file", "document-save", &PSAction::ViewMode(ViewModeAction::Save)));
     toolbar.add(&SeparatorToolItem::new());
     toolbar.add(&{
-        let image = Image::new_from_icon_name(Some("list-add"), IconSize::SmallToolbar.into());
+        let image = Image::new_from_icon_name(Some("list-add"), IconSize::SmallToolbar);
         let item = MenuToolButton::new(Some(&image), Some("Add entry"));
         item.set_menu(&Menu::new_from_model(&create_add_entity_menu()));
         let default_action = PSAction::ViewMode(ViewModeAction::Add(RECORD_TYPE_GENERIC.name.to_string()));
