@@ -64,17 +64,24 @@ fn record_to_markup(record: &Record, show_secrets: bool) -> String {
             match field.name {
                 "name" => {},
                 "description" => if !value.is_empty() {
+                    if !buf.is_empty() {
+                        buf.push('\n');
+                        buf.push('\n');
+                    }
                     buf.push_str(&glib::markup_escape_text(&value));
-                    buf.push('\n');
                 },
                 "url" => {
-                    buf.push('\n');
+                    if !buf.is_empty() {
+                        buf.push('\n');
+                    }
                     buf.push_str(&bold(field.title));
                     buf.push(' ');
                     buf.push_str(&url(&value));
                 },
                 _ => {
-                    buf.push('\n');
+                    if !buf.is_empty() {
+                        buf.push('\n');
+                    }
                     buf.push_str(&bold(field.title));
                     buf.push(' ');
                     buf.push_str(&glib::markup_escape_text(&value));
