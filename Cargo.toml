@@ -9,7 +9,7 @@ description = "Password storing program"
 readme = "README.md"
 
 [dependencies]
-lazy_static = "1.0.0"
+lazy_static = "1.4.0"
 failure = "0.1.1"
 debug-cell = "0.1.0"
 
