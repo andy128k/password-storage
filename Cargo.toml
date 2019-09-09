@@ -19,7 +19,7 @@ aes = "0.3.0"
 block-modes = "0.3.1"
 deflate = "0.7.17"
 inflate = "0.4.0"
-minidom = "0.11.0"
+minidom = "0.11.1"
 
 toml = "0.5"
 bincode = "1.0.0"
