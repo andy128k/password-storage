@@ -467,7 +467,7 @@ dependencies = [
 
 [[package]]
 name = "password-storage"
-version = "0.17.3"
+version = "0.17.5"
 dependencies = [
  "aes 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",

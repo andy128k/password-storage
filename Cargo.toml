@@ -1,6 +1,6 @@
 [package]
 name = "password-storage"
-version = "0.17.3"
+version = "0.17.5"
 authors = ["Andrey Kutejko <andy128k@gmail.com>"]
 build = "build.rs"
 edition = "2018"
