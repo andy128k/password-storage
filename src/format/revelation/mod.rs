@@ -10,7 +10,7 @@ pub fn load_revelation_file(filename: &Path, password: &str) -> Result<RecordTre
     let buf = read(filename)?;
     let decrypted = crypto_container::decrypt_file(&buf, password)?;
     let string: String = String::from_utf8(decrypted)?;
-    let element = string.parse()?;
+    let element = string.parse().map_err(|e: minidom::error::Error| failure::err_msg(e.to_string()))?;
     let tree = xml::record_tree_from_xml(&element)?;
     Ok(tree)
 }
@@ -19,7 +19,7 @@ pub fn save_revelation_file(filename: &Path, password: &str, tree: &RecordTree) 
     let element = xml::record_tree_to_xml(tree)?;
 
     let mut buf: Vec<u8> = Vec::new();
-    element.write_to(&mut buf)?;
+    element.write_to(&mut buf).map_err(|e| failure::err_msg(e.to_string()))?;
 
     let file_dump = crypto_container::encrypt_file(&buf, password);
     write(filename, &file_dump)?;
