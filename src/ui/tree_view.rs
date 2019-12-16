@@ -1,4 +1,4 @@
-use glib::{Value};
+use glib::{clone, Value};
 use gio::MenuModel;
 use gdk::{DragAction, Event};
 use gtk::prelude::*;
@@ -66,10 +66,9 @@ impl PSTreeView {
 
         let check_renderer = CellRendererToggle::new();
         check_renderer.set_visible(false);
-        {
-            let view1 = view.clone();
-            check_renderer.connect_toggled(move |_renderer, path| selection_toggled(&view1, &path));
-        }
+        check_renderer.connect_toggled(clone!(@weak view => move |_renderer, path| {
+            selection_toggled(&view, &path)
+        }));
         column.pack_start(&check_renderer, false);
 
         let icon = CellRendererPixbuf::new();
