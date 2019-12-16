@@ -200,7 +200,7 @@ impl PSTreeView {
 fn selection_toggled(view: &TreeView, path: &TreePath) {
     if let Some((model, iter)) = get_real_iter(view, path) {
         if let Ok(store) = model.downcast::<TreeStore>() {
-            let selected: bool = store.get_value(&iter, TreeStoreColumn::Selection.into()).get().unwrap_or(false);
+            let selected: bool = store.get_value(&iter, TreeStoreColumn::Selection.into()).get().unwrap().unwrap_or(false);
             store.set_value(&iter, TreeStoreColumn::Selection.into(), &Value::from(&!selected));
         }
     }
