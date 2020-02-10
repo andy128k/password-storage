@@ -103,7 +103,7 @@ impl Form {
         grid.set_row_spacing(8);
 
         let private = FormPrivate {
-            grid: grid.clone(),
+            grid,
             fields: Vec::new(),
             change_callback: None,
             validation: None

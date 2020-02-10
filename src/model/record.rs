@@ -300,7 +300,7 @@ impl Record {
 
     pub fn get_field(&self, field: &Field) -> String {
         match self.values.get(field.name) {
-            Some(name) => name.to_string(),
+            Some(name) => name,
             None => String::new()
         }
     }

@@ -18,7 +18,7 @@ fn get_value(entry: &Entry) -> Option<String> {
 
 impl<T> FormWidget<String> for T where T: EntryBasedWidget {
     fn get_widget(&self) -> Widget {
-        self.entry().clone().upcast()
+        self.entry().upcast()
     }
 
     fn get_value(&self) -> Option<String> {

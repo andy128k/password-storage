@@ -131,8 +131,7 @@ impl PSTreeView {
         let popup = gtk::Menu::new_from_model(&popup_model.clone());
         popup.attach_to_widget_no_detacher(&self.view);
 
-        let popup1 = popup.clone();
-        self.view.connect_button_press_event(move |view, event| {
+        self.view.connect_button_press_event(clone!(@weak popup => @default-return Inhibit(false), move |view, event| {
             let button = event.get_button();
             if button == GDK_BUTTON_SECONDARY {
                 view.grab_focus();
@@ -143,20 +142,19 @@ impl PSTreeView {
                 }
 
                 let base_event: &Event = event;
-                popup1.popup_at_pointer(Some(base_event));
+                popup.popup_at_pointer(Some(base_event));
 
                 Inhibit(true)
             } else {
                 Inhibit(false)
             }
-        });
+        }));
 
-        let popup2 = popup.clone();
-        self.view.connect_popup_menu(move |view| {
+        self.view.connect_popup_menu(clone!(@weak popup => @default-return false, move |view| {
             view.grab_focus();
-            popup2.popup_at_widget(view, gdk::Gravity::Center, gdk::Gravity::Center, None);
+            popup.popup_at_widget(view, gdk::Gravity::Center, gdk::Gravity::Center, None);
             true
-        });
+        }));
     }
 
     pub fn toggle_group(&self, path: &TreePath) {

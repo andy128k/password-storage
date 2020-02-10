@@ -147,7 +147,7 @@ fn get_usernames(win: &PSMainWindow) -> Vec<String> {
             if record.record_type.is_group {
                 traverse(store, Some(&i), result);
             } else {
-                record.username().map(|username| result.insert(username.to_owned()));
+                record.username().map(|username| result.insert(username));
             }
         }
     }
