@@ -34,7 +34,7 @@ impl Cache {
             cache_path()
                 .and_then(|filename| Self::from_file(&filename))
                 .unwrap_or_else(|err| {
-                    println!("{:?}", err);
+                    eprintln!("{:?}", err);
                     Default::default()
                 })
         )

@@ -13,7 +13,7 @@ fn item(label: &str, action: &PSAction, accel: Option<&str>, icon: Option<&str>)
     if let Some(icon_name) = icon {
         match Icon::new_for_string(icon_name) {
             Ok(icon) => item.set_icon(&icon),
-            Err(e) => println!("Cannot find icon {}. Reason: {}", icon_name, e)
+            Err(e) => eprintln!("Cannot find icon {}. Reason: {}", icon_name, e)
         }
     }
 
