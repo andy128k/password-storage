@@ -1,4 +1,3 @@
-use failure::{err_msg, format_err};
 use lazy_static::lazy_static;
 use minidom::{Node, Element};
 use crate::error::*;
@@ -200,7 +199,7 @@ pub fn record_tree_from_xml(elem: &Element) -> Result<RecordTree> {
                 Ok(RecordNode::Leaf(record))
             }
         } else {
-            Err(err_msg("Bad xml element"))
+            Err(format_err!("Bad xml element"))
         }
     }
 
@@ -212,7 +211,7 @@ pub fn record_tree_from_xml(elem: &Element) -> Result<RecordTree> {
     if elem.name() == "revelationdata" {
         read_records(elem)
     } else {
-        Err(err_msg("Bad xml element"))
+        Err(format_err!("Bad xml element"))
     }
 }
 

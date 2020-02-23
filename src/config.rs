@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 use std::fs::{read, write};
-use failure::err_msg;
 use serde::{Serialize, Deserialize};
 use glib::get_user_config_dir;
 use crate::error::*;
@@ -16,7 +15,7 @@ fn config_path() -> Result<PathBuf> {
         path.push("password-storage.toml");
         Ok(path)
     } else {
-        Err(err_msg("Path to config is not detected"))
+        Err(format_err!("Path to config is not detected"))
     }
 }
 

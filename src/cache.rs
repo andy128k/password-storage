@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 use std::fs::{read, write};
-use failure::err_msg;
 use serde::{Serialize, Deserialize};
 use glib::get_user_cache_dir;
 use crate::error::*;
@@ -18,7 +17,7 @@ fn cache_path() -> Result<PathBuf> {
         path.push("password-storage.toml");
         Ok(path)
     } else {
-        Err(err_msg("Path to cache is not detected"))
+        Err(format_err!("Path to cache is not detected"))
     }
 }
 
