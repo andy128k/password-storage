@@ -9,7 +9,6 @@ use gtk::{
     TreeViewDropPosition, IconSize,
 };
 use crate::store::TreeStoreColumn;
-use crate::utils::menu::MenuExtManual;
 
 const GDK_BUTTON_SECONDARY: u32 = 3;
 
@@ -129,7 +128,7 @@ impl PSTreeView {
 
     pub fn set_popup(&self, popup_model: &MenuModel) {
         let popup = gtk::Menu::new_from_model(&popup_model.clone());
-        popup.attach_to_widget_no_detacher(&self.view);
+        popup.set_property_attach_widget(Some(&self.view));
 
         self.view.connect_button_press_event(clone!(@weak popup => @default-return Inhibit(false), move |view, event| {
             let button = event.get_button();
