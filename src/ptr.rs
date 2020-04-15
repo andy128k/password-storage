@@ -1,4 +1,5 @@
 use std::rc::{Rc, Weak};
+use glib::clone::{Downgrade, Upgrade};
 
 pub struct SharedPtr<T>(Rc<debug_cell::RefCell<T>>);
 
@@ -51,5 +52,21 @@ impl<T> WeakPtr<T> {
 
     pub fn upgrade(&self) -> Option<SharedPtr<T>> {
         self.0.upgrade().map(SharedPtr::<T>)
+    }
+}
+
+impl<T> Downgrade for SharedPtr<T> {
+    type Weak = WeakPtr<T>;
+
+    fn downgrade(&self) -> Self::Weak {
+        SharedPtr::downgrade(self)
+    }
+}
+
+impl<T> Upgrade for WeakPtr<T> {
+    type Strong = SharedPtr<T>;
+
+    fn upgrade(&self) -> Option<Self::Strong> {
+        WeakPtr::upgrade(self)
     }
 }

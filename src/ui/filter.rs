@@ -1,9 +1,9 @@
-use std::rc::Rc;
-use std::cell::RefCell;
+use glib::clone;
 use gtk::prelude::*;
 use gtk::{TreeModel, TreeModelFilter, TreeModelFilterExt, TreeIter};
 use crate::model::record::Record;
 use crate::store::PSStore;
+use crate::ptr::SharedPtr;
 
 pub struct PSTreeFilterPrivate {
     model: Option<PSStore>,
@@ -11,8 +11,7 @@ pub struct PSTreeFilterPrivate {
     filter_func: Option<Box<dyn Fn(&Record) -> bool>>,
 }
 
-#[derive(Clone)]
-pub struct PSTreeFilter(Rc<RefCell<PSTreeFilterPrivate>>);
+pub type PSTreeFilter = SharedPtr<PSTreeFilterPrivate>;
 
 fn record_satisfies(store: &PSStore, filter_func: &(dyn Fn(&Record) -> bool + 'static), iter: &TreeIter) -> bool {
     if let Some(record) = store.get(iter) {
@@ -51,41 +50,37 @@ fn tree_filter_func(private: &PSTreeFilterPrivate, iter: &TreeIter) -> bool {
 impl PSTreeFilter {
     pub fn new() -> Self {
         let private = PSTreeFilterPrivate { model: None, filter: None, filter_func: None };
-        PSTreeFilter(Rc::new(RefCell::new(private)))
+        Self::from_private(private)
     }
 
     pub fn as_model(&self) -> Option<TreeModel> {
-        self.0.borrow().filter.clone().map(|m| m.upcast())
+        self.borrow().filter.clone().map(|m| m.upcast())
     }
 
     pub fn set_model(&self, model: Option<&PSStore>) {
         match model {
             Some(model) => {
-                let weak_private = Rc::downgrade(&self.0);
                 let filter = TreeModelFilter::new(&model.as_model(), None);
-                filter.set_visible_func(move |_model, iter| {
-                    if let Some(private) = weak_private.upgrade() {
-                        tree_filter_func(&private.borrow(), iter)
-                    } else {
-                        true
-                    }
-                });
-                self.0.borrow_mut().model = Some(model.clone());
-                self.0.borrow_mut().filter = Some(filter);
+                filter.set_visible_func(clone!(@weak self as this => @default-return true, move |_model, iter| {
+                    let private = this.borrow();
+                    tree_filter_func(&private, iter)
+                }));
+                self.borrow_mut().model = Some(model.clone());
+                self.borrow_mut().filter = Some(filter);
             },
             None => {
-                self.0.borrow_mut().model = None;
-                self.0.borrow_mut().filter = None;
+                self.borrow_mut().model = None;
+                self.borrow_mut().filter = None;
             }
         };
     }
 
     pub fn set_filter_func(&self, filter_func: Option<Box<dyn Fn(&Record) -> bool>>) {
-        self.0.borrow_mut().filter_func = filter_func;
+        self.borrow_mut().filter_func = filter_func;
     }
 
     pub fn refilter(&self) {
-        if let Some(ref model_filter) = self.0.borrow().filter {
+        if let Some(ref model_filter) = self.borrow().filter {
             model_filter.refilter();
         }
     }

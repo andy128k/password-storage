@@ -1,5 +1,6 @@
 use gio::prelude::*;
 use gio::ApplicationFlags;
+use glib::clone;
 use gtk::{Application};
 
 use crate::ptr::*;
@@ -21,47 +22,28 @@ impl PSApplication {
     pub fn new_app() -> Self {
         let gtk_app = Application::new(Some("net.andy128k.password-storage"), ApplicationFlags::HANDLES_OPEN)
             .expect("Initialization of application failed.");
-
         let app = PSApplication::from_private(PSApplicationPrivate {
             gtk_app: gtk_app.clone(),
             config: Config::load(),
             cache: Cache::load(),
             win: PSMainWindowWeak::new()
         });
-
-        {
-            gtk_app.connect_startup(move |_app| {
-                crate::icons::load_icons().unwrap();
-            });
-        }
-        {
-            let app_weak = app.downgrade();
-            gtk_app.connect_activate(move |_app| {
-                if let Some(app) = app_weak.upgrade() {
-                    app.activate();
-                }
-            });
-        }
-        {
-            let app_weak = app.downgrade();
-            gtk_app.connect_shutdown(move |_app| {
-                if let Some(app) = app_weak.upgrade() {
-                    app.borrow().config.save().unwrap();
-                    app.borrow().cache.save().unwrap();
-                }
-            });
-        }
-        {
-            let app_weak = app.downgrade();
-            gtk_app.connect_open(move |_app, files, _hint| {
-                if let Some(app) = app_weak.upgrade() {
-                    let path = files[0].get_path().unwrap(); // TODO: check
-                    let win = app.activate();
-                    do_open_file(&win, &path);
-                }
-            });
-        }
-
+        gtk_app.connect_startup(move |_gtk_app| {
+            crate::icons::load_icons().unwrap();
+        });
+        gtk_app.connect_activate(clone!(@weak app => move |_gtk_app| {
+            app.activate();
+        }));
+        gtk_app.connect_shutdown(clone!(@weak app => move |_gtk_app| {
+            app.borrow().config.save().unwrap();
+            app.borrow().cache.save().unwrap();
+        }));
+        gtk_app.connect_open(clone!(@weak app => move |_gtk_app, files, _hint| {
+            if let Some(path) = files[0].get_path() {
+                let win = app.activate();
+                do_open_file(&win, &path);
+            }
+        }));
         app
     }
 

@@ -683,7 +683,7 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
         stack,
         dashboard,
         data, view,
-        filter: filter.clone(),
+        filter: filter.retain(),
         search_entry,
         preview,
         statusbar,

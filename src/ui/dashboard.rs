@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use glib::clone;
 use gtk::prelude::*;
 use gtk::{Widget, Grid, Frame, ShadowType, ListBox, ListBoxRow, Align, Label};
 use crate::markup_builder::bold;
@@ -79,17 +80,13 @@ impl PSDashboard {
             on_activate: None
         });
 
-        {
-            let this = dashboard.downgrade();
-            dashboard.borrow().listbox.connect_row_activated(move |_, row| {
-                if let Some(dashboard) = this.upgrade() {
-                    if let Some(ref cb) = dashboard.borrow().on_activate {
-                        let filename: PathBuf = object_get_data(row, FILENAME_DATA_KEY).unwrap();
-                        cb(&filename);
-                    }
-                }
-            });
-        }
+        dashboard.borrow().listbox.connect_row_activated(clone!(@weak dashboard => move |_, row| {
+            let dashboard = dashboard.borrow();
+            if let Some(ref cb) = dashboard.on_activate {
+                let filename: PathBuf = object_get_data(row, FILENAME_DATA_KEY).unwrap();
+                cb(&filename);
+            }
+        }));
 
         dashboard
     }
