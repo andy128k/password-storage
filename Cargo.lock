@@ -108,7 +108,7 @@ version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c924d49bd09e7c06003acda26cd9742e796e34282ec6c1189404dee0c1f4774"
 dependencies = [
- "generic-array",
+ "generic-array 0.12.3",
 ]
 
 [[package]]
@@ -378,6 +378,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "generic-array"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d2664c2cf08049036f31015b04c6ac3671379a1d86f52ed2416893f16022deb"
+dependencies = [
+ "typenum",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -584,7 +593,7 @@ dependencies = [
  "embed-resource",
  "failure",
  "gdk",
- "generic-array",
+ "generic-array 0.14.1",
  "gio",
  "glib",
  "gtk",
