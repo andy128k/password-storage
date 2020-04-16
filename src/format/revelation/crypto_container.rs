@@ -1,10 +1,14 @@
-use rand::random;
-use generic_array::{GenericArray, typenum::U16};
-use aes::{Aes256, block_cipher_trait::BlockCipher};
-use block_modes::{BlockMode, Cbc};
-use block_modes::block_padding::Pkcs7;
-use inflate::inflate_bytes_zlib;
+use aes::{
+    block_cipher_trait::{
+        generic_array::{typenum::U16, GenericArray},
+        BlockCipher,
+    },
+    Aes256,
+};
+use block_modes::{block_padding::Pkcs7, BlockMode, Cbc};
 use deflate::deflate_bytes_zlib;
+use inflate::inflate_bytes_zlib;
+use rand::random;
 
 #[derive(Debug)]
 pub enum CryptoError {
