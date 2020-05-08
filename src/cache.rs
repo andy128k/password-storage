@@ -17,7 +17,7 @@ fn cache_path() -> Result<PathBuf> {
         path.push("password-storage.toml");
         Ok(path)
     } else {
-        Err(format_err!("Path to cache is not detected"))
+        Err("Path to cache is not detected".into())
     }
 }
 

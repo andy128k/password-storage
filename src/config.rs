@@ -15,7 +15,7 @@ fn config_path() -> Result<PathBuf> {
         path.push("password-storage.toml");
         Ok(path)
     } else {
-        Err(format_err!("Path to config is not detected"))
+        Err("Path to config is not detected".into())
     }
 }
 
