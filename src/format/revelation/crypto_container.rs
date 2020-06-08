@@ -1,7 +1,8 @@
 use aes::{
-    block_cipher_trait::{
+    block_cipher::{
         generic_array::{typenum::U16, GenericArray},
         BlockCipher,
+        NewBlockCipher,
     },
     Aes256,
 };
