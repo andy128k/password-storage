@@ -1,6 +1,6 @@
 [package]
 name = "password-storage"
-version = "0.17.5"
+version = "0.18.0"
 authors = ["Andrey Kutejko <andy128k@gmail.com>"]
 build = "build.rs"
 edition = "2018"
@@ -9,29 +9,29 @@ description = "Password storing program"
 readme = "README.md"
 
 [dependencies]
-lazy_static = "1.0.0"
-debug-cell = "0.1.0"
+lazy_static = "1"
+debug-cell = "0.1"
 
-rand = "0.7.0"
+rand = "0.7"
 aes = "0.4"
 block-modes = "0.4"
 deflate = "0.8"
-inflate = "0.4.0"
+inflate = "0.4"
 minidom = "0.12"
 
 toml = "0.5"
-bincode = "1.0.0"
+bincode = "1"
 serde = { version = "1", features = ["derive"] }
 
-libc = "*"
-glib = "0.9.0"
-gio = "0.8.0"
-gdk = "0.12.0"
-gtk = { version = "0.8.0", features = ["v3_22"] }
-gtk-sys = "0.9.0"
+libc = "0.2"
+glib = "0.9"
+gio = "0.8"
+gdk = "0.12"
+gtk = { version = "0.8", features = ["v3_22"] }
+gtk-sys = "0.9"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
-embed-resource = "1.2.0"
+embed-resource = "1"
 
 [package.metadata.deb]
 extended-description = "Password storing program"
