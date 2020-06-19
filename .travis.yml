@@ -12,7 +12,6 @@ matrix:
       cache: cargo
       rust: stable
       install:
-        - brew update
         - brew install pkg-config gtk+3 librsvg create-dmg
       script:
         - export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:/usr/local/opt/libffi/lib/pkgconfig"

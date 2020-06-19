@@ -2,7 +2,11 @@ use glib::{Bytes, error::Error};
 use gio::{Resource, resources_register};
 
 fn load_icons_resource() -> Result<Resource, Error> {
+    #[cfg(not(target_os = "windows"))]
     const ICONS_RESOURCE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/icons.gresource"));
+
+    #[cfg(target_os = "windows")]
+    const ICONS_RESOURCE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\icons.gresource"));
 
     let bytes = {
         // https://github.com/gtk-rs/glib/issues/120
