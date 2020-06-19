@@ -21,9 +21,10 @@ jobs:
       run: xvfb-run cargo test --verbose -- --nocapture --test-threads 1
     - name: Make deb
       id: make-deb
-      run: make deb
-      run: echo ::set-output name=deb-path::$(ls target/debian/password-storage*.deb)
-      run: echo ::set-output name=deb-name::$(basename target/debian/password-storage*.deb)
+      run: |
+        make deb
+        echo ::set-output name=deb-path::$(ls target/debian/password-storage*.deb)
+        echo ::set-output name=deb-name::$(basename target/debian/password-storage*.deb)
     - uses: actions/upload-release-asset@v1
       env:
         GITHUB_USER: ${{ secrets.GITHUB_USER }}
