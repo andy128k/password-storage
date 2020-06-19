@@ -1,0 +1,36 @@
+name: Release Linux
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    - uses: actions-rs/install@v0.1
+      with:
+        crate: cargo-deb
+        # use-tool-cache: true
+    - name: Install dependencies
+      run: sudo apt-get install -y --no-install-recommends libgtk-3-dev xvfb
+    - name: Make deb
+      id: make-deb
+      run: |
+        make deb
+        echo ::set-output name=deb-path::$(ls target/debian/password-storage*.deb)
+        echo ::set-output name=deb-name::$(basename target/debian/password-storage*.deb)
+    - uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_USER: ${{ secrets.DEPLOY_USER }}
+        GITHUB_TOKEN: ${{ secrets.DEPLOY_PAT }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ${{ steps.make-deb.outputs.deb-path }}
+        asset_name: ${{ steps.make-deb.outputs.deb-name }}
+        asset_content_type: application/octet-stream
