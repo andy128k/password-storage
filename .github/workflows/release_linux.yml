@@ -26,7 +26,8 @@ jobs:
       run: echo ::set-output name=deb-name::$(basename target/debian/password-storage*.deb)
     - uses: actions/upload-release-asset@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_USER: ${{ secrets.GITHUB_USER }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
         asset_path: ${{ steps.make-deb.outputs.deb-path }}

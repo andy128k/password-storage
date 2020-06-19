@@ -27,7 +27,8 @@ jobs:
       run: echo ::set-output name=dmg-name::$(basename target/dmg/PasswordStorage*.dmg)
     - uses: actions/upload-release-asset@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_USER: ${{ secrets.GITHUB_USER }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
         asset_path: ${{ steps.make-dmg.outputs.dmg-path }}
