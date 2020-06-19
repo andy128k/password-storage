@@ -1,0 +1,35 @@
+name: Release macos
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    - name: Install dependencies
+      run: brew install pkg-config gtk+3 librsvg create-dmg
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose -- --nocapture --test-threads 1
+    - name: Make dmg
+      id: make-dmg
+      run: VERSION=${{ github.event.release.tag_name }} make osx_app
+      run: mv target/dmg/PasswordStorage.dmg target/dmg/PasswordStorage-${{ github.event.release.tag_name }}.dmg
+      run: echo ::set-output name=dmg-path::$(ls target/dmg/PasswordStorage*.dmg)
+      run: echo ::set-output name=dmg-name::$(basename target/dmg/PasswordStorage*.dmg)
+    - uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ${{ steps.make-dmg.outputs.dmg-path }}
+        asset_name: ${{ steps.make-dmg.outputs.dmg-name }}
+        asset_content_type: application/octet-stream
