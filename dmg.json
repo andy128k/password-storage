@@ -1,0 +1,14 @@
+{
+    "title": "Password Storage",
+    "icon": "PasswordStorage.icns",
+    "window": {
+        "size": {
+            "width": 640,
+            "height": 320
+        }
+    },
+    "contents": [
+        { "x": 448, "y": 150, "type": "link", "path": "/Applications" },
+        { "x": 192, "y": 150, "type": "file", "path": "target/dmg/root/PasswordStorage.app" }
+    ]
+}

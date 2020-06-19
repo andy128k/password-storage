@@ -13,8 +13,9 @@ jobs:
       with:
         toolchain: stable
         override: true
+    - uses: actions/setup-node@v1
     - name: Install dependencies
-      run: brew install pkg-config gtk+3 librsvg create-dmg
+      run: brew install pkg-config gtk+3 librsvg
     - name: Build
       run: cargo build --verbose
     - name: Run tests
@@ -23,7 +24,6 @@ jobs:
       id: make-dmg
       run: |
         VERSION=${{ github.event.release.tag_name }} make osx_app
-        mv target/dmg/PasswordStorage.dmg target/dmg/PasswordStorage-${{ github.event.release.tag_name }}.dmg
         echo ::set-output name=dmg-path::$(ls target/dmg/PasswordStorage*.dmg)
         echo ::set-output name=dmg-name::$(basename target/dmg/PasswordStorage*.dmg)
     - uses: actions/upload-release-asset@v1

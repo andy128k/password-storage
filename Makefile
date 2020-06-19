@@ -34,15 +34,5 @@ osx_app: release osx_icon
 	cp macos/PasswordStorage                          target/dmg/root/PasswordStorage.app/Contents/MacOS/
 	cp PasswordStorage.icns                           target/dmg/root/PasswordStorage.app/Contents/Resources/
 	cp target/release/password-storage                target/dmg/root/PasswordStorage.app/Contents/Resources/
-	rm -f PasswordStorage.dmg
-	create-dmg \
-		--volname "Password Storage" \
-		--volicon PasswordStorage.icns \
-		--window-pos 200 120 \
-		--window-size 800 400 \
-		--icon-size 100 \
-		--icon "PasswordStorage.app" 200 200 \
-		--hide-extension "Application.app" \
-		--app-drop-link 600 200 \
-		target/dmg/PasswordStorage.dmg \
-		target/dmg/root
+	rm -f target/dmg/PasswordStorage.dmg
+	npx appdmg dmg.json target/dmg/PasswordStorage-$(VERSION).dmg
