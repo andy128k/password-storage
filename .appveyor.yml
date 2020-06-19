@@ -2,8 +2,6 @@ os: Visual Studio 2015
 
 environment:
   matrix:
-    # - channel: stable
-    #   target: x86_64-pc-windows-msvc
     - channel: stable
       target: x86_64-pc-windows-gnu
 
@@ -20,6 +18,9 @@ install:
 build: false
 
 test_script:
+  - set PATH=%USERPROFILE%\.cargo\bin;C:\msys64\usr\bin;C:\msys64\mingw64\bin
+  - set PKG_CONFIG_PATH=/mingw64/lib/pkgconfig
+  - set "RUSTFLAGS=-L C:\msys64\mingw64\lib"
   - set RUST_BACKTRACE=1
-  - cargo build --verbose
+  - cargo build -vvv
   - cargo test --no-fail-fast -- --nocapture --test-threads 1
