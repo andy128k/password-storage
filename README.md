@@ -1,10 +1,10 @@
 # Password Storage
 
-![CI Linux](https://github.com/andy128k/PassStorage/workflows/CI%20Linux/badge.svg)
-![CI macos](https://github.com/andy128k/PassStorage/workflows/CI%20macos/badge.svg)
-![CI Windows](https://github.com/andy128k/PassStorage/workflows/CI%20Windows/badge.svg)
+![CI Linux](https://github.com/andy128k/password-storage/workflows/CI%20Linux/badge.svg)
+![CI macos](https://github.com/andy128k/password-storage/workflows/CI%20macos/badge.svg)
+![CI Windows](https://github.com/andy128k/password-storage/workflows/CI%20Windows/badge.svg)
 
-[![codecov](https://codecov.io/gh/andy128k/PassStorage/branch/master/graph/badge.svg)](https://codecov.io/gh/andy128k/PassStorage)
+[![codecov](https://codecov.io/gh/andy128k/password-storage/branch/master/graph/badge.svg)](https://codecov.io/gh/andy128k/password-storage)
 
 Password storing program
 

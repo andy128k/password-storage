@@ -502,7 +502,7 @@ fn cb_about(win: &PSMainWindow) -> Result<()> {
     dlg.set_icon_name(Some("password-storage"));
     dlg.set_program_name("PasswordStorage");
     dlg.set_version(Some(version::VERSION));
-    dlg.set_website(Some("http://andy128k.github.com/PassStorage"));
+    dlg.set_website(Some("http://andy128k.github.com/password-storage"));
     dlg.run();
     dlg.destroy();
     Ok(())
