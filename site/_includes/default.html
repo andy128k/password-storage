@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <link rel="icon" type="image/png" href="/password-storage/favicon.png" />
+  <link rel="alternate" href="/password-storage/feed.atom" type="application/atom+xml"/>
+  <link rel="stylesheet" href="/password-storage/css/style.css" />
+  <title>PasswordStorage</title>
+</head>
+<body>
+<div id="container">
+
+  <div id="header">
+    <img src="/password-storage/icon.png">
+    <h1><a href="/password-storage/">PasswordStorage</a></h1>
+    <div id="motto">
+      Secure storage for your secrets
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <ul>
+      <li><a href="/password-storage/">Home</a></li>
+      <li><a href="/password-storage/news/">News</a></li>
+      <li><a href="/password-storage/screenshots/">Screenshots</a></li>
+      <li><a href="https://github.com/andy128k/password-storage/releases">Downloads</a></li>
+      <li><a href="https://github.com/andy128k/password-storage">GitHub page</a></li>
+      <li><a href="https://github.com/andy128k/password-storage/issues">Issues</a></li>
+    </ul>
+  </div>
+
+  <div id="body">
+    {% if title %}<h2>{{ title }}</h2>{% endif %}
+    {{ content }}
+  </div>
+
+  <div id="footer">
+    &copy; Andrey Kutejko <a href="mailto:andy128k@gmail.com">andy128k@gmail.com</a>
+  </div>
+
+</div>
+</body>
+</html>

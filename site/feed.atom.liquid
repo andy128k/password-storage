@@ -1,0 +1,42 @@
+---js
+{
+  permalink: "/feed.atom",
+  currentDate: new Date(),
+}
+---
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>http://andy128k.github.com/password-storage</id>
+  <updated>{{ currentDate | date: "%Y-%m-%dT%H:%M:%S%z" }}</updated>
+
+  <title type="text">PasswordStorage News</title>
+  <subtitle type="text">Secure storage for your secrets</subtitle>
+
+  <link rel="self" href="http://andy128k.github.com/password-storage/feed.atom" type="application/atom+xml"/>
+  <link rel="alternate" type="text/html" href="http://andy128k.github.com/password-storage/news.html"/>
+
+  <author>
+    <name>Andrey Kutejko</name>
+    <uri>http://github.com/andy128k</uri>
+    <email>andy128k@gmail.com</email>
+  </author>
+
+  {% for post in collections.news limit: 15 %}
+  <entry>
+    <id>{{ post.url | url }}</id>
+    <published>{{ post.date | date: "%Y-%m-%dT%H:%M:%S%z" }}</published>
+    <updated>{{ post.date | date: "%Y-%m-%dT%H:%M:%S%z" }}</updated>
+
+    <title type="text">{{ post.data.title | escape }}</title>
+    <content type="html">{{ post.templateContent | escape }}</content>
+
+    <link rel="alternate" href="{{ post.url | url }}" type="text/html"/>
+
+    <author>
+      <name>Andrey Kutejko</name>
+      <uri>http://github.com/andy128k</uri>
+      <email>andy128k@gmail.com</email>
+    </author>
+  </entry>
+  {% endfor %}
+</feed>
