@@ -1,4 +1,3 @@
-use glib;
 use gtk::prelude::*;
 use gtk::{Grid, Widget, Align, Image, Label};
 use crate::model::record::Record;
