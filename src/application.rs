@@ -60,7 +60,7 @@ impl PSApplication {
     }
 
     pub fn get_cache(&self) -> Cache {
-        self.borrow().cache.retain()
+        self.borrow().cache.clone()
     }
 
     pub fn run(&self) {

@@ -76,7 +76,7 @@ impl PSDashboard {
             container: centered(&grid),
             content: grid.upcast(),
             listbox,
-            cache: cache.retain(),
+            cache: cache.clone(),
             on_activate: None
         });
 
@@ -98,12 +98,12 @@ impl PSDashboard {
         }
         let mut first_row = None;
         let cache = &self.borrow().cache;
-        for filename in &cache.borrow().recent_files {
+        for filename in cache.recent_files() {
             if let Some(basename) = filename.file_name() {
                 let basename = basename.to_string_lossy();
                 let path = filename.to_string_lossy();
 
-                let row = create_row(filename, basename.as_ref(), path.as_ref());
+                let row = create_row(&filename, basename.as_ref(), path.as_ref());
                 self.borrow().listbox.add(&row);
 
                 if first_row.is_none() {
