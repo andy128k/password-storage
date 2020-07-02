@@ -4,16 +4,14 @@ use gtk::{Widget, Grid, Frame, ShadowType, ListBox, ListBoxRow, Align, Label};
 use crate::markup_builder::bold;
 use crate::cache::Cache;
 use crate::utils::object_data::{object_get_data, object_set_data};
-use crate::ptr::*;
 
-pub struct PSDashboardPrivate {
+#[derive(Clone)]
+pub struct PSDashboard {
     container: Widget,
     content: Widget,
     listbox: ListBox,
     cache: Cache,
 }
-
-pub type PSDashboard = SharedPtr<PSDashboardPrivate>;
 
 fn centered<W: IsA<Widget> + WidgetExt>(widget: &W) -> Widget {
     widget.set_hexpand(true);
@@ -56,7 +54,7 @@ fn create_row(filename: &PathBuf, basename: &str, path: &str) -> ListBoxRow {
 }
 
 impl PSDashboard {
-    pub fn new(cache: &Cache) -> PSDashboard {
+    pub fn new(cache: &Cache) -> Self {
         let title = Label::new(Some("Recent files"));
         title.set_halign(Align::Start);
         title.set_margin_top(20);
@@ -70,30 +68,28 @@ impl PSDashboard {
         grid.attach(&title, 0, 0, 1, 1);
         grid.attach(&framed(&listbox), 0, 1, 1, 1);
 
-        let dashboard = PSDashboard::from_private(PSDashboardPrivate {
+        Self {
             container: centered(&grid),
             content: grid.upcast(),
             listbox,
             cache: cache.clone(),
-        });
-
-        dashboard
+        }
     }
 
     pub fn update(&self) {
-        self.borrow().content.hide();
-        for row in self.borrow().listbox.get_children() {
-            self.borrow().listbox.remove(&row);
+        self.content.hide();
+        for row in self.listbox.get_children() {
+            self.listbox.remove(&row);
         }
         let mut first_row = None;
-        let cache = &self.borrow().cache;
+        let cache = &self.cache;
         for filename in cache.recent_files() {
             if let Some(basename) = filename.file_name() {
                 let basename = basename.to_string_lossy();
                 let path = filename.to_string_lossy();
 
                 let row = create_row(&filename, basename.as_ref(), path.as_ref());
-                self.borrow().listbox.add(&row);
+                self.listbox.add(&row);
 
                 if first_row.is_none() {
                     first_row = Some(row);
@@ -101,18 +97,18 @@ impl PSDashboard {
             }
         }
         if let Some(row) = first_row {
-            self.borrow().content.show_all();
-            self.borrow().listbox.select_row(Some(&row));
+            self.content.show_all();
+            self.listbox.select_row(Some(&row));
             row.grab_focus();
         }
     }
 
     pub fn get_widget(&self) -> Widget {
-        self.borrow().container.clone().upcast()
+        self.container.clone().upcast()
     }
 
     pub fn connect_activate<F: Fn(&Path) + 'static>(&self, callback: F) {
-        self.borrow().listbox.connect_row_activated(move |_, row| {
+        self.listbox.connect_row_activated(move |_, row| {
             let filename: PathBuf = object_get_data(row, FILENAME_DATA_KEY).unwrap();
             callback(&filename);
         });
