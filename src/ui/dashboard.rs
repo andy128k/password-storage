@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use glib::clone;
 use gtk::prelude::*;
 use gtk::{Widget, Grid, Frame, ShadowType, ListBox, ListBoxRow, Align, Label};
 use crate::markup_builder::bold;
@@ -12,7 +11,6 @@ pub struct PSDashboardPrivate {
     content: Widget,
     listbox: ListBox,
     cache: Cache,
-    on_activate: Option<Box<dyn Fn(&Path)>>
 }
 
 pub type PSDashboard = SharedPtr<PSDashboardPrivate>;
@@ -77,16 +75,7 @@ impl PSDashboard {
             content: grid.upcast(),
             listbox,
             cache: cache.clone(),
-            on_activate: None
         });
-
-        dashboard.borrow().listbox.connect_row_activated(clone!(@weak dashboard => move |_, row| {
-            let dashboard = dashboard.borrow();
-            if let Some(ref cb) = dashboard.on_activate {
-                let filename: PathBuf = object_get_data(row, FILENAME_DATA_KEY).unwrap();
-                cb(&filename);
-            }
-        }));
 
         dashboard
     }
@@ -122,7 +111,10 @@ impl PSDashboard {
         self.borrow().container.clone().upcast()
     }
 
-    pub fn connect_activate<F: Fn(&Path) + 'static>(&mut self, callback: F) {
-        self.borrow_mut().on_activate = Some(Box::new(callback));
+    pub fn connect_activate<F: Fn(&Path) + 'static>(&self, callback: F) {
+        self.borrow().listbox.connect_row_activated(move |_, row| {
+            let filename: PathBuf = object_get_data(row, FILENAME_DATA_KEY).unwrap();
+            callback(&filename);
+        });
     }
 }
