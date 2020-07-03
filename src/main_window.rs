@@ -31,7 +31,6 @@ use crate::ui::dialogs::open_file::open_file;
 use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::save_file::save_file;
 use crate::ui::dialogs::change_password::change_password;
-use crate::ui::dialogs::preferences::preferences;
 use crate::error::*;
 use crate::model::record::{Record, RecordType, RECORD_TYPES, FIELD_NAME};
 use crate::model::tree::RecordTree;
@@ -113,7 +112,7 @@ impl PSMainWindow {
         }
     }
 
-    fn window(&self) -> gtk::Window {
+    pub fn window(&self) -> gtk::Window {
         self.0.clone().upcast()
     }
 
@@ -179,7 +178,7 @@ fn listview_cursor_changed(win: &PSMainWindow, record: Option<Record>) {
         }
     }
 
-    let config = win.private().app.get_config();    
+    let config = win.private().app.get_config();
     win.private().preview.update(record, config.show_secrets_on_preview);
 }
 
@@ -500,15 +499,6 @@ fn cb_change_password(win: &PSMainWindow) -> Result<()> {
     Ok(())
 }
 
-fn cb_preferences(win: &PSMainWindow) -> Result<()> {
-    let window = win.private().main_window.clone().upcast();
-    let config = win.private().app.get_config();    
-    if let Some(new_config) = preferences(&window, &config) {
-        win.private().app.set_config(new_config);
-    }
-    Ok(())
-}
-
 fn cb_copy_name(win: &PSMainWindow) -> Result<()> {
     if let Some((iter, _path)) = win.private().view.get_selected_iter() {
         if let Some(record) = win.private().data.borrow().get(&iter) {
@@ -750,8 +740,6 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     }
 
     {
-        create_action(&win, PSAction::App(AppAction::Preferences), Box::new(cb_preferences));
-
         create_toggle_action(&win, PSAction::Doc(DocAction::MergeMode), Box::new(set_merge_mode));
 
         create_action(&win, PSAction::ViewMode(ViewModeAction::MergeFile), Box::new(cb_merge_file));

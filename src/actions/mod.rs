@@ -1,9 +1,4 @@
 #[derive(PartialEq, Eq, Hash)]
-pub enum AppAction {
-    Preferences,
-}
-
-#[derive(PartialEq, Eq, Hash)]
 pub enum DocAction {
     MergeMode
 }
@@ -45,7 +40,6 @@ pub enum PSActionGroup {
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum PSAction {
-    App(AppAction),
     Doc(DocAction),
     ViewMode(ViewModeAction),
     MergeMode(MergeModeAction),
@@ -53,14 +47,6 @@ pub enum PSAction {
 }
 
 // impl
-
-impl AppAction {
-    pub fn name(&self) -> String {
-        match *self {
-            AppAction::Preferences => "preferences",
-        }.to_string()
-    }
-}
 
 impl DocAction {
     pub fn name(&self) -> String {
@@ -120,7 +106,6 @@ impl PSActionGroup {
 impl PSAction {
     pub fn group(&self) -> PSActionGroup {
         match *self {
-            PSAction::App(_) => PSActionGroup::App,
             PSAction::Doc(_) => PSActionGroup::Doc,
             PSAction::ViewMode(_) => PSActionGroup::ViewMode,
             PSAction::MergeMode(_) => PSActionGroup::MergeMode,
@@ -130,7 +115,6 @@ impl PSAction {
 
     pub fn name(&self) -> (String, String) {
         let action_name = match *self {
-            PSAction::App(ref action) => action.name(),
             PSAction::Doc(ref action) => action.name(),
             PSAction::ViewMode(ref action) => action.name(),
             PSAction::MergeMode(ref action) => action.name(),

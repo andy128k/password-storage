@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use gio::prelude::*;
 use gio::ApplicationFlags;
 use glib::clone;
@@ -9,10 +10,11 @@ use crate::config::Config;
 use crate::cache::Cache;
 use crate::main_window::{PSMainWindow, old_main, do_open_file};
 use crate::ui::dialogs::about::about;
+use crate::ui::dialogs::preferences::preferences;
 
 pub struct PSApplicationPrivate {
     gtk_app: Application,
-    config: Config,
+    config: RefCell<Config>,
     cache: Cache,
 }
 
@@ -24,7 +26,7 @@ impl PSApplication {
             .expect("Initialization of application failed.");
         let app = PSApplication::from_private(PSApplicationPrivate {
             gtk_app: gtk_app.clone(),
-            config: Config::load(),
+            config: RefCell::new(Config::load()),
             cache: Cache::load(),
         });
         gtk_app.connect_startup(move |_gtk_app| {
@@ -34,7 +36,7 @@ impl PSApplication {
             app.activate();
         }));
         gtk_app.connect_shutdown(clone!(@weak app => move |_gtk_app| {
-            app.borrow().config.save().unwrap();
+            app.borrow().config.borrow().save().unwrap();
             app.borrow().cache.save().unwrap();
         }));
         gtk_app.connect_open(clone!(@weak app => move |_gtk_app, files, _hint| {
@@ -60,6 +62,17 @@ impl PSApplication {
             action.connect_activate(clone!(@weak gtk_app => move |_, _| {
                 let win = gtk_app.get_active_window();
                 about(win.as_ref());
+            }));
+            action
+        });
+        gtk_app.add_action(&{
+            let action = gio::SimpleAction::new("preferences", None);
+            action.connect_activate(clone!(@weak app => move |_, _| {
+                let win = app.activate();
+                let config = app.borrow().config.borrow().clone();
+                if let Some(new_config) = preferences(&win.window(), &config) {
+                    *app.borrow().config.borrow_mut() = new_config;
+                }
             }));
             action
         });
@@ -91,11 +104,7 @@ impl PSApplication {
     }
 
     pub fn get_config(&self) -> Config {
-        self.borrow().config.clone()
-    }
-
-    pub fn set_config(&self, new_config: Config) {
-        self.borrow_mut().config = new_config;
+        self.borrow().config.borrow().clone()
     }
 
     pub fn get_cache(&self) -> Cache {

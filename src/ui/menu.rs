@@ -123,7 +123,7 @@ pub fn create_menu_bar() -> MenuModel {
         });
         menu.append_section(None, &{
             Menu::new()
-                .item("_Preferences", &PSAction::App(AppAction::Preferences))
+                .item2("_Preferences", "app.preferences")
         });
         menu
     });
