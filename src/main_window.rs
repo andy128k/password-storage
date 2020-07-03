@@ -528,7 +528,6 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
         AppMode::Initial => {
             for (action_name, action) in win.private().actions.borrow().iter() {
                 let enabled = match action_name.group() {
-                    PSActionGroup::App => true,
                     PSActionGroup::Doc => false,
                     PSActionGroup::ViewMode => false,
                     PSActionGroup::MergeMode => false,
@@ -545,7 +544,6 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
         AppMode::FileOpened => {
             for (action_name, action) in win.private().actions.borrow().iter() {
                 let enabled = match action_name.group() {
-                    PSActionGroup::App => true,
                     PSActionGroup::Doc => true,
                     PSActionGroup::ViewMode => true,
                     PSActionGroup::MergeMode => false,
@@ -561,7 +559,6 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
         AppMode::MergeMode => {
             for (action_name, action) in win.private().actions.borrow().iter() {
                 let enabled = match action_name.group() {
-                    PSActionGroup::App => true,
                     PSActionGroup::Doc => true,
                     PSActionGroup::ViewMode => false,
                     PSActionGroup::MergeMode => true,
@@ -782,14 +779,10 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     {
         let mut groups = HashMap::new();
         for (name, action) in win.private().actions.borrow().iter() {
-            if name.group() == PSActionGroup::App {
-                app1.get_application().add_action(action);
-            } else {
-                groups
-                    .entry(name.group())
-                    .or_insert_with(SimpleActionGroup::new)
-                    .add_action(action);
-            }
+            groups
+                .entry(name.group())
+                .or_insert_with(SimpleActionGroup::new)
+                .add_action(action);
         }
 
         let window = win.private().main_window.clone();

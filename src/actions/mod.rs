@@ -31,7 +31,6 @@ pub enum RecordAction {
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum PSActionGroup {
-    App,
     Doc,
     ViewMode,
     MergeMode,
@@ -94,7 +93,6 @@ impl RecordAction {
 impl PSActionGroup {
     pub fn name(&self) -> &str {
         match *self {
-            PSActionGroup::App => "app",
             PSActionGroup::Doc => "doc",
             PSActionGroup::ViewMode => "file",
             PSActionGroup::MergeMode => "merge",
