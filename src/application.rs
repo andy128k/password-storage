@@ -1,18 +1,18 @@
 use gio::prelude::*;
 use gio::ApplicationFlags;
 use glib::clone;
+use gtk::prelude::*;
 use gtk::{Application};
 
 use crate::ptr::*;
 use crate::config::Config;
 use crate::cache::Cache;
-use crate::main_window::{PSMainWindow, PSMainWindowWeak, old_main, do_open_file};
+use crate::main_window::{PSMainWindow, old_main, do_open_file};
 
 pub struct PSApplicationPrivate {
     gtk_app: Application,
     config: Config,
     cache: Cache,
-    win: PSMainWindowWeak,
 }
 
 pub type PSApplication = SharedPtr<PSApplicationPrivate>;
@@ -25,7 +25,6 @@ impl PSApplication {
             gtk_app: gtk_app.clone(),
             config: Config::load(),
             cache: Cache::load(),
-            win: PSMainWindowWeak::new()
         });
         gtk_app.connect_startup(move |_gtk_app| {
             crate::icons::load_icons().unwrap();
@@ -71,13 +70,10 @@ impl PSApplication {
     }
 
     fn activate(&self) -> PSMainWindow {
-        let win_ref = self.borrow().win.upgrade();
-        if let Some(win) = win_ref {
+        if let Some(win) = self.borrow().gtk_app.get_active_window().and_then(|w| PSMainWindow::from_window(w)) {
             win
         } else {
-            let win = old_main(self);
-            self.borrow_mut().win = win.retain().downgrade();
-            win
+            old_main(self)
         }
     }
 }
