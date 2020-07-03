@@ -1,28 +1,27 @@
 use std::path::Path;
 use gtk::prelude::*;
-use gtk::{Widget, Grid, Frame, ShadowType, ListBox, Align, Label};
 use crate::cache::Cache;
 
 #[derive(Clone)]
 pub struct PSDashboard {
-    container: Widget,
-    content: Widget,
-    listbox: ListBox,
+    container: gtk::Widget,
+    content: gtk::Widget,
+    listbox: gtk::ListBox,
     cache: Cache,
 }
 
-fn centered<W: IsA<Widget> + WidgetExt>(widget: &W) -> Widget {
+fn centered<W: IsA<gtk::Widget> + WidgetExt>(widget: &W) -> gtk::Widget {
     widget.set_hexpand(true);
-    widget.set_halign(Align::Center);
+    widget.set_halign(gtk::Align::Center);
 
-    let grid = Grid::new();
+    let grid = gtk::Grid::new();
     grid.attach(widget, 0, 0, 1, 1);
     grid.upcast()
 }
 
-fn framed<W: IsA<Widget>>(widget: &W) -> Widget {
-    let frame = Frame::new(None);
-    frame.set_shadow_type(ShadowType::EtchedIn);
+fn framed<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
+    let frame = gtk::Frame::new(None);
+    frame.set_shadow_type(gtk::ShadowType::EtchedIn);
     frame.add(widget);
     frame.upcast()
 }
@@ -71,16 +70,20 @@ mod filerow {
 
 impl PSDashboard {
     pub fn new(cache: &Cache) -> Self {
-        let title = Label::new(Some("Recent files"));
-        title.set_halign(Align::Start);
-        title.set_margin_top(20);
-        title.set_margin_bottom(5);
+        let title = gtk::LabelBuilder::new()
+            .label("Recent files")
+            .halign(gtk::Align::Start)
+            .margin_top(20)
+            .margin_bottom(5)
+            .build();
 
-        let listbox = ListBox::new();
-        listbox.set_hexpand(true);
+        let listbox = gtk::ListBoxBuilder::new()
+            .hexpand(true)
+            .build();
 
-        let grid = Grid::new();
-        grid.set_property_width_request(400);
+        let grid = gtk::GridBuilder::new()
+            .width_request(400)
+            .build();
         grid.attach(&title, 0, 0, 1, 1);
         grid.attach(&framed(&listbox), 0, 1, 1, 1);
 
@@ -114,7 +117,7 @@ impl PSDashboard {
         }
     }
 
-    pub fn get_widget(&self) -> Widget {
+    pub fn get_widget(&self) -> gtk::Widget {
         self.container.clone().upcast()
     }
 
