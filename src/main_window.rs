@@ -2,6 +2,7 @@ use std::convert::Into;
 use std::collections::{HashSet, HashMap};
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::cell::{Cell, RefCell};
 use glib::clone;
 use gio::prelude::*;
@@ -37,7 +38,8 @@ use crate::model::tree::RecordTree;
 use crate::utils::clipboard::get_clipboard;
 use crate::format;
 use crate::store::PSStore;
-use crate::application::PSApplication;
+use crate::config::Config;
+use crate::cache::Cache;
 
 enum AppMode {
     Initial,
@@ -46,8 +48,6 @@ enum AppMode {
 }
 
 struct PSMainWindowPrivate {
-    app: PSApplication,
-
     main_window: ApplicationWindow,
     mode: Cell<AppMode>,
     stack: Stack,
@@ -67,6 +67,9 @@ struct PSMainWindowPrivate {
     filename: RefCell<Option<PathBuf>>,
     password: RefCell<Option<String>>,
     changed: Cell<bool>,
+
+    config: Rc<RefCell<Config>>,
+    cache: Cache,
 }
 
 #[derive(Clone)]
@@ -178,8 +181,8 @@ fn listview_cursor_changed(win: &PSMainWindow, record: Option<Record>) {
         }
     }
 
-    let config = win.private().app.get_config();
-    win.private().preview.update(record, config.show_secrets_on_preview);
+    let show_secrets_on_preview = win.private().config.borrow().show_secrets_on_preview;
+    win.private().preview.update(record, show_secrets_on_preview);
 }
 
 fn get_usernames(win: &PSMainWindow) -> Vec<String> {
@@ -366,7 +369,7 @@ fn save_data(win: &PSMainWindow, filename: &Path) -> Result<()> {
 
         set_status(win, &format!("File '{}' was saved", filename.to_string_lossy()));
         win.private().changed.set(false);
-        win.private().app.get_cache().add_file(filename);
+        win.private().cache.add_file(filename);
     }
     Ok(())
 }
@@ -414,7 +417,7 @@ fn set_data(win: &PSMainWindow, data: PSStore) {
 pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
     let window = &win.private().main_window.clone().upcast();
     if let Some((entries, password)) = load_data(filename, window) {
-        win.private().app.get_cache().add_file(filename);
+        win.private().cache.add_file(filename);
         win.private().search_entry.set_text("");
 
         let data = PSStore::from_tree(&entries);
@@ -670,26 +673,24 @@ fn create_toggle_action(win: &PSMainWindow, ps_action_name: actions::PSAction, c
     win.private().actions.borrow_mut().insert(ps_action_name, action);
 }
 
-pub fn old_main(app1: &PSApplication) -> PSMainWindow {
+pub fn old_main(app1: &gtk::Application, config: &Rc<RefCell<Config>>, cache: &Cache) -> PSMainWindow {
     let data = PSStore::new();
     let filter = PSTreeFilter::new();
     let view = PSTreeView::new();
     let preview = PSPreviewPanel::new();
 
-    let dashboard = PSDashboard::new(&app1.get_cache());
+    let dashboard = PSDashboard::new(cache);
 
     let file_widget = create_file_widget(&view, &preview);
 
     let stack = create_content_widget(&dashboard.get_widget(), &file_widget);
 
-    let (main_window, search_entry, statusbar) = create_main_window(&app1.get_application(), &stack.clone().upcast());
+    let (main_window, search_entry, statusbar) = create_main_window(app1, &stack.clone().upcast());
 
     filter.set_model(Some(&data));
     view.set_model(Some(&data.as_model()));
 
     let private = PSMainWindowPrivate {
-        app: app1.retain(),
-
         mode: Cell::new(AppMode::Initial),
         main_window: main_window.clone(),
         stack,
@@ -706,6 +707,9 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
         filename: RefCell::new(None),
         password: RefCell::new(None),
         changed: Cell::new(false),
+
+        config: config.clone(),
+        cache: cache.clone(),
     };
     unsafe {
         main_window.set_data("private", private);
@@ -726,8 +730,7 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
         let win1 = win.clone();
         filter.set_filter_func(Some(Box::new(move |record| {
             let search_text = win1.private().search_entry.get_text();
-            let config = win1.private().app.get_config();    
-            let look_at_secrets = config.search_in_secrets;
+            let look_at_secrets = win1.private().config.borrow().search_in_secrets;
             if let Some(ref text) = search_text {
                 record.has_text(text, look_at_secrets)
             } else {

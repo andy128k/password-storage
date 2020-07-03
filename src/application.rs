@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::cell::RefCell;
 use gio::prelude::*;
 use gio::ApplicationFlags;
@@ -14,7 +15,7 @@ use crate::ui::dialogs::preferences::preferences;
 
 pub struct PSApplicationPrivate {
     gtk_app: Application,
-    config: RefCell<Config>,
+    config: Rc<RefCell<Config>>,
     cache: Cache,
 }
 
@@ -26,7 +27,7 @@ impl PSApplication {
             .expect("Initialization of application failed.");
         let app = PSApplication::from_private(PSApplicationPrivate {
             gtk_app: gtk_app.clone(),
-            config: RefCell::new(Config::load()),
+            config: Rc::new(RefCell::new(Config::load())),
             cache: Cache::load(),
         });
         gtk_app.connect_startup(move |_gtk_app| {
@@ -82,7 +83,7 @@ impl PSApplication {
                 if let Some(win) = app.active_window() {
                     win.new_file();
                 } else {
-                    old_main(&app);
+                    app.new_window();
                 }
             }));
             action
@@ -97,18 +98,6 @@ impl PSApplication {
         });
 
         app
-    }
-
-    pub fn get_application(&self) -> Application {
-        self.borrow().gtk_app.clone()
-    }
-
-    pub fn get_config(&self) -> Config {
-        self.borrow().config.borrow().clone()
-    }
-
-    pub fn get_cache(&self) -> Cache {
-        self.borrow().cache.clone()
     }
 
     pub fn run(&self) {
@@ -127,7 +116,14 @@ impl PSApplication {
         if let Some(win) = self.active_window() {
             win
         } else {
-            old_main(self)
+            self.new_window()
         }
+    }
+
+    fn new_window(&self) -> PSMainWindow {
+        let gtk_app = self.borrow().gtk_app.clone();
+        let config = self.borrow().config.clone();
+        let cache = self.borrow().cache.clone();
+        old_main(&gtk_app, &config, &cache)
     }
 }
