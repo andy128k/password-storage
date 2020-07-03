@@ -1,9 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use gtk::prelude::*;
-use gtk::{Widget, Grid, Frame, ShadowType, ListBox, ListBoxRow, Align, Label};
-use crate::markup_builder::bold;
+use gtk::{Widget, Grid, Frame, ShadowType, ListBox, Align, Label};
 use crate::cache::Cache;
-use crate::utils::object_data::{object_get_data, object_set_data};
 
 #[derive(Clone)]
 pub struct PSDashboard {
@@ -29,28 +27,46 @@ fn framed<W: IsA<Widget>>(widget: &W) -> Widget {
     frame.upcast()
 }
 
-const FILENAME_DATA_KEY: &str = "filename";
+mod filerow {
+    use std::path::PathBuf;
+    use gtk::prelude::*;
+    use crate::markup_builder::bold;
+    use crate::utils::object_data::{object_get_data, object_set_data};
+    use crate::error::*;
 
-fn create_row(filename: &PathBuf, basename: &str, path: &str) -> ListBoxRow {
-    let grid = Grid::new();
-    grid.set_property_margin(10);
+    const FILENAME_DATA_KEY: &str = "filename";
 
-    let label1 = Label::new(None);
-    label1.set_markup(&bold(basename));
-    label1.set_margin_bottom(5);
-    label1.set_halign(Align::Start);
-    grid.attach(&label1, 0, 0, 1, 1);
+    pub fn create(filename: PathBuf) -> Option<gtk::ListBoxRow> {
+        let basename = filename.file_name()?;
 
-    let label2 = Label::new(Some(path));
-    label2.set_halign(Align::Start);
-    grid.attach(&label2, 0, 1, 1, 1);
+        let grid = gtk::Grid::new();
+        grid.set_property_margin(10);
 
-    let row = ListBoxRow::new();
-    row.add(&grid);
+        let label1 = gtk::LabelBuilder::new()
+            .use_markup(true)
+            .label(&bold(basename.to_string_lossy().as_ref()))
+            .margin_bottom(5)
+            .halign(gtk::Align::Start)
+            .build();
+        grid.attach(&label1, 0, 0, 1, 1);
 
-    object_set_data(&row, FILENAME_DATA_KEY, filename).unwrap();
+        let label2 = gtk::LabelBuilder::new()
+            .label(filename.to_string_lossy().as_ref())
+            .halign(gtk::Align::Start)
+            .build();
+        grid.attach(&label2, 0, 1, 1, 1);
 
-    row
+        let row = gtk::ListBoxRow::new();
+        row.add(&grid);
+
+        object_set_data(&row, FILENAME_DATA_KEY, &filename).ok()?;
+
+        Some(row)
+    }
+
+    pub fn get_filename(row: &gtk::ListBoxRow) -> Result<PathBuf> {
+        object_get_data(row, FILENAME_DATA_KEY)
+    }
 }
 
 impl PSDashboard {
@@ -84,13 +100,8 @@ impl PSDashboard {
         let mut first_row = None;
         let cache = &self.cache;
         for filename in cache.recent_files() {
-            if let Some(basename) = filename.file_name() {
-                let basename = basename.to_string_lossy();
-                let path = filename.to_string_lossy();
-
-                let row = create_row(&filename, basename.as_ref(), path.as_ref());
+            if let Some(row) = filerow::create(filename) {
                 self.listbox.add(&row);
-
                 if first_row.is_none() {
                     first_row = Some(row);
                 }
@@ -109,8 +120,10 @@ impl PSDashboard {
 
     pub fn connect_activate<F: Fn(&Path) + 'static>(&self, callback: F) {
         self.listbox.connect_row_activated(move |_, row| {
-            let filename: PathBuf = object_get_data(row, FILENAME_DATA_KEY).unwrap();
-            callback(&filename);
+            match filerow::get_filename(row) {
+                Ok(filename) => callback(&filename),
+                Err(err) => eprintln!("Cannot get filename. {}", err),
+            }
         });
     }
 }
