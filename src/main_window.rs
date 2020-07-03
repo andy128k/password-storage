@@ -73,7 +73,7 @@ struct PSMainWindowPrivate {
 }
 
 #[derive(Clone)]
-pub struct PSMainWindow(pub gtk::ApplicationWindow);
+pub struct PSMainWindow(gtk::ApplicationWindow);
 
 pub struct PSMainWindowWeak(glib::object::WeakRef<gtk::ApplicationWindow>);
 

@@ -5,52 +5,85 @@ use gio::ApplicationFlags;
 use glib::clone;
 use gtk::prelude::*;
 use gtk::{Application};
-
-use crate::ptr::*;
 use crate::config::Config;
 use crate::cache::Cache;
 use crate::main_window::{PSMainWindow, old_main, do_open_file};
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
+use crate::utils::object_data::ObjectDataExt;
 
-pub struct PSApplicationPrivate {
-    gtk_app: Application,
+struct PSApplicationPrivate {
     config: Rc<RefCell<Config>>,
     cache: Cache,
 }
 
-pub type PSApplication = SharedPtr<PSApplicationPrivate>;
+#[derive(Clone)]
+pub struct PSApplication(gtk::Application);
+
+pub struct PSApplicationWeak(glib::object::WeakRef<gtk::Application>);
+
+impl glib::clone::Downgrade for PSApplication {
+    type Weak = PSApplicationWeak;
+
+    fn downgrade(&self) -> Self::Weak {
+        PSApplicationWeak(glib::clone::Downgrade::downgrade(&self.0))
+    }
+}
+
+impl glib::clone::Upgrade for PSApplicationWeak {
+    type Strong = PSApplication;
+
+    fn upgrade(&self) -> Option<Self::Strong> {
+        glib::clone::Upgrade::upgrade(&self.0)
+            .map(|upgraded_inner| PSApplication(upgraded_inner))
+    }
+}
 
 impl PSApplication {
-    pub fn new_app() -> Self {
+    fn create() -> Self {
         let gtk_app = Application::new(Some("net.andy128k.password-storage"), ApplicationFlags::HANDLES_OPEN)
             .expect("Initialization of application failed.");
-        let app = PSApplication::from_private(PSApplicationPrivate {
-            gtk_app: gtk_app.clone(),
+        let private = PSApplicationPrivate {
             config: Rc::new(RefCell::new(Config::load())),
             cache: Cache::load(),
-        });
-        gtk_app.connect_startup(move |_gtk_app| {
+        };
+        unsafe {
+            gtk_app.set_data("private", private);
+        }
+        Self(gtk_app)
+    }
+
+    fn private(&self) -> &PSApplicationPrivate {
+        unsafe {
+            self.0.get_data("private").unwrap()
+        }
+    }
+
+    pub fn new_app() -> Self {
+        let app = Self::create();
+
+        app.0.connect_startup(move |_gtk_app| {
             crate::icons::load_icons().unwrap();
         });
-        gtk_app.connect_activate(clone!(@weak app => move |_gtk_app| {
+        app.0.connect_activate(clone!(@weak app => move |_gtk_app| {
             app.activate();
         }));
-        gtk_app.connect_shutdown(clone!(@weak app => move |_gtk_app| {
-            app.borrow().config.borrow().save().unwrap();
-            app.borrow().cache.save().unwrap();
+        app.0.connect_shutdown(clone!(@weak app => move |_gtk_app| {
+            let private = app.private();
+            private.config.borrow().save().unwrap();
+            private.cache.save().unwrap();
         }));
-        gtk_app.connect_open(clone!(@weak app => move |_gtk_app, files, _hint| {
+        app.0.connect_open(clone!(@weak app => move |_gtk_app, files, _hint| {
             if let Some(path) = files[0].get_path() {
                 let win = app.activate();
                 do_open_file(&win, &path);
             }
         }));
 
-        gtk_app.add_action(&{
+        app.0.add_action(&{
             let action = gio::SimpleAction::new("quit", None);
-            action.connect_activate(clone!(@weak gtk_app => move |_, _| {
-                for window in gtk_app.get_windows() {
+            action.connect_activate(clone!(@weak app => move |_, _| {
+                for window in app.0.get_windows() {
                     if let Some(win) = PSMainWindow::from_window(&window) {
                         win.close();
                     }
@@ -58,26 +91,27 @@ impl PSApplication {
             }));
             action
         });
-        gtk_app.add_action(&{
+        app.0.add_action(&{
             let action = gio::SimpleAction::new("about", None);
-            action.connect_activate(clone!(@weak gtk_app => move |_, _| {
-                let win = gtk_app.get_active_window();
+            action.connect_activate(clone!(@weak app => move |_, _| {
+                let win = app.0.get_active_window();
                 about(win.as_ref());
             }));
             action
         });
-        gtk_app.add_action(&{
+        app.0.add_action(&{
             let action = gio::SimpleAction::new("preferences", None);
             action.connect_activate(clone!(@weak app => move |_, _| {
                 let win = app.activate();
-                let config = app.borrow().config.borrow().clone();
+                let private = app.private();
+                let config = private.config.borrow().clone();
                 if let Some(new_config) = preferences(&win.window(), &config) {
-                    *app.borrow().config.borrow_mut() = new_config;
+                    *private.config.borrow_mut() = new_config;
                 }
             }));
             action
         });
-        gtk_app.add_action(&{
+        app.0.add_action(&{
             let action = gio::SimpleAction::new("new", None);
             action.connect_activate(clone!(@weak app => move |_, _| {
                 if let Some(win) = app.active_window() {
@@ -88,7 +122,7 @@ impl PSApplication {
             }));
             action
         });
-        gtk_app.add_action(&{
+        app.0.add_action(&{
             let action = gio::SimpleAction::new("open", None);
             action.connect_activate(clone!(@weak app => move |_, _| {
                 let win = app.activate();
@@ -102,14 +136,12 @@ impl PSApplication {
 
     pub fn run(&self) {
         let argv: Vec<String> = std::env::args().collect();
-        let gtk_app = self.borrow().gtk_app.clone();
-        let code = gtk_app.run(&argv);
-
+        let code = self.0.run(&argv);
         std::process::exit(code);
     }
 
     fn active_window(&self) -> Option<PSMainWindow> {
-        self.borrow().gtk_app.get_active_window().and_then(|w| PSMainWindow::from_window(&w))
+        self.0.get_active_window().and_then(|w| PSMainWindow::from_window(&w))
     }
 
     fn activate(&self) -> PSMainWindow {
@@ -121,9 +153,8 @@ impl PSApplication {
     }
 
     fn new_window(&self) -> PSMainWindow {
-        let gtk_app = self.borrow().gtk_app.clone();
-        let config = self.borrow().config.clone();
-        let cache = self.borrow().cache.clone();
-        old_main(&gtk_app, &config, &cache)
+        let gtk_app = self.0.clone();
+        let private = self.private();
+        old_main(&gtk_app, &private.config, &private.cache)
     }
 }
