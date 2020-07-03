@@ -2,6 +2,7 @@ use std::convert::Into;
 use std::collections::{HashSet, HashMap};
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
+use glib::clone;
 use gio::prelude::*;
 use gio::{
     SimpleAction, SimpleActionGroup,
@@ -80,28 +81,31 @@ fn set_status(win: &PSMainWindow, message: &str) {
     statusbar.push(0, message);
 }
 
-fn ensure_data_is_saved(win: &PSMainWindow) -> Result<bool> {
-    if win.borrow().changed {
-        match ask_save(&win.borrow().main_window.clone().upcast(), "Save changes before closing? If you don't save, changes will be permanently lost.") {
-            AskSave::Save => {
-                cb_save(win)?;
-                Ok(true)
-            },
-            AskSave::Discard =>
-                Ok(true),
-            AskSave::Cancel =>
-                Ok(false)
+impl PSMainWindow {
+    fn ensure_data_is_saved(&self) -> Result<bool> {
+        if self.borrow().changed {
+            match ask_save(&self.borrow().main_window.clone().upcast(), "Save changes before closing? If you don't save, changes will be permanently lost.") {
+                AskSave::Save => {
+                    cb_save(self)?;
+                    Ok(true)
+                },
+                AskSave::Discard =>
+                    Ok(true),
+                AskSave::Cancel =>
+                    Ok(false)
+            }
+        } else {
+            Ok(true)
         }
-    } else {
-        Ok(true)
     }
-}
 
-fn e_close(win: &PSMainWindow) -> Result<()> {
-    if ensure_data_is_saved(win)? {
-        win.borrow().app.quit();
+    pub fn close(&self) -> Result<()> {
+        if self.ensure_data_is_saved()? {
+            self.borrow().main_window.destroy();
+            get_clipboard().clear();
+        }
+        Ok(())
     }
-    Ok(())
 }
 
 fn get_selected_group_iter(win: &PSMainWindow) -> Option<TreeIter> {
@@ -346,7 +350,7 @@ fn set_filename(win: &PSMainWindow, filename: Option<&Path>) {
 }
 
 fn cb_new(win: &PSMainWindow) -> Result<()> {
-    if ensure_data_is_saved(win)? {
+    if win.ensure_data_is_saved()? {
         win.borrow_mut().changed = false;
         set_data(win, PSStore::new());
         set_filename(win, None);
@@ -390,7 +394,7 @@ pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
 }
 
 fn cb_open(win: &PSMainWindow) -> Result<()> {
-    if ensure_data_is_saved(win)? {
+    if win.ensure_data_is_saved()? {
         let window = win.borrow().main_window.clone().upcast();
         if let Some(filename) = open_file(&window) {
             do_open_file(win, &filename);
@@ -434,7 +438,7 @@ fn cb_save(win: &PSMainWindow) -> Result<()> {
 }
 
 fn cb_close(win: &PSMainWindow) -> Result<()> {
-    if ensure_data_is_saved(win)? {
+    if win.ensure_data_is_saved()? {
         win.borrow_mut().changed = false;
         win.borrow().search_entry.set_text("");
         set_data(win, PSStore::new());
@@ -695,6 +699,21 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
         changed: false,
     });
 
+    win.borrow().main_window.connect_delete_event(clone!(@weak win => @default-return Inhibit(false), move |_win, _event| {
+        match win.ensure_data_is_saved() {
+            Ok(true) => {
+                get_clipboard().clear();
+                gtk::Inhibit(false)
+            },
+            Ok(false) => gtk::Inhibit(true),
+            Err(err) => {
+                let window = win.borrow().main_window.clone().upcast();
+                say_error(&window, &err.to_string());
+                gtk::Inhibit(true)
+            }
+        }
+    }));
+
     {
         let win1 = win.retain();
         filter.set_filter_func(Some(Box::new(move |record| {
@@ -712,7 +731,7 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     {
         create_action(&win, PSAction::App(AppAction::New), Box::new(cb_new));
         create_action(&win, PSAction::App(AppAction::Open), Box::new(cb_open));
-        create_action(&win, PSAction::App(AppAction::Quit), Box::new(e_close));
+        create_action(&win, PSAction::App(AppAction::Quit), Box::new(move |win| win.close()));
         create_action(&win, PSAction::App(AppAction::Preferences), Box::new(cb_preferences));
         create_action(&win, PSAction::App(AppAction::About), Box::new(cb_about));
 

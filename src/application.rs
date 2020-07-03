@@ -7,7 +7,6 @@ use crate::ptr::*;
 use crate::config::Config;
 use crate::cache::Cache;
 use crate::main_window::{PSMainWindow, PSMainWindowWeak, old_main, do_open_file};
-use crate::utils::clipboard::get_clipboard;
 
 pub struct PSApplicationPrivate {
     gtk_app: Application,
@@ -69,11 +68,6 @@ impl PSApplication {
         let code = gtk_app.run(&argv);
 
         std::process::exit(code);
-    }
-
-    pub fn quit(&self) {
-        self.borrow().gtk_app.quit();
-        get_clipboard().clear();
     }
 
     fn activate(&self) -> PSMainWindow {
