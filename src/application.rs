@@ -9,7 +9,6 @@ use crate::config::Config;
 use crate::cache::Cache;
 use crate::main_window::{PSMainWindow, old_main, do_open_file};
 use crate::ui::dialogs::about::about;
-use crate::ui::dialogs::say::say_error;
 
 pub struct PSApplicationPrivate {
     gtk_app: Application,
@@ -50,9 +49,7 @@ impl PSApplication {
             action.connect_activate(clone!(@weak gtk_app => move |_, _| {
                 for window in gtk_app.get_windows() {
                     if let Some(win) = PSMainWindow::from_window(&window) {
-                        if let Err(error) = win.close() {
-                            say_error(&window, &error.to_string());
-                        }
+                        win.close();
                     }
                 }
             }));

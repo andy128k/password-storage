@@ -117,29 +117,32 @@ impl PSMainWindow {
         self.0.clone().upcast()
     }
 
-    fn ensure_data_is_saved(&self) -> Result<bool> {
-        if self.private().changed.get() {
-            match ask_save(&self.window(), "Save changes before closing? If you don't save, changes will be permanently lost.") {
-                AskSave::Save => {
-                    cb_save(self)?;
-                    Ok(true)
-                },
-                AskSave::Discard =>
-                    Ok(true),
-                AskSave::Cancel =>
-                    Ok(false)
-            }
-        } else {
-            Ok(true)
+    fn ensure_data_is_saved(&self) -> bool {
+        if !self.private().changed.get() {
+            return true;
+        }
+        let window = self.window();
+        match ask_save(&window, "Save changes before closing? If you don't save, changes will be permanently lost.") {
+            AskSave::Save => {
+                if let Err(error) = cb_save(self) {
+                    say_error(&window, &error.to_string());
+                    false
+                } else {
+                    true
+                }
+            },
+            AskSave::Discard =>
+                true,
+            AskSave::Cancel =>
+                false,
         }
     }
 
-    pub fn close(&self) -> Result<()> {
-        if self.ensure_data_is_saved()? {
+    pub fn close(&self) {
+        if self.ensure_data_is_saved() {
             self.private().main_window.destroy();
             get_clipboard().clear();
         }
-        Ok(())
     }
 }
 
@@ -385,7 +388,7 @@ fn set_filename(win: &PSMainWindow, filename: Option<&Path>) {
 }
 
 fn cb_new(win: &PSMainWindow) -> Result<()> {
-    if win.ensure_data_is_saved()? {
+    if win.ensure_data_is_saved() {
         win.private().changed.set(false);
         set_data(win, PSStore::new());
         set_filename(win, None);
@@ -428,7 +431,7 @@ pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
 }
 
 fn cb_open(win: &PSMainWindow) -> Result<()> {
-    if win.ensure_data_is_saved()? {
+    if win.ensure_data_is_saved() {
         let window = win.private().main_window.clone().upcast();
         if let Some(filename) = open_file(&window) {
             do_open_file(win, &filename);
@@ -472,7 +475,7 @@ fn cb_save(win: &PSMainWindow) -> Result<()> {
 }
 
 fn cb_close(win: &PSMainWindow) -> Result<()> {
-    if win.ensure_data_is_saved()? {
+    if win.ensure_data_is_saved() {
         win.private().changed.set(false);
         win.private().search_entry.set_text("");
         set_data(win, PSStore::new());
@@ -722,17 +725,11 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     let win = PSMainWindow(main_window);
 
     win.private().main_window.connect_delete_event(clone!(@weak win => @default-return Inhibit(false), move |_win, _event| {
-        match win.ensure_data_is_saved() {
-            Ok(true) => {
-                get_clipboard().clear();
-                gtk::Inhibit(false)
-            },
-            Ok(false) => gtk::Inhibit(true),
-            Err(err) => {
-                let window = win.private().main_window.clone().upcast();
-                say_error(&window, &err.to_string());
-                gtk::Inhibit(true)
-            }
+        if win.ensure_data_is_saved() {
+            get_clipboard().clear();
+            gtk::Inhibit(false)
+        } else {
+            gtk::Inhibit(true)
         }
     }));
 
