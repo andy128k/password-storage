@@ -29,11 +29,13 @@ fn framed<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
 mod filerow {
     use std::path::PathBuf;
     use gtk::prelude::*;
+    use lazy_static::lazy_static;
     use crate::markup_builder::bold;
-    use crate::utils::object_data::{object_get_data, object_set_data};
-    use crate::error::*;
+    use crate::utils::object_data::ObjectDataExt;
 
-    const FILENAME_DATA_KEY: &str = "filename";
+    lazy_static! {
+        static ref FILENAME_DATA_KEY: glib::Quark = glib::Quark::from_string("filename");
+    }
 
     pub fn create(filename: PathBuf) -> Option<gtk::ListBoxRow> {
         let basename = filename.file_name()?;
@@ -58,13 +60,17 @@ mod filerow {
         let row = gtk::ListBoxRow::new();
         row.add(&grid);
 
-        object_set_data(&row, FILENAME_DATA_KEY, &filename).ok()?;
+        unsafe {
+            row.set_qdata(*FILENAME_DATA_KEY, filename);
+        }
 
         Some(row)
     }
 
-    pub fn get_filename(row: &gtk::ListBoxRow) -> Result<PathBuf> {
-        object_get_data(row, FILENAME_DATA_KEY)
+    pub fn get_filename(row: &gtk::ListBoxRow) -> Option<&PathBuf> {
+        unsafe {
+            row.get_qdata(*FILENAME_DATA_KEY)
+        }
     }
 }
 
@@ -124,8 +130,8 @@ impl PSDashboard {
     pub fn connect_activate<F: Fn(&Path) + 'static>(&self, callback: F) {
         self.listbox.connect_row_activated(move |_, row| {
             match filerow::get_filename(row) {
-                Ok(filename) => callback(&filename),
-                Err(err) => eprintln!("Cannot get filename. {}", err),
+                Some(filename) => callback(filename),
+                None => eprintln!("Cannot get filename."),
             }
         });
     }
