@@ -63,6 +63,17 @@ impl PSApplication {
             }));
             action
         });
+        gtk_app.add_action(&{
+            let action = gio::SimpleAction::new("new", None);
+            action.connect_activate(clone!(@weak app => move |_, _| {
+                if let Some(win) = app.active_window() {
+                    win.new_file();
+                } else {
+                    old_main(&app);
+                }
+            }));
+            action
+        });
 
         app
     }
@@ -91,8 +102,12 @@ impl PSApplication {
         std::process::exit(code);
     }
 
+    fn active_window(&self) -> Option<PSMainWindow> {
+        self.borrow().gtk_app.get_active_window().and_then(|w| PSMainWindow::from_window(&w))
+    }
+
     fn activate(&self) -> PSMainWindow {
-        if let Some(win) = self.borrow().gtk_app.get_active_window().and_then(|w| PSMainWindow::from_window(&w)) {
+        if let Some(win) = self.active_window() {
             win
         } else {
             old_main(self)

@@ -387,18 +387,19 @@ fn set_filename(win: &PSMainWindow, filename: Option<&Path>) {
     }
 }
 
-fn cb_new(win: &PSMainWindow) -> Result<()> {
-    if win.ensure_data_is_saved() {
-        win.private().changed.set(false);
-        set_data(win, PSStore::new());
-        set_filename(win, None);
-        win.private().search_entry.set_text("");
-        *win.private().password.borrow_mut() = None;
-        listview_cursor_changed(win, None);
-        set_status(win, "New file was created");
-        set_mode(win, AppMode::FileOpened);
+impl PSMainWindow {
+    pub fn new_file(&self) {
+        if self.ensure_data_is_saved() {
+            self.private().changed.set(false);
+            set_data(self, PSStore::new());
+            set_filename(self, None);
+            self.private().search_entry.set_text("");
+            *self.private().password.borrow_mut() = None;
+            listview_cursor_changed(self, None);
+            set_status(self, "New file was created");
+            set_mode(self, AppMode::FileOpened);
+        }
     }
-    Ok(())
 }
 
 fn set_data(win: &PSMainWindow, data: PSStore) {
@@ -748,7 +749,6 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     }
 
     {
-        create_action(&win, PSAction::App(AppAction::New), Box::new(cb_new));
         create_action(&win, PSAction::App(AppAction::Open), Box::new(cb_open));
         create_action(&win, PSAction::App(AppAction::Preferences), Box::new(cb_preferences));
 

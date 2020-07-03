@@ -85,7 +85,7 @@ pub fn create_menu_bar() -> MenuModel {
         let menu = Menu::new();
         menu.append_section(None, &{
             Menu::new()
-                .item_with_accel("_New", &PSAction::App(AppAction::New), "<Primary>n")
+                .with_accel("_New", "app.new", "<Primary>n")
                 .item_with_accel("_Open", &PSAction::App(AppAction::Open), "<Primary>o")
                 .item_with_accel("_Save", &PSAction::ViewMode(ViewModeAction::Save), "<Primary>s")
                 .item("Save _As...", &PSAction::ViewMode(ViewModeAction::SaveAs))

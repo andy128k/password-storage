@@ -12,10 +12,17 @@ fn button(label: &str, icon: &str, action: &PSAction) -> ToolButton {
     item
 }
 
+fn button2(label: &str, icon: &str, action: &str) -> ToolButton {
+    let image = Image::new_from_icon_name(Some(icon), IconSize::SmallToolbar);
+    let item = ToolButton::new(Some(&image), Some(label));
+    item.set_action_name(Some(action));
+    item
+}
+
 pub fn create_tool_bar(search_entry: &Widget) -> Toolbar {
     let toolbar = Toolbar::new();
 
-    toolbar.add(&button("New file", "document-new", &PSAction::App(AppAction::New)));
+    toolbar.add(&button2("New file", "document-new", "app.new"));
     toolbar.add(&button("Open file", "document-open", &PSAction::App(AppAction::Open)));
     toolbar.add(&button("Save file", "document-save", &PSAction::ViewMode(ViewModeAction::Save)));
     toolbar.add(&SeparatorToolItem::new());

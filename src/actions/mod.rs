@@ -1,6 +1,5 @@
 #[derive(PartialEq, Eq, Hash)]
 pub enum AppAction {
-    New,
     Open,
     Preferences,
 }
@@ -59,7 +58,6 @@ pub enum PSAction {
 impl AppAction {
     pub fn name(&self) -> String {
         match *self {
-            AppAction::New => "new",
             AppAction::Open => "open",
             AppAction::Preferences => "preferences",
         }.to_string()
