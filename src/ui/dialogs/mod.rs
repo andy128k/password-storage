@@ -1,3 +1,4 @@
+pub mod about;
 pub mod std;
 pub mod open_file;
 pub mod save_file;

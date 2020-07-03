@@ -12,9 +12,7 @@ use gtk::prelude::*;
 use gtk::{
     Application, ApplicationWindow, GtkApplicationExt, WindowPosition, Grid, ContainerExt, Statusbar, Align,
     Widget, Window, Stack, Paned, Orientation, ScrolledWindow, ScrolledWindowExt, Adjustment, PolicyType, ShadowType,
-    AboutDialog,
     TreeViewExt, TreeIter,
-    License
 };
 use crate::utils::object_data::ObjectDataExt;
 use crate::actions;
@@ -40,7 +38,6 @@ use crate::model::tree::RecordTree;
 use crate::utils::clipboard::get_clipboard;
 use crate::format;
 use crate::store::PSStore;
-use crate::version;
 use crate::application::PSApplication;
 
 enum AppMode {
@@ -102,8 +99,8 @@ fn set_status(win: &PSMainWindow, message: &str) {
 }
 
 impl PSMainWindow {
-    pub fn from_window(window: Window) -> Option<Self> {
-        let app_window = window.downcast::<gtk::ApplicationWindow>().ok()?;
+    pub fn from_window(window: &Window) -> Option<Self> {
+        let app_window = window.clone().downcast::<gtk::ApplicationWindow>().ok()?;
         if ! unsafe { *app_window.get_data("is_main_window").unwrap_or(&false) } {
             return None;
         }
@@ -531,24 +528,6 @@ fn cb_copy_password(win: &PSMainWindow) -> Result<()> {
     Ok(())
 }
 
-fn cb_about(win: &PSMainWindow) -> Result<()> {
-    let window = &win.private().main_window;
-    let dlg = AboutDialog::new();
-    dlg.set_property_window_position(WindowPosition::CenterOnParent);
-    dlg.set_transient_for(Some(window));
-    dlg.set_authors(&["Andrey Kutejko <andy128k@gmail.com>"]);
-    dlg.set_copyright(Some("Copyright 2009-2017, Andrey Kutejko"));
-    dlg.set_license_type(License::Lgpl30);
-    dlg.set_logo_icon_name(Some("password-storage"));
-    dlg.set_icon_name(Some("password-storage"));
-    dlg.set_program_name("PasswordStorage");
-    dlg.set_version(Some(version::VERSION));
-    dlg.set_website(Some("http://andy128k.github.com/password-storage"));
-    dlg.run();
-    dlg.destroy();
-    Ok(())
-}
-
 fn set_mode(win: &PSMainWindow, mode: AppMode) {
     match mode {
         AppMode::Initial => {
@@ -774,9 +753,7 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     {
         create_action(&win, PSAction::App(AppAction::New), Box::new(cb_new));
         create_action(&win, PSAction::App(AppAction::Open), Box::new(cb_open));
-        create_action(&win, PSAction::App(AppAction::Quit), Box::new(move |win| win.close()));
         create_action(&win, PSAction::App(AppAction::Preferences), Box::new(cb_preferences));
-        create_action(&win, PSAction::App(AppAction::About), Box::new(cb_about));
 
         create_toggle_action(&win, PSAction::Doc(DocAction::MergeMode), Box::new(set_merge_mode));
 

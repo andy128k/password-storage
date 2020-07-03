@@ -2,9 +2,7 @@
 pub enum AppAction {
     New,
     Open,
-    Quit,
     Preferences,
-    About
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -63,9 +61,7 @@ impl AppAction {
         match *self {
             AppAction::New => "new",
             AppAction::Open => "open",
-            AppAction::Quit => "quit",
             AppAction::Preferences => "preferences",
-            AppAction::About => "about"
         }.to_string()
     }
 }

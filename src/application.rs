@@ -8,6 +8,8 @@ use crate::ptr::*;
 use crate::config::Config;
 use crate::cache::Cache;
 use crate::main_window::{PSMainWindow, old_main, do_open_file};
+use crate::ui::dialogs::about::about;
+use crate::ui::dialogs::say::say_error;
 
 pub struct PSApplicationPrivate {
     gtk_app: Application,
@@ -42,6 +44,29 @@ impl PSApplication {
                 do_open_file(&win, &path);
             }
         }));
+
+        gtk_app.add_action(&{
+            let action = gio::SimpleAction::new("quit", None);
+            action.connect_activate(clone!(@weak gtk_app => move |_, _| {
+                for window in gtk_app.get_windows() {
+                    if let Some(win) = PSMainWindow::from_window(&window) {
+                        if let Err(error) = win.close() {
+                            say_error(&window, &error.to_string());
+                        }
+                    }
+                }
+            }));
+            action
+        });
+        gtk_app.add_action(&{
+            let action = gio::SimpleAction::new("about", None);
+            action.connect_activate(clone!(@weak gtk_app => move |_, _| {
+                let win = gtk_app.get_active_window();
+                about(win.as_ref());
+            }));
+            action
+        });
+
         app
     }
 
@@ -70,7 +95,7 @@ impl PSApplication {
     }
 
     fn activate(&self) -> PSMainWindow {
-        if let Some(win) = self.borrow().gtk_app.get_active_window().and_then(|w| PSMainWindow::from_window(w)) {
+        if let Some(win) = self.borrow().gtk_app.get_active_window().and_then(|w| PSMainWindow::from_window(&w)) {
             win
         } else {
             old_main(self)

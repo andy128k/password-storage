@@ -3,8 +3,8 @@ use gio::{MenuModel, Menu, MenuItem, Icon};
 use crate::actions::*;
 use crate::model::record::RECORD_TYPES;
 
-fn item(label: &str, action: &PSAction, accel: Option<&str>, icon: Option<&str>) -> MenuItem {
-    let item = MenuItem::new(Some(label), Some(action.full_name().as_ref()));
+fn item(label: &str, action: &str, accel: Option<&str>, icon: Option<&str>) -> MenuItem {
+    let item = MenuItem::new(Some(label), Some(action));
 
     if let Some(accel) = accel {
         item.set_attribute_value("accel", Some(&accel.into()));
@@ -23,16 +23,28 @@ fn item(label: &str, action: &PSAction, accel: Option<&str>, icon: Option<&str>)
 trait MenuBuilderExt {
     fn item(self, label: &str, action: &PSAction) -> Self;
     fn item_with_accel(self, label: &str, action: &PSAction, accel: &str) -> Self;
+    fn item2(self, label: &str, action: &str) -> Self;
+    fn with_accel(self, label: &str, action: &str, accel: &str) -> Self;
     fn submenu(self, label: &str, submenu: MenuModel) -> Self;
 }
 
 impl MenuBuilderExt for Menu {
     fn item(self, label: &str, action: &PSAction) -> Self {
-        self.append_item(&item(label, action, None, None));
+        self.append_item(&item(label, action.full_name().as_ref(), None, None));
         self
     }
 
     fn item_with_accel(self, label: &str, action: &PSAction, accel: &str) -> Self {
+        self.append_item(&item(label, action.full_name().as_ref(), Some(accel), None));
+        self
+    }
+
+    fn item2(self, label: &str, action: &str) -> Self {
+        self.append_item(&item(label, action, None, None));
+        self
+    }
+
+    fn with_accel(self, label: &str, action: &str, accel: &str) -> Self {
         self.append_item(&item(label, action, Some(accel), None));
         self
     }
@@ -48,7 +60,7 @@ pub fn create_add_entity_menu() -> MenuModel {
     for record_type in RECORD_TYPES.iter() {
         let label = format!("Add {}", record_type.name);
         let action = PSAction::ViewMode(ViewModeAction::Add(record_type.name.to_string()));
-        let item = item(&label, &action, None, Some(record_type.icon));
+        let item = item(&label, &action.full_name().as_ref(), None, Some(record_type.icon));
         menu.append_item(&item);
     }
     menu.upcast()
@@ -60,7 +72,7 @@ pub fn create_convert_entity_menu() -> MenuModel {
         if !record_type.is_group {
             let label = format!("Convert to {}", record_type.name);
             let action = PSAction::Record(RecordAction::ConvertTo(record_type.name.to_string()));
-            let item = item(&label, &action, None, Some(record_type.icon));
+            let item = item(&label, &action.full_name().as_ref(), None, Some(record_type.icon));
             menu.append_item(&item);
         }
     }
@@ -85,7 +97,7 @@ pub fn create_menu_bar() -> MenuModel {
         menu.append_section(None, &{
             Menu::new()
                 .item_with_accel("_Close", &PSAction::ViewMode(ViewModeAction::Close), "<Primary>w")
-                .item_with_accel("_Quit", &PSAction::App(AppAction::Quit), "<Primary>q")
+                .with_accel("_Quit", "app.quit", "<Primary>q")
         });
         menu
     });
@@ -125,7 +137,7 @@ pub fn create_menu_bar() -> MenuModel {
     });
     menu.append_submenu(Some("_Help"), &{
         Menu::new()
-            .item("_About...", &PSAction::App(AppAction::About))
+            .item2("_About...", "app.about")
     });
     menu.upcast()
 }
