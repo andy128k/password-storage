@@ -1,7 +1,7 @@
-use std::convert::Into;
-use glib::Value;
 use crate::model::record::{Record, RecordType, RECORD_TYPE_FIELD};
 use crate::utils::hash_table::*;
+use glib::Value;
+use std::convert::Into;
 
 impl Record {
     pub fn try_from_value(value: &Value) -> Option<Self> {

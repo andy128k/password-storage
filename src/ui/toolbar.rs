@@ -1,9 +1,12 @@
 use gtk::prelude::*;
-use gtk::{Widget, Toolbar, ToolItem, SeparatorToolItem, ToolButton, MenuToolButton, Menu, ToggleToolButton, Image, IconSize};
+use gtk::{
+    IconSize, Image, Menu, MenuToolButton, SeparatorToolItem, ToggleToolButton, ToolButton,
+    ToolItem, Toolbar, Widget,
+};
 
-use crate::model::record::RECORD_TYPE_GENERIC;
-use crate::actions::*;
 use super::menu::create_add_entity_menu;
+use crate::actions::*;
+use crate::model::record::RECORD_TYPE_GENERIC;
 
 fn button(label: &str, icon: &str, action: &PSAction) -> ToolButton {
     let image = Image::new_from_icon_name(Some(icon), IconSize::SmallToolbar);
@@ -24,13 +27,18 @@ pub fn create_tool_bar(search_entry: &Widget) -> Toolbar {
 
     toolbar.add(&button2("New file", "document-new", "app.new"));
     toolbar.add(&button2("Open file", "document-open", "app.open"));
-    toolbar.add(&button("Save file", "document-save", &PSAction::ViewMode(ViewModeAction::Save)));
+    toolbar.add(&button(
+        "Save file",
+        "document-save",
+        &PSAction::ViewMode(ViewModeAction::Save),
+    ));
     toolbar.add(&SeparatorToolItem::new());
     toolbar.add(&{
         let image = Image::new_from_icon_name(Some("list-add"), IconSize::SmallToolbar);
         let item = MenuToolButton::new(Some(&image), Some("Add entry"));
         item.set_menu(&Menu::new_from_model(&create_add_entity_menu()));
-        let default_action = PSAction::ViewMode(ViewModeAction::Add(RECORD_TYPE_GENERIC.name.to_string()));
+        let default_action =
+            PSAction::ViewMode(ViewModeAction::Add(RECORD_TYPE_GENERIC.name.to_string()));
         item.set_action_name(Some(default_action.full_name().as_ref()));
         item
     });
@@ -41,11 +49,17 @@ pub fn create_tool_bar(search_entry: &Widget) -> Toolbar {
         let item = ToggleToolButton::new();
         item.set_label(Some("Toggle merge mode"));
         item.set_icon_name(Some("merge-mode"));
-        item.set_action_name(Some(PSAction::Doc(DocAction::MergeMode).full_name().as_ref()));
+        item.set_action_name(Some(
+            PSAction::Doc(DocAction::MergeMode).full_name().as_ref(),
+        ));
         item
     });
 
-    toolbar.add(&button("Merge entries", "merge", &PSAction::MergeMode(MergeModeAction::Merge)));
+    toolbar.add(&button(
+        "Merge entries",
+        "merge",
+        &PSAction::MergeMode(MergeModeAction::Merge),
+    ));
 
     toolbar.add(&{
         // expander / separator

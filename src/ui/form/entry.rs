@@ -1,10 +1,10 @@
 use super::base::*;
-use glib::{Type, Value};
-use gtk::prelude::*;
-use gtk::{Widget, Entry, EntryIconPosition, EntryCompletion, InputPurpose, ListStore};
+use crate::password::generate_password;
 use crate::ui::dialogs::ask::ask;
 use crate::utils::string::non_empty;
-use crate::password::generate_password;
+use glib::{Type, Value};
+use gtk::prelude::*;
+use gtk::{Entry, EntryCompletion, EntryIconPosition, InputPurpose, ListStore, Widget};
 
 // Common part
 
@@ -16,7 +16,10 @@ fn get_value(entry: &Entry) -> Option<String> {
     entry.get_text().and_then(non_empty)
 }
 
-impl<T> FormWidget<String> for T where T: EntryBasedWidget {
+impl<T> FormWidget<String> for T
+where
+    T: EntryBasedWidget,
+{
     fn get_widget(&self) -> Widget {
         self.entry().upcast()
     }
@@ -28,7 +31,7 @@ impl<T> FormWidget<String> for T where T: EntryBasedWidget {
     fn set_value(&self, value: Option<&String>) {
         match value {
             Some(text) => self.entry().set_text(text),
-            None => self.entry().set_text("")
+            None => self.entry().set_text(""),
         }
     }
 
@@ -106,7 +109,10 @@ pub struct OpenPassword {
 }
 
 fn confirm_password_overwrite<P: WidgetExt>(widget: &P) -> bool {
-    ask(&widget.get_toplevel().unwrap().downcast().unwrap(), "Do you want to overwrite current password?")
+    ask(
+        &widget.get_toplevel().unwrap().downcast().unwrap(),
+        "Do you want to overwrite current password?",
+    )
 }
 
 impl OpenPassword {

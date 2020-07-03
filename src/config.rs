@@ -1,8 +1,8 @@
-use std::path::{Path, PathBuf};
-use std::fs::{read, write};
-use serde::{Serialize, Deserialize};
-use glib::get_user_config_dir;
 use crate::error::*;
+use glib::get_user_config_dir;
+use serde::{Deserialize, Serialize};
+use std::fs::{read, write};
+use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Config {

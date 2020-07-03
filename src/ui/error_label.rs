@@ -1,6 +1,6 @@
-use gtk::prelude::*;
-use gtk::{Label, STYLE_CLASS_ERROR, STYLE_PROVIDER_PRIORITY_FALLBACK, CssProvider};
 use crate::error::*;
+use gtk::prelude::*;
+use gtk::{CssProvider, Label, STYLE_CLASS_ERROR, STYLE_PROVIDER_PRIORITY_FALLBACK};
 
 fn create_style_provider() -> Result<CssProvider> {
     let provider = CssProvider::new();

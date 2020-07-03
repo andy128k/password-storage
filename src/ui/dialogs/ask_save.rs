@@ -1,10 +1,12 @@
 use gtk::prelude::*;
-use gtk::{Window, MessageDialog, WindowPosition, ResponseType, DialogFlags, MessageType, ButtonsType};
+use gtk::{
+    ButtonsType, DialogFlags, MessageDialog, MessageType, ResponseType, Window, WindowPosition,
+};
 
 pub enum AskSave {
     Discard,
     Cancel,
-    Save
+    Save,
 }
 
 pub fn ask_save(parent_window: &Window, message: &str) -> AskSave {
@@ -13,7 +15,7 @@ pub fn ask_save(parent_window: &Window, message: &str) -> AskSave {
         DialogFlags::empty(),
         MessageType::Warning,
         ButtonsType::None,
-        message
+        message,
     );
     dlg.set_title("Password Storage");
     dlg.set_icon_name(Some("password-storage"));
@@ -32,6 +34,6 @@ pub fn ask_save(parent_window: &Window, message: &str) -> AskSave {
     match answer {
         ResponseType::Reject => AskSave::Discard,
         ResponseType::Ok => AskSave::Save,
-        _ => AskSave::Cancel
+        _ => AskSave::Cancel,
     }
 }

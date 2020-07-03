@@ -1,5 +1,7 @@
 use gtk::prelude::*;
-use gtk::{Window, MessageDialog, WindowPosition, ResponseType, DialogFlags, MessageType, ButtonsType};
+use gtk::{
+    ButtonsType, DialogFlags, MessageDialog, MessageType, ResponseType, Window, WindowPosition,
+};
 
 pub fn ask(parent_window: &Window, message: &str) -> bool {
     let dlg = MessageDialog::new(
@@ -7,7 +9,7 @@ pub fn ask(parent_window: &Window, message: &str) -> bool {
         DialogFlags::empty(),
         MessageType::Warning,
         ButtonsType::YesNo,
-        message
+        message,
     );
     dlg.set_title("Password Storage");
     dlg.set_icon_name(Some("password-storage"));

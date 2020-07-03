@@ -1,11 +1,18 @@
-use gtk::prelude::*;
-use gtk::{Window, ResponseType};
-use super::form::base::FormWidget;
 use super::dialogs::std::make_std_dialog;
+use super::form::base::FormWidget;
+use gtk::prelude::*;
+use gtk::{ResponseType, Window};
 
-pub fn edit_object<T, W: FormWidget<T>>(object: Option<&T>, mut widget: W, parent_window: &Window, title: &str, icon: &str) -> Option<T> {
+pub fn edit_object<T, W: FormWidget<T>>(
+    object: Option<&T>,
+    mut widget: W,
+    parent_window: &Window,
+    title: &str,
+    icon: &str,
+) -> Option<T> {
     let dlg = make_std_dialog(parent_window, title, icon);
-    dlg.get_content_area().pack_start(&widget.get_widget(), true, true, 8);
+    dlg.get_content_area()
+        .pack_start(&widget.get_widget(), true, true, 8);
     dlg.show_all();
 
     dlg.set_response_sensitive(ResponseType::Ok, widget.get_value().is_some());

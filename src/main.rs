@@ -1,23 +1,23 @@
 #![windows_subsystem = "windows"]
 
+mod actions;
+mod application;
+mod cache;
+mod config;
+mod entropy;
 mod error;
+mod format;
 mod icons;
-mod password;
-mod utils;
-mod ptr;
+mod main_window;
 mod markup_builder;
 mod model;
-mod actions;
-mod config;
-mod cache;
-mod version;
-mod entropy;
+mod password;
+mod ptr;
 mod store;
-mod ui;
-mod application;
-mod main_window;
-mod format;
 mod test;
+mod ui;
+mod utils;
+mod version;
 
 fn main() {
     let app = application::PSApplication::new_app();

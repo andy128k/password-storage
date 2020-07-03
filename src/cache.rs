@@ -1,14 +1,14 @@
-use std::path::{Path, PathBuf};
-use std::fs::{read, write};
-use std::rc::Rc;
-use std::cell::RefCell;
-use serde::{Serialize, Deserialize};
-use glib::get_user_cache_dir;
 use crate::error::*;
+use glib::get_user_cache_dir;
+use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
+use std::fs::{read, write};
+use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct CachePrivate {
-    pub recent_files: Vec<PathBuf>
+    pub recent_files: Vec<PathBuf>,
 }
 
 #[derive(Clone)]
@@ -37,7 +37,7 @@ impl Cache {
                 .unwrap_or_else(|err| {
                     eprintln!("{:?}", err);
                     Default::default()
-                })
+                }),
         )))
     }
 

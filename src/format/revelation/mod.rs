@@ -1,10 +1,10 @@
 mod crypto_container;
 mod xml;
 
-use std::path::Path;
-use std::fs::{read, write};
-use crate::model::tree::RecordTree;
 use crate::error::*;
+use crate::model::tree::RecordTree;
+use std::fs::{read, write};
+use std::path::Path;
 
 pub fn load_revelation_file(filename: &Path, password: &str) -> Result<RecordTree> {
     let buf = read(filename)?;

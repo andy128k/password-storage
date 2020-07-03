@@ -1,13 +1,13 @@
-use gtk::prelude::*;
-use gtk::{Grid, Widget, Align, Image, Label};
-use crate::model::record::Record;
 use crate::markup_builder::*;
+use crate::model::record::Record;
+use gtk::prelude::*;
+use gtk::{Align, Grid, Image, Label, Widget};
 
 pub struct PSPreviewPanel {
     grid: Grid,
     icon: Image,
     title: Label,
-    view: Label
+    view: Label,
 }
 
 impl PSPreviewPanel {
@@ -35,7 +35,12 @@ impl PSPreviewPanel {
         view.set_line_wrap(true);
         grid.attach(&view, 0, 2, 2, 1);
 
-        PSPreviewPanel { grid, icon, title, view }
+        PSPreviewPanel {
+            grid,
+            icon,
+            title,
+            view,
+        }
     }
 
     pub fn get_widget(&self) -> Widget {
@@ -44,9 +49,11 @@ impl PSPreviewPanel {
 
     pub fn update(&self, record_opt: Option<Record>, show_secrets: bool) {
         if let Some(record) = record_opt {
-            self.icon.set_property_icon_name(Some(record.record_type.icon));
+            self.icon
+                .set_property_icon_name(Some(record.record_type.icon));
             self.title.set_markup(&big(&record.name()));
-            self.view.set_markup(&record_to_markup(&record, show_secrets));
+            self.view
+                .set_markup(&record_to_markup(&record, show_secrets));
         } else {
             self.icon.set_property_icon_name(None);
             self.title.set_markup("");
@@ -61,14 +68,16 @@ fn record_to_markup(record: &Record, show_secrets: bool) -> String {
         if show_secrets || !field.field_type.is_secret() {
             let value = record.get_field(field);
             match field.name {
-                "name" => {},
-                "description" => if !value.is_empty() {
-                    if !buf.is_empty() {
-                        buf.push('\n');
-                        buf.push('\n');
+                "name" => {}
+                "description" => {
+                    if !value.is_empty() {
+                        if !buf.is_empty() {
+                            buf.push('\n');
+                            buf.push('\n');
+                        }
+                        buf.push_str(&glib::markup_escape_text(&value));
                     }
-                    buf.push_str(&glib::markup_escape_text(&value));
-                },
+                }
                 "url" => {
                     if !buf.is_empty() {
                         buf.push('\n');
@@ -76,7 +85,7 @@ fn record_to_markup(record: &Record, show_secrets: bool) -> String {
                     buf.push_str(&bold(field.title));
                     buf.push(' ');
                     buf.push_str(&url(&value));
-                },
+                }
                 _ => {
                     if !buf.is_empty() {
                         buf.push('\n');
@@ -84,7 +93,7 @@ fn record_to_markup(record: &Record, show_secrets: bool) -> String {
                     buf.push_str(&bold(field.title));
                     buf.push(' ');
                     buf.push_str(&glib::markup_escape_text(&value));
-                },
+                }
             }
         }
     }

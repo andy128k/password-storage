@@ -1,35 +1,20 @@
-use std::ops::Drop;
-use std::cmp::{PartialEq, Eq};
+use glib::glib_sys::{
+    g_free, g_hash_table_get_type, g_hash_table_insert, g_hash_table_iter_init,
+    g_hash_table_iter_next, g_hash_table_lookup, g_hash_table_new_full, g_hash_table_ref,
+    g_hash_table_unref, g_str_equal, g_str_hash, gconstpointer, gpointer, GHashTable,
+    GHashTableIter,
+};
+use glib::gobject_sys::{g_value_get_boxed, g_value_init, g_value_set_boxed_take_ownership};
+use glib::translate::{FromGlib, FromGlibPtrNone, ToGlib, ToGlibPtr, ToGlibPtrMut, Uninitialized};
+use glib::types::Type;
+use glib::Value;
+use libc::{c_char, c_void};
 use std::clone::Clone;
+use std::cmp::{Eq, PartialEq};
 use std::convert::Into;
 use std::fmt;
 use std::iter::Iterator;
-use glib::Value;
-use glib::types::Type;
-use glib::translate::{FromGlib, FromGlibPtrNone, Uninitialized, ToGlib, ToGlibPtr, ToGlibPtrMut};
-use glib::glib_sys::{
-    GHashTable,
-    GHashTableIter,
-    g_hash_table_get_type,
-    g_hash_table_new_full,
-    g_hash_table_ref,
-    g_hash_table_unref,
-    g_hash_table_insert,
-    g_hash_table_lookup,
-    g_hash_table_iter_init,
-    g_hash_table_iter_next,
-    g_str_hash,
-    g_str_equal,
-    g_free,
-    gpointer,
-    gconstpointer,
-};
-use glib::gobject_sys::{
-    g_value_init,
-    g_value_set_boxed_take_ownership,
-    g_value_get_boxed,
-};
-use libc::{c_char, c_void};
+use std::ops::Drop;
 
 pub struct HashTable(*mut GHashTable);
 
@@ -41,10 +26,13 @@ impl<'h> Iterator for HashTableIter<'h> {
     fn next(&mut self) -> Option<Self::Item> {
         let mut key: *mut c_void = std::ptr::null_mut::<c_void>();
         let mut value: *mut c_void = std::ptr::null_mut::<c_void>();
-        if unsafe { g_hash_table_iter_next(&mut self.0 as *mut GHashTableIter, &mut key, &mut value) } != 0 {
+        if unsafe {
+            g_hash_table_iter_next(&mut self.0 as *mut GHashTableIter, &mut key, &mut value)
+        } != 0
+        {
             Some((
                 unsafe { String::from_glib_none(key as *const c_char) },
-                unsafe { String::from_glib_none(value as *const c_char) }
+                unsafe { String::from_glib_none(value as *const c_char) },
             ))
         } else {
             None
@@ -58,14 +46,23 @@ impl HashTable {
     }
 
     pub fn new() -> Self {
-        let ptr = unsafe { g_hash_table_new_full(Some(g_str_hash), Some(g_str_equal), Some(g_free), Some(g_free)) };
+        let ptr = unsafe {
+            g_hash_table_new_full(
+                Some(g_str_hash),
+                Some(g_str_equal),
+                Some(g_free),
+                Some(g_free),
+            )
+        };
         HashTable(ptr)
     }
 
     pub fn insert(&mut self, key: &str, val: &str) {
         let k: *mut c_char = key.to_glib_full();
         let v: *mut c_char = val.to_glib_full();
-        unsafe { g_hash_table_insert(self.0, k as gpointer, v as gpointer); }
+        unsafe {
+            g_hash_table_insert(self.0, k as gpointer, v as gpointer);
+        }
     }
 
     pub fn get(&self, key: &str) -> Option<String> {
@@ -126,7 +123,9 @@ impl HashTable {
 
 impl Drop for HashTable {
     fn drop(&mut self) {
-        unsafe { g_hash_table_unref(self.0); }
+        unsafe {
+            g_hash_table_unref(self.0);
+        }
     }
 }
 
@@ -204,6 +203,9 @@ mod test {
         generic.insert("username", "andy");
         generic.insert("url", "http://example.com");
 
-        assert_eq!(format!("{:?}", generic), r##"HashTable { url: "http://example.com", username: "andy" }"##.to_string());
+        assert_eq!(
+            format!("{:?}", generic),
+            r##"HashTable { url: "http://example.com", username: "andy" }"##.to_string()
+        );
     }
 }

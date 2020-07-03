@@ -1,13 +1,14 @@
-use std::rc::Rc;
-use std::cell::RefCell;
 use gio::prelude::*;
 use gio::ApplicationFlags;
 use glib::clone;
 use gtk::prelude::*;
-use gtk::{Application};
-use crate::config::Config;
+use gtk::Application;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::cache::Cache;
-use crate::main_window::{PSMainWindow, old_main, do_open_file};
+use crate::config::Config;
+use crate::main_window::{do_open_file, old_main, PSMainWindow};
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
 use crate::utils::object_data::ObjectDataExt;
@@ -34,15 +35,17 @@ impl glib::clone::Upgrade for PSApplicationWeak {
     type Strong = PSApplication;
 
     fn upgrade(&self) -> Option<Self::Strong> {
-        glib::clone::Upgrade::upgrade(&self.0)
-            .map(|upgraded_inner| PSApplication(upgraded_inner))
+        glib::clone::Upgrade::upgrade(&self.0).map(|upgraded_inner| PSApplication(upgraded_inner))
     }
 }
 
 impl PSApplication {
     fn create() -> Self {
-        let gtk_app = Application::new(Some("net.andy128k.password-storage"), ApplicationFlags::HANDLES_OPEN)
-            .expect("Initialization of application failed.");
+        let gtk_app = Application::new(
+            Some("net.andy128k.password-storage"),
+            ApplicationFlags::HANDLES_OPEN,
+        )
+        .expect("Initialization of application failed.");
         let private = PSApplicationPrivate {
             config: Rc::new(RefCell::new(Config::load())),
             cache: Cache::load(),
@@ -54,31 +57,30 @@ impl PSApplication {
     }
 
     fn private(&self) -> &PSApplicationPrivate {
-        unsafe {
-            self.0.get_data("private").unwrap()
-        }
+        unsafe { self.0.get_data("private").unwrap() }
     }
 
     pub fn new_app() -> Self {
         let app = Self::create();
 
-        app.0.connect_startup(move |_gtk_app| {
+        app.0.connect_startup(move |_app| {
             crate::icons::load_icons().unwrap();
         });
-        app.0.connect_activate(clone!(@weak app => move |_gtk_app| {
+        app.0.connect_activate(clone!(@weak app => move |_app| {
             app.activate();
         }));
-        app.0.connect_shutdown(clone!(@weak app => move |_gtk_app| {
+        app.0.connect_shutdown(clone!(@weak app => move |_app| {
             let private = app.private();
             private.config.borrow().save().unwrap();
             private.cache.save().unwrap();
         }));
-        app.0.connect_open(clone!(@weak app => move |_gtk_app, files, _hint| {
-            if let Some(path) = files[0].get_path() {
-                let win = app.activate();
-                do_open_file(&win, &path);
-            }
-        }));
+        app.0
+            .connect_open(clone!(@weak app => move |_app, files, _hint| {
+                if let Some(path) = files[0].get_path() {
+                    let win = app.activate();
+                    do_open_file(&win, &path);
+                }
+            }));
 
         app.0.add_action(&{
             let action = gio::SimpleAction::new("quit", None);
@@ -141,7 +143,9 @@ impl PSApplication {
     }
 
     fn active_window(&self) -> Option<PSMainWindow> {
-        self.0.get_active_window().and_then(|w| PSMainWindow::from_window(&w))
+        self.0
+            .get_active_window()
+            .and_then(|w| PSMainWindow::from_window(&w))
     }
 
     fn activate(&self) -> PSMainWindow {

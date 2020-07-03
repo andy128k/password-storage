@@ -1,12 +1,12 @@
-use std::path::PathBuf;
 use gtk::prelude::*;
-use gtk::{Window, WindowPosition, FileChooserDialog, FileChooserAction, ResponseType};
+use gtk::{FileChooserAction, FileChooserDialog, ResponseType, Window, WindowPosition};
+use std::path::PathBuf;
 
 pub fn save_file(parent_window: &Window) -> Option<PathBuf> {
     let dlg = FileChooserDialog::new(
         Some("Save file"),
         Some(parent_window),
-        FileChooserAction::Save
+        FileChooserAction::Save,
     );
     dlg.set_icon_name(Some("password-storage"));
     dlg.set_property_window_position(WindowPosition::CenterOnParent);

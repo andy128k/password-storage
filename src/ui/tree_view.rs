@@ -1,14 +1,13 @@
-use glib::{clone, Value};
-use gio::MenuModel;
+use crate::store::TreeStoreColumn;
 use gdk::{DragAction, Event};
+use gio::MenuModel;
+use glib::{clone, Value};
 use gtk::prelude::*;
 use gtk::{
-    TreeView, TreeViewExt, Widget, WidgetExt,
-    TreeViewColumn, TreeViewColumnSizing, CellRendererToggle, CellRendererPixbuf, CellRendererText,
-    TreeModelFilter, TreeModelFilterExt, TreeIter, TreePath, TreeModel, TreeStore,
-    TreeViewDropPosition, IconSize,
+    CellRendererPixbuf, CellRendererText, CellRendererToggle, IconSize, TreeIter, TreeModel,
+    TreeModelFilter, TreeModelFilterExt, TreePath, TreeStore, TreeView, TreeViewColumn,
+    TreeViewColumnSizing, TreeViewDropPosition, TreeViewExt, Widget, WidgetExt,
 };
-use crate::store::TreeStoreColumn;
 
 const GDK_BUTTON_SECONDARY: u32 = 3;
 
@@ -23,8 +22,11 @@ fn get_real_iter(view: &TreeView, path: &TreePath) -> Option<(TreeModel, TreeIte
     let model = view.get_model()?;
     let iter = model.get_iter(path)?;
     match model.clone().downcast::<TreeModelFilter>() {
-        Ok(filter) => Some((filter.get_model().unwrap(), filter.convert_iter_to_child_iter(&iter))),
-        Err(_) => Some((model, iter))
+        Ok(filter) => Some((
+            filter.get_model().unwrap(),
+            filter.convert_iter_to_child_iter(&iter),
+        )),
+        Err(_) => Some((model, iter)),
     }
 }
 
@@ -33,7 +35,7 @@ pub fn get_selected_iter(view: &TreeView) -> Option<(TreeIter, TreePath)> {
     let path = current_model.get_path(&iter)?;
     let real_iter = match current_model.downcast::<TreeModelFilter>() {
         Ok(filter) => filter.convert_iter_to_child_iter(&iter),
-        Err(_) => iter
+        Err(_) => iter,
     };
     Some((real_iter, path))
 }
@@ -42,7 +44,7 @@ pub fn select_iter(view: &TreeView, iter: &TreeIter) {
     if let Some(current_model) = view.get_model() {
         let iter_to_select = match current_model.clone().downcast::<TreeModelFilter>() {
             Ok(filter) => filter.convert_child_iter_to_iter(iter),
-            Err(_) => Some(iter.clone())
+            Err(_) => Some(iter.clone()),
         };
         if let Some(path) = iter_to_select.and_then(|iter| current_model.get_path(&iter)) {
             view.expand_to_path(&path);
@@ -94,33 +96,46 @@ impl PSTreeView {
             column
         });
 
-        PSTreeView { view, column, check_renderer }
+        PSTreeView {
+            view,
+            column,
+            check_renderer,
+        }
     }
 
     pub fn connect_drop<F: Fn(TreeIter) -> bool + 'static>(&self, is_group: F) {
-        self.view.connect_drag_motion(move |view, drag_context, x, y, time| {
-            if let Some((Some(path), pos)) = view.get_dest_row_at_pos(x, y) {
-                if pos == TreeViewDropPosition::IntoOrBefore || pos == TreeViewDropPosition::IntoOrAfter {
-                    if let Some((_model, iter)) = get_real_iter(view, &path) {
-                        if !is_group(iter) {
-                            drag_context.drag_status(DragAction::empty(), time); // deny
-                            return Inhibit(true); // stop propagation
+        self.view
+            .connect_drag_motion(move |view, drag_context, x, y, time| {
+                if let Some((Some(path), pos)) = view.get_dest_row_at_pos(x, y) {
+                    if pos == TreeViewDropPosition::IntoOrBefore
+                        || pos == TreeViewDropPosition::IntoOrAfter
+                    {
+                        if let Some((_model, iter)) = get_real_iter(view, &path) {
+                            if !is_group(iter) {
+                                drag_context.drag_status(DragAction::empty(), time); // deny
+                                return Inhibit(true); // stop propagation
+                            }
                         }
                     }
                 }
-            }
-            drag_context.drag_status(DragAction::MOVE, time);
-            Inhibit(false)
-        });
+                drag_context.drag_status(DragAction::MOVE, time);
+                Inhibit(false)
+            });
     }
 
-    pub fn connect_cursor_changed<F: Fn(Option<(TreeIter, TreePath)>) + 'static>(&self, changed: F) {
+    pub fn connect_cursor_changed<F: Fn(Option<(TreeIter, TreePath)>) + 'static>(
+        &self,
+        changed: F,
+    ) {
         self.view.connect_cursor_changed(move |view| {
             changed(get_selected_iter(view));
         });
     }
 
-    pub fn connect_row_activated<F: Fn(Option<(TreeIter, TreePath)>) + 'static>(&self, activated: F) {
+    pub fn connect_row_activated<F: Fn(Option<(TreeIter, TreePath)>) + 'static>(
+        &self,
+        activated: F,
+    ) {
         self.view.connect_row_activated(move |view, _iter, _col| {
             activated(get_selected_iter(view));
         });
@@ -130,30 +145,33 @@ impl PSTreeView {
         let popup = gtk::Menu::new_from_model(&popup_model.clone());
         popup.set_property_attach_widget(Some(&self.view));
 
-        self.view.connect_button_press_event(clone!(@weak popup => @default-return Inhibit(false), move |view, event| {
-            let button = event.get_button();
-            if button == GDK_BUTTON_SECONDARY {
-                view.grab_focus();
+        self.view.connect_button_press_event(
+            clone!(@weak popup => @default-return Inhibit(false), move |view, event| {
+                let button = event.get_button();
+                if button == GDK_BUTTON_SECONDARY {
+                    view.grab_focus();
 
-                let (x, y) = event.get_position();
-                if let Some((Some(path), _, _, _)) = view.get_path_at_pos(x as i32, y as i32) {
-                    view.set_cursor(&path, None::<&TreeViewColumn>, false);
+                    let (x, y) = event.get_position();
+                    if let Some((Some(path), _, _, _)) = view.get_path_at_pos(x as i32, y as i32) {
+                        view.set_cursor(&path, None::<&TreeViewColumn>, false);
+                    }
+
+                    let base_event: &Event = event;
+                    popup.popup_at_pointer(Some(base_event));
+
+                    Inhibit(true)
+                } else {
+                    Inhibit(false)
                 }
+            }),
+        );
 
-                let base_event: &Event = event;
-                popup.popup_at_pointer(Some(base_event));
-
-                Inhibit(true)
-            } else {
-                Inhibit(false)
-            }
-        }));
-
-        self.view.connect_popup_menu(clone!(@weak popup => @default-return false, move |view| {
-            view.grab_focus();
-            popup.popup_at_widget(view, gdk::Gravity::Center, gdk::Gravity::Center, None);
-            true
-        }));
+        self.view
+            .connect_popup_menu(clone!(@weak popup => @default-return false, move |view| {
+                view.grab_focus();
+                popup.popup_at_widget(view, gdk::Gravity::Center, gdk::Gravity::Center, None);
+                true
+            }));
     }
 
     pub fn toggle_group(&self, path: &TreePath) {
@@ -182,8 +200,16 @@ impl PSTreeView {
 
     pub fn set_selection_mode(&self, selection: bool) {
         if selection {
-            self.column.add_attribute(&self.check_renderer, "visible", TreeStoreColumn::SelectionVisible.into());
-            self.column.add_attribute(&self.check_renderer, "active", TreeStoreColumn::Selection.into());
+            self.column.add_attribute(
+                &self.check_renderer,
+                "visible",
+                TreeStoreColumn::SelectionVisible.into(),
+            );
+            self.column.add_attribute(
+                &self.check_renderer,
+                "active",
+                TreeStoreColumn::Selection.into(),
+            );
             self.column.queue_resize();
         } else {
             self.column.clear_attributes(&self.check_renderer);
@@ -196,8 +222,16 @@ impl PSTreeView {
 fn selection_toggled(view: &TreeView, path: &TreePath) {
     if let Some((model, iter)) = get_real_iter(view, path) {
         if let Ok(store) = model.downcast::<TreeStore>() {
-            let selected: bool = store.get_value(&iter, TreeStoreColumn::Selection.into()).get().unwrap().unwrap_or(false);
-            store.set_value(&iter, TreeStoreColumn::Selection.into(), &Value::from(&!selected));
+            let selected: bool = store
+                .get_value(&iter, TreeStoreColumn::Selection.into())
+                .get()
+                .unwrap()
+                .unwrap_or(false);
+            store.set_value(
+                &iter,
+                TreeStoreColumn::Selection.into(),
+                &Value::from(&!selected),
+            );
         }
     }
 }

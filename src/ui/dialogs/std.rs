@@ -1,6 +1,6 @@
-use gdk::{WindowTypeHint, Gravity};
+use gdk::{Gravity, WindowTypeHint};
 use gtk::prelude::*;
-use gtk::{Window, Dialog, WindowPosition, ResponseType};
+use gtk::{Dialog, ResponseType, Window, WindowPosition};
 
 pub fn make_std_dialog(parent_window: &Window, title: &str, icon: &str) -> Dialog {
     let dlg = Dialog::new();

@@ -8,7 +8,7 @@ fn record_exists<P: Fn(&Record) -> bool>(tree: &RecordTree, predicate: &P) -> bo
                 if predicate(record) || record_exists(subtree, predicate) {
                     return true;
                 }
-            },
+            }
             RecordNode::Leaf(ref record) => {
                 if predicate(record) {
                     return true;
@@ -25,16 +25,15 @@ fn filter_tree<P: Fn(&Record) -> bool>(tree: &RecordTree, predicate: &P) -> Reco
         match *node {
             RecordNode::Group(ref record, ref subtree) => {
                 if predicate(record) {
-                    nodes.push(
-                        RecordNode::Group(record.clone(), filter_tree(subtree, predicate))
-                    );
+                    nodes.push(RecordNode::Group(
+                        record.clone(),
+                        filter_tree(subtree, predicate),
+                    ));
                 }
-            },
+            }
             RecordNode::Leaf(ref record) => {
                 if predicate(record) {
-                    nodes.push(
-                        RecordNode::Leaf(record.clone())
-                    );
+                    nodes.push(RecordNode::Leaf(record.clone()));
                 }
             }
         }
@@ -60,7 +59,7 @@ pub fn merge_subtries(tree1: &mut RecordTree, tree2: &RecordTree) {
                 if !found {
                     tree1.push(RecordNode::Group(group.clone(), subtree.clone()));
                 }
-            },
+            }
             leaf @ &RecordNode::Leaf(_) => {
                 tree1.push(leaf.clone());
             }

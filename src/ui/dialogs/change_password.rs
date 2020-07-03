@@ -1,7 +1,7 @@
-use gtk::Window;
+use crate::ui::edit_object::edit_object;
 use crate::ui::form::entry::Password;
 use crate::ui::form::form::{Form, ValidationResult};
-use crate::ui::edit_object::edit_object;
+use gtk::Window;
 
 pub fn change_password(parent_window: &Window) -> Option<String> {
     let mut form = Form::new();
@@ -14,6 +14,12 @@ pub fn change_password(parent_window: &Window) -> Option<String> {
             ValidationResult::Invalid("Passwords are not identical".to_string())
         }
     }));
-    let result = edit_object(None, form, parent_window, "Change password", "password-storage");
+    let result = edit_object(
+        None,
+        form,
+        parent_window,
+        "Change password",
+        "password-storage",
+    );
     result.map(|values| values[0].clone())
 }

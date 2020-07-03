@@ -1,10 +1,10 @@
-use gtk::{Window, Widget};
+use super::edit_object::edit_object;
 use super::form::base::*;
 use super::form::entry::*;
-use super::form::multiline::*;
 use super::form::form::*;
-use super::edit_object::edit_object;
-use crate::model::record::{Record, RecordType, FieldType};
+use super::form::multiline::*;
+use crate::model::record::{FieldType, Record, RecordType};
+use gtk::{Widget, Window};
 
 fn record_to_vec(record_type: &'static RecordType, record: &Record) -> Vec<String> {
     let mut values = Vec::new();
@@ -36,7 +36,7 @@ impl RecordForm {
                 FieldType::MultiLine => Box::new(MultiLine::new()),
                 FieldType::Name => Box::new(Name::new(names)),
                 FieldType::Password => Box::new(OpenPassword::new()),
-                FieldType::Secret => Box::new(Text::new())
+                FieldType::Secret => Box::new(Text::new()),
             };
             let required = field.name == "name";
             form.add(field.title, fw, required);
@@ -51,11 +51,17 @@ impl FormWidget<Record> for RecordForm {
     }
 
     fn get_value(&self) -> Option<Record> {
-        self.form.get_value().map(|vec| vec_to_record(self.record_type, &vec))
+        self.form
+            .get_value()
+            .map(|vec| vec_to_record(self.record_type, &vec))
     }
 
     fn set_value(&self, value: Option<&Record>) {
-        self.form.set_value(value.map(|record| record_to_vec(self.record_type, record)).as_ref());
+        self.form.set_value(
+            value
+                .map(|record| record_to_vec(self.record_type, record))
+                .as_ref(),
+        );
     }
 
     fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&Record>)>) {
@@ -67,12 +73,17 @@ impl FormWidget<Record> for RecordForm {
     }
 }
 
-pub fn edit_record(record: &Record, parent_window: &Window, title: &str, names: &[String]) -> Option<Record> {
+pub fn edit_record(
+    record: &Record,
+    parent_window: &Window,
+    title: &str,
+    names: &[String],
+) -> Option<Record> {
     edit_object(
         Some(record),
         RecordForm::new(record.record_type, names),
         parent_window,
         &format!("{} {}", title, record.record_type.title),
-        record.record_type.icon
+        record.record_type.icon,
     )
 }

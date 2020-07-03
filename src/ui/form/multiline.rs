@@ -1,11 +1,11 @@
 use super::base::*;
-use gtk::prelude::*;
-use gtk::{Widget, TextView, TextBuffer, ScrolledWindow, Adjustment, PolicyType, ShadowType};
 use crate::utils::string::non_empty;
+use gtk::prelude::*;
+use gtk::{Adjustment, PolicyType, ScrolledWindow, ShadowType, TextBuffer, TextView, Widget};
 
 pub struct MultiLine {
     scrolled_window: ScrolledWindow,
-    text_view: TextView
+    text_view: TextView,
 }
 
 impl MultiLine {
@@ -29,7 +29,10 @@ impl MultiLine {
         scrolled_window.set_vexpand(true);
         scrolled_window.set_size_request(300, 200);
 
-        MultiLine { scrolled_window, text_view }
+        MultiLine {
+            scrolled_window,
+            text_view,
+        }
     }
 }
 
@@ -44,7 +47,8 @@ impl FormWidget<String> for MultiLine {
     }
 
     fn get_value(&self) -> Option<String> {
-        self.text_view.get_buffer()
+        self.text_view
+            .get_buffer()
             .and_then(|buffer| buffer_get_text(&buffer))
     }
 
@@ -52,7 +56,7 @@ impl FormWidget<String> for MultiLine {
         if let Some(buffer) = self.text_view.get_buffer() {
             match value {
                 Some(text) => buffer.set_text(text),
-                None => buffer.set_text("")
+                None => buffer.set_text(""),
             }
         }
     }

@@ -1,8 +1,7 @@
 use aes::{
     block_cipher::{
         generic_array::{typenum::U16, GenericArray},
-        BlockCipher,
-        NewBlockCipher,
+        BlockCipher, NewBlockCipher,
     },
     Aes256,
 };
@@ -40,6 +39,7 @@ fn adjust_password(password: &str) -> [u8; 32] {
     array
 }
 
+#[rustfmt::skip]
 const MAGIC: [u8; 12] = [
     0x72, 0x76, 0x6C, 0x00, // magic string
     0x01,                   // data version
@@ -77,8 +77,7 @@ pub fn encrypt_file(buffer: &[u8], password: &str) -> Vec<u8> {
 
     let mut iv = random::<[u8; 16]>().into();
 
-    let encrypted = Cbc::<Aes256, Pkcs7>::new_fix(&password, &iv)
-        .encrypt_vec(&deflated);
+    let encrypted = Cbc::<Aes256, Pkcs7>::new_fix(&password, &iv).encrypt_vec(&deflated);
 
     Aes256::new(&password).encrypt_block(&mut iv);
 
@@ -98,17 +97,17 @@ mod test {
     fn test_adjust_password() {
         assert_eq!(
             adjust_password("secr3t"),
-            [0x73,0x65,0x63,0x72,0x33,0x74,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            [
+                0x73, 0x65, 0x63, 0x72, 0x33, 0x74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ]
         );
         assert_eq!(
             adjust_password("secr3tsecr3tsecr3tsecr3tsecr3tsecr3tsecr3t"),
             [
-                0x73,0x65,0x63,0x72,0x33,0x74,
-                0x73,0x65,0x63,0x72,0x33,0x74,
-                0x73,0x65,0x63,0x72,0x33,0x74,
-                0x73,0x65,0x63,0x72,0x33,0x74,
-                0x73,0x65,0x63,0x72,0x33,0x74,
-                0x73,0x65
+                0x73, 0x65, 0x63, 0x72, 0x33, 0x74, 0x73, 0x65, 0x63, 0x72, 0x33, 0x74, 0x73, 0x65,
+                0x63, 0x72, 0x33, 0x74, 0x73, 0x65, 0x63, 0x72, 0x33, 0x74, 0x73, 0x65, 0x63, 0x72,
+                0x33, 0x74, 0x73, 0x65
             ]
         );
     }

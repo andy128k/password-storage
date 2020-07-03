@@ -1,5 +1,5 @@
-use std::rc::{Rc, Weak};
 use glib::clone::{Downgrade, Upgrade};
+use std::rc::{Rc, Weak};
 
 pub struct SharedPtr<T>(Rc<debug_cell::RefCell<T>>);
 

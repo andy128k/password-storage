@@ -1,6 +1,6 @@
-use std::path::Path;
-use gtk::prelude::*;
 use crate::cache::Cache;
+use gtk::prelude::*;
+use std::path::Path;
 
 #[derive(Clone)]
 pub struct PSDashboard {
@@ -27,11 +27,11 @@ fn framed<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
 }
 
 mod filerow {
-    use std::path::PathBuf;
-    use gtk::prelude::*;
-    use lazy_static::lazy_static;
     use crate::markup_builder::bold;
     use crate::utils::object_data::ObjectDataExt;
+    use gtk::prelude::*;
+    use lazy_static::lazy_static;
+    use std::path::PathBuf;
 
     lazy_static! {
         static ref FILENAME_DATA_KEY: glib::Quark = glib::Quark::from_string("filename");
@@ -68,9 +68,7 @@ mod filerow {
     }
 
     pub fn get_filename(row: &gtk::ListBoxRow) -> Option<&PathBuf> {
-        unsafe {
-            row.get_qdata(*FILENAME_DATA_KEY)
-        }
+        unsafe { row.get_qdata(*FILENAME_DATA_KEY) }
     }
 }
 
@@ -83,13 +81,9 @@ impl PSDashboard {
             .margin_bottom(5)
             .build();
 
-        let listbox = gtk::ListBoxBuilder::new()
-            .hexpand(true)
-            .build();
+        let listbox = gtk::ListBoxBuilder::new().hexpand(true).build();
 
-        let grid = gtk::GridBuilder::new()
-            .width_request(400)
-            .build();
+        let grid = gtk::GridBuilder::new().width_request(400).build();
         grid.attach(&title, 0, 0, 1, 1);
         grid.attach(&framed(&listbox), 0, 1, 1, 1);
 
@@ -128,11 +122,10 @@ impl PSDashboard {
     }
 
     pub fn connect_activate<F: Fn(&Path) + 'static>(&self, callback: F) {
-        self.listbox.connect_row_activated(move |_, row| {
-            match filerow::get_filename(row) {
+        self.listbox
+            .connect_row_activated(move |_, row| match filerow::get_filename(row) {
                 Some(filename) => callback(filename),
                 None => eprintln!("Cannot get filename."),
-            }
-        });
+            });
     }
 }

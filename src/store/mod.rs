@@ -1,16 +1,16 @@
 mod transform;
 
+use crate::entropy::*;
+use crate::model::record::Record;
+use crate::model::tree::{RecordNode, RecordTree};
+use crate::utils::hash_table::*;
 use glib::{Type, Value};
 use gtk::prelude::*;
-use gtk::{TreeModel, TreeStore, TreeIter};
-use crate::model::record::Record;
-use crate::model::tree::{RecordTree, RecordNode};
-use crate::entropy::*;
-use crate::utils::hash_table::*;
+use gtk::{TreeIter, TreeModel, TreeStore};
 
 #[derive(Clone)]
 pub struct PSStore {
-    model: TreeStore
+    model: TreeStore,
 }
 
 pub enum TreeStoreColumn {
@@ -19,7 +19,7 @@ pub enum TreeStoreColumn {
     TypeIcon,
     Selection,
     SelectionVisible,
-    Strength
+    Strength,
 }
 
 impl TreeStoreColumn {
@@ -30,7 +30,7 @@ impl TreeStoreColumn {
             TreeStoreColumn::TypeIcon => 2,
             TreeStoreColumn::Selection => 3,
             TreeStoreColumn::SelectionVisible => 5,
-            TreeStoreColumn::Strength => 4
+            TreeStoreColumn::Strength => 4,
         }
     }
 }
@@ -48,8 +48,10 @@ impl Into<i32> for TreeStoreColumn {
 }
 
 fn is_selected(model: &TreeModel, iter: &TreeIter) -> bool {
-    model.get_value(iter, TreeStoreColumn::Selection.into())
-        .downcast().ok()
+    model
+        .get_value(iter, TreeStoreColumn::Selection.into())
+        .downcast()
+        .ok()
         .and_then(|v| v.get())
         .unwrap_or(false)
 }
@@ -78,7 +80,7 @@ impl PSStore {
             Type::String,
             Type::Bool,
             Type::String,
-            Type::Bool
+            Type::Bool,
         ]);
         PSStore { model }
     }
@@ -89,7 +91,7 @@ impl PSStore {
                 RecordNode::Group(ref record, ref nodes) => {
                     let iter = store.append(parent_iter, record);
                     parse(nodes, store, Some(&iter));
-                },
+                }
                 RecordNode::Leaf(ref record) => {
                     store.append(parent_iter, record);
                 }
@@ -132,7 +134,9 @@ impl PSStore {
         let model = self.as_model();
         let mut result = Vec::new();
         for i in crate::utils::tree::tree_parents_entries(&model, iter) {
-            if let Some(record) = Record::try_from_value(&model.get_value(&i, TreeStoreColumn::Record.into())) {
+            if let Some(record) =
+                Record::try_from_value(&model.get_value(&i, TreeStoreColumn::Record.into()))
+            {
                 result.push((i, record));
             }
         }
@@ -143,7 +147,9 @@ impl PSStore {
         let model = self.as_model();
         let mut result = Vec::new();
         for i in crate::utils::tree::tree_children_entries(&model, iter) {
-            if let Some(record) = Record::try_from_value(&model.get_value(&i, TreeStoreColumn::Record.into())) {
+            if let Some(record) =
+                Record::try_from_value(&model.get_value(&i, TreeStoreColumn::Record.into()))
+            {
                 result.push((i, record));
             }
         }
@@ -151,9 +157,18 @@ impl PSStore {
     }
 
     pub fn update(&self, iter: &TreeIter, record: &Record) {
-        self.model.set_value(iter, TreeStoreColumn::Record.into(), &record.clone().into());
-        self.model.set_value(iter, TreeStoreColumn::Name.into(), &Value::from(&record.name()));
-        self.model.set_value(iter, TreeStoreColumn::TypeIcon.into(), &Value::from(record.record_type.icon));
+        self.model
+            .set_value(iter, TreeStoreColumn::Record.into(), &record.clone().into());
+        self.model.set_value(
+            iter,
+            TreeStoreColumn::Name.into(),
+            &Value::from(&record.name()),
+        );
+        self.model.set_value(
+            iter,
+            TreeStoreColumn::TypeIcon.into(),
+            &Value::from(record.record_type.icon),
+        );
         if let Some(password) = record.password() {
             let entropy = password_entropy(&AsciiClassifier, password.as_bytes());
             let strength_icon = match entropy.into() {
@@ -161,14 +176,23 @@ impl PSStore {
                 PasswordStrenth::Weak => "strength-weak",
                 PasswordStrenth::Reasonable => "strength-reasonable",
                 PasswordStrenth::Strong => "strength-strong",
-                PasswordStrenth::VeryStrong => "strength-very-strong"
+                PasswordStrenth::VeryStrong => "strength-very-strong",
             };
-            self.model.set_value(iter, TreeStoreColumn::Strength.into(), &Value::from(strength_icon));
+            self.model.set_value(
+                iter,
+                TreeStoreColumn::Strength.into(),
+                &Value::from(strength_icon),
+            );
         } else {
-            self.model.set_value(iter, TreeStoreColumn::Strength.into(), &Value::from(""));
+            self.model
+                .set_value(iter, TreeStoreColumn::Strength.into(), &Value::from(""));
         }
 
-        self.model.set_value(iter, TreeStoreColumn::SelectionVisible.into(), &Value::from(&!record.record_type.is_group));
+        self.model.set_value(
+            iter,
+            TreeStoreColumn::SelectionVisible.into(),
+            &Value::from(&!record.record_type.is_group),
+        );
     }
 
     pub fn append(&self, parent_iter: Option<&TreeIter>, record: &Record) -> TreeIter {

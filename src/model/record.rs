@@ -1,5 +1,5 @@
-use lazy_static::lazy_static;
 use crate::utils::hash_table::HashTable;
+use lazy_static::lazy_static;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldType {
@@ -7,14 +7,14 @@ pub enum FieldType {
     MultiLine,
     Name,
     Password,
-    Secret
+    Secret,
 }
 
 impl FieldType {
     pub fn is_secret(self) -> bool {
         match self {
             FieldType::Password | FieldType::Secret => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -28,7 +28,11 @@ pub struct Field {
 
 impl Field {
     const fn new(name: &'static str, title: &'static str, field_type: FieldType) -> Self {
-        Field { name, title, field_type }
+        Field {
+            name,
+            title,
+            field_type,
+        }
     }
 }
 
@@ -55,20 +59,16 @@ pub const FIELD_HOSTNAME: Field = Field::new("hostname", "Hostname", FieldType::
 pub const FIELD_USERNAME: Field = Field::new("username", "Username", FieldType::Name);
 pub const FIELD_PASSWORD: Field = Field::new("password", "Password", FieldType::Password);
 
-lazy_static!{
+lazy_static! {
     pub static ref RECORD_TYPE_GROUP: RecordType = RecordType {
         name: "group",
         title: "group",
         is_group: true,
-        fields: vec![
-            FIELD_NAME,
-            FIELD_DESCRIPTION,
-        ],
+        fields: vec![FIELD_NAME, FIELD_DESCRIPTION,],
         icon: "folder",
         username_field: None,
         password_field: None,
     };
-
     pub static ref RECORD_TYPE_GENERIC: RecordType = RecordType {
         name: "generic",
         title: "generic entry",
@@ -84,7 +84,6 @@ lazy_static!{
         username_field: Some("username"),
         password_field: Some("password"),
     };
-
     pub static ref RECORD_TYPE_CREDITCARD: RecordType = RecordType {
         name: "creditcard",
         title: "credit card",
@@ -102,7 +101,6 @@ lazy_static!{
         username_field: Some("cardnumber"),
         password_field: Some("ccv"),
     };
-
     pub static ref RECORD_TYPE_CRYPTOKEY: RecordType = RecordType {
         name: "cryptokey",
         title: "crypto key",
@@ -119,7 +117,6 @@ lazy_static!{
         username_field: Some("hostname"),
         password_field: Some("password"),
     };
-
     pub static ref RECORD_TYPE_DATABASE: RecordType = RecordType {
         name: "database",
         title: "database",
@@ -136,7 +133,6 @@ lazy_static!{
         username_field: Some("username"),
         password_field: Some("password"),
     };
-
     pub static ref RECORD_TYPE_DOOR: RecordType = RecordType {
         name: "door",
         title: "door",
@@ -151,7 +147,6 @@ lazy_static!{
         username_field: Some("location"),
         password_field: Some("code"),
     };
-
     pub static ref RECORD_TYPE_EMAIL: RecordType = RecordType {
         name: "email",
         title: "e-mail",
@@ -168,7 +163,6 @@ lazy_static!{
         username_field: Some("username"),
         password_field: Some("password"),
     };
-
     pub static ref RECORD_TYPE_FTP: RecordType = RecordType {
         name: "ftp",
         title: "FTP",
@@ -185,7 +179,6 @@ lazy_static!{
         username_field: Some("username"),
         password_field: Some("password"),
     };
-
     pub static ref RECORD_TYPE_PHONE: RecordType = RecordType {
         name: "phone",
         title: "phone",
@@ -200,7 +193,6 @@ lazy_static!{
         username_field: Some("phonenumber"),
         password_field: Some("pin"),
     };
-
     pub static ref RECORD_TYPE_SHELL: RecordType = RecordType {
         name: "shell",
         title: "shell",
@@ -217,7 +209,6 @@ lazy_static!{
         username_field: Some("username"),
         password_field: Some("password"),
     };
-
     pub static ref RECORD_TYPE_WEBSITE: RecordType = RecordType {
         name: "website",
         title: "website",
@@ -233,7 +224,6 @@ lazy_static!{
         username_field: Some("username"),
         password_field: Some("password"),
     };
-
     pub static ref RECORD_TYPES: Vec<&'static RecordType> = vec![
         &RECORD_TYPE_GROUP,
         &RECORD_TYPE_GENERIC,
@@ -255,7 +245,7 @@ impl RecordType {
     pub fn find(name: &str) -> Option<&'static RecordType> {
         for record_type in RECORD_TYPES.iter() {
             if record_type.name == name {
-                return Some(record_type)
+                return Some(record_type);
             }
         }
         None
@@ -267,11 +257,14 @@ impl RecordType {
         for field in &self.fields {
             values.insert(field.name, "");
         }
-        Record { record_type: self, values }
+        Record {
+            record_type: self,
+            values,
+        }
     }
 
     pub fn ref_eq(&'static self, other: &'static Self) -> bool {
-        (self as * const _) == (other as * const _)
+        (self as *const _) == (other as *const _)
     }
 }
 
@@ -301,7 +294,7 @@ impl Record {
     pub fn get_field(&self, field: &Field) -> String {
         match self.values.get(field.name) {
             Some(name) => name,
-            None => String::new()
+            None => String::new(),
         }
     }
 
@@ -310,12 +303,14 @@ impl Record {
     }
 
     pub fn username(&self) -> Option<String> {
-        self.record_type.username_field
+        self.record_type
+            .username_field
             .and_then(|field| self.values.get(field))
     }
 
     pub fn password(&self) -> Option<String> {
-        self.record_type.password_field
+        self.record_type
+            .password_field
             .and_then(|field| self.values.get(field))
     }
 
@@ -357,7 +352,12 @@ impl Record {
             if src_field.name != FIELD_NAME.name && src_field.name != FIELD_DESCRIPTION.name {
                 let value = record.get_field(src_field);
                 if !value.is_empty() {
-                    if let Some(dst_field) = self.record_type.fields.iter().find(|f| f.name == src_field.name) {
+                    if let Some(dst_field) = self
+                        .record_type
+                        .fields
+                        .iter()
+                        .find(|f| f.name == src_field.name)
+                    {
                         let dst_value = self.get_field(dst_field);
                         if dst_value.is_empty() {
                             self.set_field(dst_field, &value);

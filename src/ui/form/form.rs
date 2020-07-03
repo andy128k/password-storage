@@ -1,16 +1,16 @@
-use std::rc::Rc;
-use std::cell::RefCell;
+use super::base::*;
+use crate::ui::error_label::create_error_label;
 use gtk::prelude::*;
 use gtk::{Grid, Label, Widget};
-use crate::ui::error_label::create_error_label;
-use super::base::*;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub type FormData = Vec<String>;
 pub type FormDataChanged = Box<dyn Fn(Option<&FormData>)>;
 
 pub enum ValidationResult {
     Valid,
-    Invalid(String)
+    Invalid(String),
 }
 
 pub type FormDataValidate = Box<dyn Fn(&FormData) -> ValidationResult>;
@@ -23,24 +23,29 @@ struct FormEntry {
 
 struct FormValidation {
     label: Label,
-    callback: FormDataValidate
+    callback: FormDataValidate,
 }
 
 struct FormPrivate {
     grid: Grid,
     fields: Vec<FormEntry>,
     change_callback: Option<FormDataChanged>,
-    validation: Option<FormValidation>
+    validation: Option<FormValidation>,
 }
 
 impl FormPrivate {
     fn get_value(&self) -> Option<FormData> {
         let mut new_entry = Vec::new();
-        for &FormEntry { ref widget, required, .. } in &self.fields {
+        for &FormEntry {
+            ref widget,
+            required,
+            ..
+        } in &self.fields
+        {
             match widget.get_value() {
                 Some(value) => new_entry.push(value),
                 None if required => return None,
-                None => new_entry.push(String::new())
+                None => new_entry.push(String::new()),
             };
         }
         Some(new_entry)
@@ -52,7 +57,7 @@ impl FormPrivate {
                 for (&FormEntry { ref widget, .. }, value) in self.fields.iter().zip(entry.iter()) {
                     widget.set_value(Some(value));
                 }
-            },
+            }
             None => {
                 for &FormEntry { ref widget, .. } in &self.fields {
                     widget.set_value(None);
@@ -70,7 +75,7 @@ impl FormPrivate {
                         validation.label.set_text("");
                         validation.label.set_visible(false);
                         self.notify_change(value.as_ref());
-                    },
+                    }
                     ValidationResult::Invalid(message) => {
                         validation.label.set_text(&message);
                         validation.label.set_visible(true);
@@ -106,7 +111,7 @@ impl Form {
             grid,
             fields: Vec::new(),
             change_callback: None,
-            validation: None
+            validation: None,
         };
 
         let private_ref = Rc::new(RefCell::new(private));
@@ -120,15 +125,25 @@ impl Form {
         let label_widget = Label::new(Some(label));
         label_widget.set_xalign(0f32);
         label_widget.set_yalign(0.5f32);
-        self.0.borrow().grid.attach(&label_widget, 0, index as i32, 1, 1);
+        self.0
+            .borrow()
+            .grid
+            .attach(&label_widget, 0, index as i32, 1, 1);
 
         let private_ref_c = self.0.clone();
         widget.connect_changed(Box::new(move |_field_value| {
             private_ref_c.borrow().field_changed();
         }));
-        self.0.borrow().grid.attach(&widget.get_widget(), 1, index as i32, 1, 1);
+        self.0
+            .borrow()
+            .grid
+            .attach(&widget.get_widget(), 1, index as i32, 1, 1);
 
-        self.0.borrow_mut().fields.push(FormEntry { label: label.to_string(), widget, required });
+        self.0.borrow_mut().fields.push(FormEntry {
+            label: label.to_string(),
+            widget,
+            required,
+        });
     }
 
     pub fn set_validator(&mut self, validate: FormDataValidate) {
@@ -138,7 +153,10 @@ impl Form {
         let error_label = create_error_label().expect("Error label is created.");
         private.grid.attach(&error_label, 0, index as i32, 2, 1);
 
-        (*private).validation = Some(FormValidation { label: error_label, callback: validate });
+        (*private).validation = Some(FormValidation {
+            label: error_label,
+            callback: validate,
+        });
     }
 }
 
@@ -164,8 +182,8 @@ impl FormWidget<FormData> for Form {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ui::form::entry::Text;
     use crate::test::test_gtk_init;
+    use crate::ui::form::entry::Text;
     use std::cell::RefCell;
     use std::rc::Rc;
 

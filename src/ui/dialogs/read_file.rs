@@ -1,12 +1,13 @@
-use std::rc::Rc;
-use gdk::{WindowTypeHint, Gravity};
-use gtk::prelude::*;
-use gtk::{Window, Dialog, ResponseType, Grid, Label, Entry, EditableSignals};
 use crate::error::*;
 use crate::ui::error_label::create_error_label;
+use gdk::{Gravity, WindowTypeHint};
+use gtk::prelude::*;
+use gtk::{Dialog, EditableSignals, Entry, Grid, Label, ResponseType, Window};
+use std::rc::Rc;
 
 pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<(T, String)>
-    where R: Fn(&str) -> Result<T>
+where
+    R: Fn(&str) -> Result<T>,
 {
     let dlg = Rc::new(Dialog::new());
     dlg.set_border_width(8);
@@ -49,7 +50,10 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
 
     let dlg1 = dlg.clone();
     entry.connect_changed(move |e| {
-        dlg1.set_response_sensitive(ResponseType::Accept, e.get_chars(0, -1).map_or(0, |t| t.len()) > 0);
+        dlg1.set_response_sensitive(
+            ResponseType::Accept,
+            e.get_chars(0, -1).map_or(0, |t| t.len()) > 0,
+        );
     });
 
     dlg.set_response_sensitive(ResponseType::Accept, false);
@@ -69,7 +73,7 @@ pub fn read_file<T, R>(parent_window: &Window, read_file_callback: R) -> Option<
             Ok(document) => {
                 result = Some((document, password));
                 break;
-            },
+            }
             Err(e) => {
                 error_label.set_visible(true);
                 error_label.set_label(&format!("Can't open this file.\n{}", e));

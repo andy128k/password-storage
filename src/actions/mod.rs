@@ -1,6 +1,6 @@
 #[derive(PartialEq, Eq, Hash)]
 pub enum DocAction {
-    MergeMode
+    MergeMode,
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -11,13 +11,13 @@ pub enum ViewModeAction {
     MergeFile,
     ChangePassword,
     Find,
-    Add(String)
+    Add(String),
 }
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum MergeModeAction {
     UncheckAll,
-    Merge
+    Merge,
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -26,7 +26,7 @@ pub enum RecordAction {
     CopyPassword,
     Edit,
     Delete,
-    ConvertTo(String)
+    ConvertTo(String),
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -34,7 +34,7 @@ pub enum PSActionGroup {
     Doc,
     ViewMode,
     MergeMode,
-    Record
+    Record,
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -42,7 +42,7 @@ pub enum PSAction {
     Doc(DocAction),
     ViewMode(ViewModeAction),
     MergeMode(MergeModeAction),
-    Record(RecordAction)
+    Record(RecordAction),
 }
 
 // impl
@@ -50,8 +50,9 @@ pub enum PSAction {
 impl DocAction {
     pub fn name(&self) -> String {
         match *self {
-            DocAction::MergeMode => "merge-mode"
-        }.to_string()
+            DocAction::MergeMode => "merge-mode",
+        }
+        .to_string()
     }
 }
 
@@ -64,7 +65,7 @@ impl ViewModeAction {
             ViewModeAction::MergeFile => "merge-file".to_string(),
             ViewModeAction::ChangePassword => "change-password".to_string(),
             ViewModeAction::Find => "find".to_string(),
-            ViewModeAction::Add(ref record_type) => format!("add-{}", record_type)
+            ViewModeAction::Add(ref record_type) => format!("add-{}", record_type),
         }
     }
 }
@@ -73,8 +74,9 @@ impl MergeModeAction {
     pub fn name(&self) -> String {
         match *self {
             MergeModeAction::UncheckAll => "uncheck-all",
-            MergeModeAction::Merge => "merge"
-        }.to_string()
+            MergeModeAction::Merge => "merge",
+        }
+        .to_string()
     }
 }
 
@@ -85,7 +87,7 @@ impl RecordAction {
             RecordAction::CopyPassword => "copy-password".to_string(),
             RecordAction::Edit => "edit".to_string(),
             RecordAction::Delete => "delete".to_string(),
-            RecordAction::ConvertTo(ref record_type) => format!("convert-to-{}", record_type)
+            RecordAction::ConvertTo(ref record_type) => format!("convert-to-{}", record_type),
         }
     }
 }
@@ -96,7 +98,7 @@ impl PSActionGroup {
             PSActionGroup::Doc => "doc",
             PSActionGroup::ViewMode => "file",
             PSActionGroup::MergeMode => "merge",
-            PSActionGroup::Record => "entry"
+            PSActionGroup::Record => "entry",
         }
     }
 }
@@ -107,7 +109,7 @@ impl PSAction {
             PSAction::Doc(_) => PSActionGroup::Doc,
             PSAction::ViewMode(_) => PSActionGroup::ViewMode,
             PSAction::MergeMode(_) => PSActionGroup::MergeMode,
-            PSAction::Record(_) => PSActionGroup::Record
+            PSAction::Record(_) => PSActionGroup::Record,
         }
     }
 
@@ -116,7 +118,7 @@ impl PSAction {
             PSAction::Doc(ref action) => action.name(),
             PSAction::ViewMode(ref action) => action.name(),
             PSAction::MergeMode(ref action) => action.name(),
-            PSAction::Record(ref action) => action.name()
+            PSAction::Record(ref action) => action.name(),
         };
         (self.group().name().to_string(), action_name)
     }

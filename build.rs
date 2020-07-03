@@ -1,7 +1,7 @@
+use std::env;
 use std::error::Error;
 use std::path::Path;
 use std::process::Command;
-use std::env;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let out_dir = env::var("OUT_DIR")?;

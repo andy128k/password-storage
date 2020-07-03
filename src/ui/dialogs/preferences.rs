@@ -1,8 +1,8 @@
-use gtk::prelude::*;
-use gtk::{Window, Widget, Grid, CheckButton};
-use crate::ui::form::base::FormWidget;
-use crate::ui::edit_object::edit_object;
 use crate::config::Config;
+use crate::ui::edit_object::edit_object;
+use crate::ui::form::base::FormWidget;
+use gtk::prelude::*;
+use gtk::{CheckButton, Grid, Widget, Window};
 
 struct ConfigForm {
     grid: Grid,
@@ -30,7 +30,11 @@ impl ConfigForm {
             button
         };
 
-        Self { grid, search_in_secrets, show_secrets_on_preview }
+        Self {
+            grid,
+            search_in_secrets,
+            show_secrets_on_preview,
+        }
     }
 }
 
@@ -42,7 +46,7 @@ impl FormWidget<Config> for ConfigForm {
     fn get_value(&self) -> Option<Config> {
         Some(Config {
             search_in_secrets: self.search_in_secrets.get_active(),
-            show_secrets_on_preview: self.show_secrets_on_preview.get_active()
+            show_secrets_on_preview: self.show_secrets_on_preview.get_active(),
         })
     }
 
@@ -50,8 +54,9 @@ impl FormWidget<Config> for ConfigForm {
         match value {
             Some(config) => {
                 self.search_in_secrets.set_active(config.search_in_secrets);
-                self.show_secrets_on_preview.set_active(config.show_secrets_on_preview);
-            },
+                self.show_secrets_on_preview
+                    .set_active(config.show_secrets_on_preview);
+            }
             None => {
                 self.search_in_secrets.set_active(false);
                 self.show_secrets_on_preview.set_active(false);
@@ -66,5 +71,11 @@ impl FormWidget<Config> for ConfigForm {
 
 pub fn preferences(parent_window: &Window, config: &Config) -> Option<Config> {
     let form = ConfigForm::new();
-    edit_object(Some(config), form, parent_window, "Preferences", "password-storage")
+    edit_object(
+        Some(config),
+        form,
+        parent_window,
+        "Preferences",
+        "password-storage",
+    )
 }

@@ -1,5 +1,5 @@
-use std::convert::Into;
 use std::collections::{HashMap, HashSet};
+use std::convert::Into;
 
 pub trait CharClassifier<T> {
     fn classify(&self, ch: u8) -> T;
@@ -14,7 +14,7 @@ pub enum AsciiCharClass {
     Lower,
     Punct1,
     Punct2,
-    Extended
+    Extended,
 }
 
 #[derive(Default)]
@@ -27,8 +27,11 @@ impl CharClassifier<AsciiCharClass> for AsciiClassifier {
             48..=57 => AsciiCharClass::Number,
             65..=90 => AsciiCharClass::Upper,
             97..=122 => AsciiCharClass::Lower,
-            32 | 33 | 35 | 36 | 37 | 38 | 40 | 41 | 42 | 43 | 45 | 47 | 61 | 64 | 94 | 95 => AsciiCharClass::Punct1,
-            34 | 39 | 44 | 46 | 58 | 59 | 60 | 62 | 63 | 91 | 92 | 93 | 96 | 123 | 124 | 125 | 126 => AsciiCharClass::Punct2,
+            32 | 33 | 35 | 36 | 37 | 38 | 40 | 41 | 42 | 43 | 45 | 47 | 61 | 64 | 94 | 95 => {
+                AsciiCharClass::Punct1
+            }
+            34 | 39 | 44 | 46 | 58 | 59 | 60 | 62 | 63 | 91 | 92 | 93 | 96 | 123 | 124 | 125
+            | 126 => AsciiCharClass::Punct2,
             128..=255 => AsciiCharClass::Extended,
         }
     }
@@ -52,18 +55,19 @@ fn character_distance(ch1: u8, ch2: u8) -> i32 {
 }
 
 pub fn password_entropy<T>(classifier: &dyn CharClassifier<T>, passw: &[u8]) -> f32
-    where T: Eq + std::hash::Hash
+where
+    T: Eq + std::hash::Hash,
 {
     let mut classes = HashSet::new();
     let mut char_count = HashMap::<u8, u32>::new(); // to count characters quantities
     let mut distances = HashMap::<i32, u32>::new(); // to collect differences between adjacent characters
-    
+
     let mut eff_len = 0f32;
     let mut prev_nc: Option<u8> = None;
 
     for nc in passw {
         classes.insert(classifier.classify(*nc));
-                 
+
         // value/factor for increment effective length
         let dw = match prev_nc {
             None => 1,
@@ -85,7 +89,7 @@ pub fn password_entropy<T>(classifier: &dyn CharClassifier<T>, passw: &[u8]) -> 
         eff_len += 1.0 / dcw;
         prev_nc = Some(*nc);
     }
-      
+
     // Password complexity index
     let mut pci = 0;
     for c in classes {
@@ -105,7 +109,7 @@ pub enum PasswordStrenth {
     Weak,
     Reasonable,
     Strong,
-    VeryStrong
+    VeryStrong,
 }
 
 impl Into<PasswordStrenth> for f32 {
@@ -138,7 +142,12 @@ mod test {
             class_chars.push(ch);
         }
         for (class, chars) in &map {
-            assert_eq!(chars.len() as u32, classifier.class_size(*class), "Size of {:?} class.", class);
+            assert_eq!(
+                chars.len() as u32,
+                classifier.class_size(*class),
+                "Size of {:?} class.",
+                class
+            );
         }
     }
 

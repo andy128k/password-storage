@@ -1,5 +1,5 @@
-use glib::{Bytes, error::Error};
-use gio::{Resource, resources_register};
+use gio::{resources_register, Resource};
+use glib::{error::Error, Bytes};
 
 fn load_icons_resource() -> Result<Resource, Error> {
     #[cfg(not(target_os = "windows"))]
