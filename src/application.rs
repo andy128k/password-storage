@@ -74,6 +74,14 @@ impl PSApplication {
             }));
             action
         });
+        gtk_app.add_action(&{
+            let action = gio::SimpleAction::new("open", None);
+            action.connect_activate(clone!(@weak app => move |_, _| {
+                let win = app.activate();
+                win.open_file();
+            }));
+            action
+        });
 
         app
     }

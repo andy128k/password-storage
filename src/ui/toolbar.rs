@@ -23,7 +23,7 @@ pub fn create_tool_bar(search_entry: &Widget) -> Toolbar {
     let toolbar = Toolbar::new();
 
     toolbar.add(&button2("New file", "document-new", "app.new"));
-    toolbar.add(&button("Open file", "document-open", &PSAction::App(AppAction::Open)));
+    toolbar.add(&button2("Open file", "document-open", "app.open"));
     toolbar.add(&button("Save file", "document-save", &PSAction::ViewMode(ViewModeAction::Save)));
     toolbar.add(&SeparatorToolItem::new());
     toolbar.add(&{

@@ -431,14 +431,15 @@ pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
     }
 }
 
-fn cb_open(win: &PSMainWindow) -> Result<()> {
-    if win.ensure_data_is_saved() {
-        let window = win.private().main_window.clone().upcast();
-        if let Some(filename) = open_file(&window) {
-            do_open_file(win, &filename);
+impl PSMainWindow {
+    pub fn open_file(&self) {
+        if self.ensure_data_is_saved() {
+            let window = self.window();
+            if let Some(filename) = open_file(&window) {
+                do_open_file(self, &filename);
+            }
         }
     }
-    Ok(())
 }
 
 fn cb_merge_file(win: &PSMainWindow) -> Result<()> {
@@ -749,7 +750,6 @@ pub fn old_main(app1: &PSApplication) -> PSMainWindow {
     }
 
     {
-        create_action(&win, PSAction::App(AppAction::Open), Box::new(cb_open));
         create_action(&win, PSAction::App(AppAction::Preferences), Box::new(cb_preferences));
 
         create_toggle_action(&win, PSAction::Doc(DocAction::MergeMode), Box::new(set_merge_mode));
