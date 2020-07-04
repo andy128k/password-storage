@@ -17,7 +17,7 @@ use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::save_file::save_file;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
-use crate::ui::filter::PSTreeFilter;
+use crate::ui::filter::create_model_filter;
 use crate::ui::preview_panel::PSPreviewPanel;
 use crate::ui::search::PSSearchEntry;
 use crate::ui::tree_view::PSTreeView;
@@ -55,8 +55,6 @@ struct PSMainWindowPrivate {
     preview: PSPreviewPanel,
 
     actions: RefCell<HashMap<PSAction, SimpleAction>>,
-
-    filter: PSTreeFilter,
 
     search_entry: PSSearchEntry,
 
@@ -142,6 +140,14 @@ impl PSMainWindow {
             get_clipboard().clear();
         }
     }
+
+    fn refilter(&self) {
+        if let Some(model) = self.private().view.view.get_model() {
+            if let Ok(filter) = model.downcast::<gtk::TreeModelFilter>() {
+                filter.refilter();
+            }
+        }
+    }
 }
 
 fn get_selected_group_iter(win: &PSMainWindow) -> Option<TreeIter> {
@@ -214,7 +220,7 @@ fn cb_add_record(win: &PSMainWindow, record_type: &'static RecordType) -> Result
             .data
             .borrow()
             .append(group_iter.as_ref(), &new_record);
-        win.private().filter.refilter();
+        win.refilter();
         win.private().view.select_iter(&iter);
         set_status(win, "New entry was added");
         win.private().changed.set(true);
@@ -230,7 +236,7 @@ fn cb_edit_record(win: &PSMainWindow) -> Result<()> {
             let window = win.private().main_window.clone().upcast();
             if let Some(new_record) = edit_record(&record, &window, "Edit", &get_usernames(win)) {
                 win.private().data.borrow().update(&iter, &new_record);
-                win.private().filter.refilter();
+                win.refilter();
                 listview_cursor_changed(win, Some(new_record));
                 set_status(win, "Entry was changed");
                 win.private().changed.set(true);
@@ -253,7 +259,7 @@ fn cb_convert_record(win: &PSMainWindow, dest_record_type: &'static RecordType) 
                 new_record
             };
             win.private().data.borrow().update(&iter, &new_record);
-            win.private().filter.refilter();
+            win.refilter();
             set_status(win, "Entry has changed type");
             win.private().changed.set(true);
             listview_cursor_changed(win, Some(new_record));
@@ -350,7 +356,7 @@ fn cb_merge(win: &PSMainWindow) -> Result<()> {
 
     // TODO: detect common path
     let iter = win.private().data.borrow().append(None, &result);
-    win.private().filter.refilter();
+    win.refilter();
     win.private().view.select_iter(&iter);
     set_status(win, "New entry was created by merging");
     win.private().changed.set(true);
@@ -424,7 +430,11 @@ impl PSMainWindow {
     pub fn new_file(&self) {
         if self.ensure_data_is_saved() {
             self.private().changed.set(false);
-            set_data(self, PSStore::new());
+
+            let data = PSStore::new();
+            *self.private().data.borrow_mut() = data.clone();
+            self.private().view.set_model(Some(&data.as_model()));
+
             set_filename(self, None);
             self.private().search_entry.set_text("");
             *self.private().password.borrow_mut() = None;
@@ -435,16 +445,6 @@ impl PSMainWindow {
     }
 }
 
-fn set_data(win: &PSMainWindow, data: PSStore) {
-    let model = data.as_model();
-    *win.private().data.borrow_mut() = data.clone();
-    {
-        let view = win.private().view.clone();
-        view.set_model(Some(&model));
-    }
-    win.private().filter.set_model(Some(&data));
-}
-
 pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
     let window = &win.private().main_window.clone().upcast();
     if let Some((entries, password)) = load_data(filename, window) {
@@ -452,7 +452,9 @@ pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
         win.private().search_entry.set_text("");
 
         let data = PSStore::from_tree(&entries);
-        set_data(win, data);
+        *win.private().data.borrow_mut() = data.clone();
+        win.private().view.set_model(Some(&data.as_model()));
+
         {
             set_filename(win, Some(filename));
             *win.private().password.borrow_mut() = Some(password);
@@ -479,6 +481,8 @@ impl PSMainWindow {
 }
 
 fn cb_merge_file(win: &PSMainWindow) -> Result<()> {
+    win.private().search_entry.set_text("");
+
     let window = win.private().main_window.clone().upcast();
     if let Some(filename) = open_file(&window) {
         if let Some((extra_records, _password)) = load_data(&filename, &window) {
@@ -486,7 +490,9 @@ fn cb_merge_file(win: &PSMainWindow) -> Result<()> {
             crate::model::merge_trees::merge_trees(&mut records_tree, &extra_records);
 
             let data = PSStore::from_tree(&records_tree);
-            set_data(win, data);
+            *win.private().data.borrow_mut() = data.clone();
+            win.private().view.set_model(Some(&data.as_model()));
+
             win.private().changed.set(true);
         }
     }
@@ -516,7 +522,11 @@ fn cb_close(win: &PSMainWindow) -> Result<()> {
     if win.ensure_data_is_saved() {
         win.private().changed.set(false);
         win.private().search_entry.set_text("");
-        set_data(win, PSStore::new());
+
+        let data = PSStore::new();
+        *win.private().data.borrow_mut() = data.clone();
+        win.private().view.set_model(Some(&data.as_model()));
+
         set_filename(win, None);
         *win.private().password.borrow_mut() = None;
         listview_cursor_changed(win, None);
@@ -752,7 +762,6 @@ pub fn old_main(
     cache: &Cache,
 ) -> PSMainWindow {
     let data = PSStore::new();
-    let filter = PSTreeFilter::new();
     let view = PSTreeView::new();
     let preview = PSPreviewPanel::new();
 
@@ -764,7 +773,6 @@ pub fn old_main(
 
     let (main_window, search_entry, statusbar) = create_main_window(app1, &stack.clone().upcast());
 
-    filter.set_model(Some(&data));
     view.set_model(Some(&data.as_model()));
 
     let private = PSMainWindowPrivate {
@@ -774,7 +782,6 @@ pub fn old_main(
         dashboard,
         data: RefCell::new(data),
         view,
-        filter: filter.retain(),
         search_entry,
         preview,
         statusbar,
@@ -804,19 +811,6 @@ pub fn old_main(
             }
         }),
     );
-
-    {
-        let win1 = win.clone();
-        filter.set_filter_func(Some(Box::new(move |record| {
-            let search_text = win1.private().search_entry.get_text();
-            let look_at_secrets = win1.private().config.borrow().search_in_secrets;
-            if let Some(ref text) = search_text {
-                record.has_text(text, look_at_secrets)
-            } else {
-                true
-            }
-        })));
-    }
 
     {
         create_toggle_action(
@@ -935,12 +929,17 @@ pub fn old_main(
     {
         let win1 = win.clone();
         win.private().search_entry.connect_changed(move |text| {
-            if text.is_some() {
+            if let Some(search_text) = text {
+                let look_at_secrets = win1.private().config.borrow().search_in_secrets;
                 set_status(&win1, "View is filtered.");
-                let model = win1.private().filter.as_model();
-                win1.private().view.set_model(model.as_ref());
+                let model = create_model_filter(
+                    &win1.private().data.borrow(),
+                    &search_text,
+                    look_at_secrets,
+                );
+                win1.private().view.set_model(Some(&model.upcast()));
                 win1.private().view.view.set_reorderable(false);
-                win1.private().filter.refilter();
+                win1.refilter();
                 win1.private().view.view.expand_all();
             } else {
                 set_status(&win1, "View filter was reset.");

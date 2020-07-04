@@ -12,7 +12,6 @@ mod main_window;
 mod markup_builder;
 mod model;
 mod password;
-mod ptr;
 mod store;
 mod test;
 mod ui;

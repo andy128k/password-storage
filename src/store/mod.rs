@@ -85,6 +85,11 @@ impl PSStore {
         PSStore { model }
     }
 
+    pub fn from_tree_model(model: &TreeModel) -> Option<Self> {
+        let model = model.clone().downcast().ok()?;
+        Some(Self { model })
+    }
+
     pub fn from_tree(tree: &RecordTree) -> Self {
         fn parse_record(node: &RecordNode, store: &PSStore, parent_iter: Option<&TreeIter>) {
             match *node {
