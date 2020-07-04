@@ -45,7 +45,6 @@ enum AppMode {
 }
 
 struct PSMainWindowPrivate {
-    main_window: ApplicationWindow,
     mode: Cell<AppMode>,
     stack: Stack,
     dashboard: PSDashboard,
@@ -134,7 +133,7 @@ impl PSMainWindow {
     }
 
     pub fn close(&self) {
-        self.private().main_window.close();
+        self.0.close();
     }
 
     fn refilter(&self) {
@@ -206,7 +205,7 @@ fn get_usernames(win: &PSMainWindow) -> Vec<String> {
 }
 
 fn cb_add_record(win: &PSMainWindow, record_type: &'static RecordType) -> Result<()> {
-    let window = &win.private().main_window.clone().upcast();
+    let window = &win.window();
 
     let empty_record = record_type.new_record();
     if let Some(new_record) = edit_record(&empty_record, window, "Add", &get_usernames(win)) {
@@ -229,7 +228,7 @@ fn cb_edit_record(win: &PSMainWindow) -> Result<()> {
     if let Some((iter, _path)) = selection {
         let record_opt = win.private().data.borrow().get(&iter);
         if let Some(record) = record_opt {
-            let window = win.private().main_window.clone().upcast();
+            let window = win.window();
             if let Some(new_record) = edit_record(&record, &window, "Edit", &get_usernames(win)) {
                 win.private().data.borrow().update(&iter, &new_record);
                 win.refilter();
@@ -268,7 +267,7 @@ fn cb_delele_record(win: &PSMainWindow) -> Result<()> {
     let selection = win.private().view.get_selected_iter();
     if let Some((iter, _path)) = selection {
         if ask(
-            &win.private().main_window.clone().upcast(),
+            &win.window(),
             "Do you really want to delete selected entry?",
         ) {
             win.private().data.borrow().delete(&iter);
@@ -315,7 +314,7 @@ fn cb_merge(win: &PSMainWindow) -> Result<()> {
 
     if checked.len() < 2 {
         say_info(
-            &win.private().main_window.clone().upcast(),
+            &win.window(),
             "Nothing to merge. Select few items and try again.",
         );
         return Ok(());
@@ -339,7 +338,7 @@ fn cb_merge(win: &PSMainWindow) -> Result<()> {
             message.push_str(&record.name());
         }
 
-        if !ask(&win.private().main_window.clone().upcast(), &message) {
+        if !ask(&win.window(), &message) {
             return Ok(());
         }
     }
@@ -381,7 +380,7 @@ fn new_password(parent_window: &Window) -> Option<String> {
 
 fn ensure_password_is_set(win: &PSMainWindow) -> Option<String> {
     if win.private().password.borrow().is_none() {
-        let window = &win.private().main_window.clone().upcast();
+        let window = &win.window();
         *win.private().password.borrow_mut() = new_password(window);
     }
     win.private().password.borrow().clone()
@@ -409,7 +408,7 @@ fn set_filename(win: &PSMainWindow, filename: Option<&Path>) {
     match filename {
         Some(filename) => {
             *win.private().filename.borrow_mut() = Some(filename.to_owned());
-            win.private().main_window.set_title(&format!(
+            win.window().set_title(&format!(
                 "{} - {}",
                 WINDOW_TITLE,
                 &filename.to_string_lossy()
@@ -417,7 +416,7 @@ fn set_filename(win: &PSMainWindow, filename: Option<&Path>) {
         }
         None => {
             *win.private().filename.borrow_mut() = None;
-            win.private().main_window.set_title(WINDOW_TITLE);
+            win.window().set_title(WINDOW_TITLE);
         }
     }
 }
@@ -442,7 +441,7 @@ impl PSMainWindow {
 }
 
 pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
-    let window = &win.private().main_window.clone().upcast();
+    let window = &win.window();
     if let Some((entries, password)) = load_data(filename, window) {
         win.private().cache.add_file(filename);
         win.private().search_entry.set_text("");
@@ -479,7 +478,7 @@ impl PSMainWindow {
 fn cb_merge_file(win: &PSMainWindow) -> Result<()> {
     win.private().search_entry.set_text("");
 
-    let window = win.private().main_window.clone().upcast();
+    let window = win.window();
     if let Some(filename) = open_file(&window) {
         if let Some((extra_records, _password)) = load_data(&filename, &window) {
             let mut records_tree = win.private().data.borrow().to_tree();
@@ -496,7 +495,7 @@ fn cb_merge_file(win: &PSMainWindow) -> Result<()> {
 }
 
 fn cb_save_as(win: &PSMainWindow) -> Result<()> {
-    let window = win.private().main_window.clone().upcast();
+    let window = win.window();
     if let Some(ref filename) = save_file(&window) {
         set_filename(win, Some(filename));
         save_data(win, filename)?;
@@ -533,7 +532,7 @@ fn cb_close(win: &PSMainWindow) -> Result<()> {
 }
 
 fn cb_change_password(win: &PSMainWindow) -> Result<()> {
-    let window = win.private().main_window.clone().upcast();
+    let window = win.window();
     if let Some(new_password) = change_password(&window) {
         *win.private().password.borrow_mut() = Some(new_password);
         win.private().changed.set(true);
@@ -716,8 +715,7 @@ fn create_action(
     let win1 = win.clone();
     action.connect_activate(move |_, _| {
         if let Err(error) = cb(&win1) {
-            let window = win1.private().main_window.clone().upcast();
-            say_error(&window, &error.to_string());
+            say_error(&win1.window(), &error.to_string());
         }
     });
     win.private()
@@ -742,7 +740,7 @@ fn create_toggle_action(
         let new_state: bool = !prev_state;
         action.set_state(&new_state.into());
         if let Err(error) = cb(&win1, new_state) {
-            let window = win1.private().main_window.clone().upcast();
+            let window = win1.window();
             say_error(&window, &error.to_string());
         }
     });
@@ -773,7 +771,6 @@ pub fn old_main(
 
     let private = PSMainWindowPrivate {
         mode: Cell::new(AppMode::Initial),
-        main_window: main_window.clone(),
         stack,
         dashboard,
         data: RefCell::new(data),
@@ -797,7 +794,7 @@ pub fn old_main(
     }
     let win = PSMainWindow(main_window);
 
-    win.private().main_window.connect_delete_event(
+    win.0.connect_delete_event(
         clone!(@weak win => @default-return Inhibit(false), move |_win, _event| {
             if win.ensure_data_is_saved() {
                 get_clipboard().clear();
@@ -909,9 +906,8 @@ pub fn old_main(
                 .add_action(action);
         }
 
-        let window = win.private().main_window.clone();
         for (group_name, group) in &groups {
-            window.insert_action_group(group_name.name(), Some(group));
+            win.0.insert_action_group(group_name.name(), Some(group));
         }
     }
 
@@ -990,7 +986,7 @@ pub fn old_main(
     let popup = ui::menu::create_tree_popup();
     win.private().view.set_popup(&popup);
 
-    win.private().main_window.show_all();
+    win.window().show_all();
 
     set_mode(&win, AppMode::Initial);
 
