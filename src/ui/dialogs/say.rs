@@ -18,7 +18,7 @@ pub fn say_error(parent_window: &Window, message: &str) {
     dlg.set_property_window_position(WindowPosition::CenterOnParent);
     dlg.set_default_response(ResponseType::Ok);
     dlg.run();
-    dlg.destroy();
+    dlg.close();
 }
 
 pub fn say_info(parent_window: &Window, message: &str) {
@@ -36,5 +36,5 @@ pub fn say_info(parent_window: &Window, message: &str) {
     dlg.set_property_window_position(WindowPosition::CenterOnParent);
     dlg.set_default_response(ResponseType::Ok);
     dlg.run();
-    dlg.destroy();
+    dlg.close();
 }

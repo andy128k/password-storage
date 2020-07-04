@@ -19,7 +19,7 @@ pub fn ask(parent_window: &Window, message: &str) -> bool {
     dlg.set_default_response(ResponseType::Yes);
 
     let answer = dlg.run();
-    dlg.destroy();
+    dlg.close();
 
     answer == ResponseType::Yes
 }

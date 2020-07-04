@@ -142,7 +142,7 @@ impl PSTreeView {
     }
 
     pub fn set_popup(&self, popup_model: &MenuModel) {
-        let popup = gtk::Menu::new_from_model(&popup_model.clone());
+        let popup = gtk::Menu::from_model(popup_model);
         popup.set_property_attach_widget(Some(&self.view));
 
         self.view.connect_button_press_event(

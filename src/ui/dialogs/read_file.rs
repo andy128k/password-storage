@@ -68,7 +68,7 @@ where
             break;
         }
 
-        let password: String = entry.get_text().map_or_else(String::new, |s| s.to_string());
+        let password = entry.get_text().to_string();
         match read_file_callback(&password) {
             Ok(document) => {
                 result = Some((document, password));
@@ -81,7 +81,7 @@ where
         }
     }
 
-    dlg.destroy();
+    dlg.close();
 
     result
 }

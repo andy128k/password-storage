@@ -17,14 +17,14 @@ impl ConfigForm {
         grid.set_row_spacing(8);
 
         let search_in_secrets = {
-            let button = CheckButton::new_with_label("Search in secrets (passwords)");
+            let button = CheckButton::with_label("Search in secrets (passwords)");
             button.set_can_focus(true);
             grid.attach(&button, 0, 0, 2, 1);
             button
         };
 
         let show_secrets_on_preview = {
-            let button = CheckButton::new_with_label("Show secrets (passwords) on preview panel");
+            let button = CheckButton::with_label("Show secrets (passwords) on preview panel");
             button.set_can_focus(true);
             grid.attach(&button, 0, 1, 2, 1);
             button

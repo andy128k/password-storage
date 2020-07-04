@@ -13,7 +13,7 @@ pub trait EntryBasedWidget {
 }
 
 fn get_value(entry: &Entry) -> Option<String> {
-    entry.get_text().and_then(non_empty)
+    non_empty(entry.get_text())
 }
 
 impl<T> FormWidget<String> for T
@@ -126,7 +126,7 @@ impl OpenPassword {
 
         entry.connect_icon_release(|e, pos, _button| {
             if pos == EntryIconPosition::Secondary {
-                let is_empty = e.get_text().map_or(true, |t| t.is_empty());
+                let is_empty = e.get_text().is_empty();
                 if is_empty || confirm_password_overwrite(e) {
                     let password = generate_password();
                     e.set_text(&password);

@@ -11,7 +11,6 @@ use crate::config::Config;
 use crate::main_window::{do_open_file, old_main, PSMainWindow};
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
-use crate::utils::object_data::ObjectDataExt;
 
 struct PSApplicationPrivate {
     config: Rc<RefCell<Config>>,

@@ -17,7 +17,7 @@ pub fn save_file(parent_window: &Window) -> Option<PathBuf> {
     dlg.set_default_response(ResponseType::Ok);
     let save_clicked = dlg.run() == ResponseType::Ok;
     let filename = dlg.get_filename();
-    dlg.destroy();
+    dlg.close();
 
     if save_clicked {
         filename

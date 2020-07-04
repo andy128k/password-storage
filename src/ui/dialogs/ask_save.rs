@@ -29,7 +29,7 @@ pub fn ask_save(parent_window: &Window, message: &str) -> AskSave {
     dlg.set_default_response(ResponseType::Ok);
 
     let answer = dlg.run();
-    dlg.destroy();
+    dlg.close();
 
     match answer {
         ResponseType::Reject => AskSave::Discard,

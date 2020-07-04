@@ -23,7 +23,7 @@ impl PSSearchEntry {
 
     pub fn connect_changed<F: Fn(Option<String>) + 'static>(&self, changed: F) {
         self.0.connect_changed(move |e| {
-            let search_text = e.get_text().and_then(non_empty);
+            let search_text = non_empty(e.get_text());
             changed(search_text);
         });
     }

@@ -15,5 +15,5 @@ pub fn about(parent: Option<&gtk::Window>) {
         .build();
     dlg.set_transient_for(parent);
     dlg.run();
-    dlg.destroy();
+    dlg.close();
 }

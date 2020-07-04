@@ -22,7 +22,6 @@ use crate::ui::preview_panel::PSPreviewPanel;
 use crate::ui::search::PSSearchEntry;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
-use crate::utils::object_data::ObjectDataExt;
 use gio::prelude::*;
 use gio::{SimpleAction, SimpleActionGroup};
 use glib::clone;
@@ -135,10 +134,7 @@ impl PSMainWindow {
     }
 
     pub fn close(&self) {
-        if self.ensure_data_is_saved() {
-            self.private().main_window.destroy();
-            get_clipboard().clear();
-        }
+        self.private().main_window.close();
     }
 
     fn refilter(&self) {

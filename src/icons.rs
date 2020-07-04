@@ -14,7 +14,7 @@ fn load_icons_resource() -> Result<Resource, Error> {
         Bytes::from(aligned)
     };
 
-    Resource::new_from_data(&bytes)
+    Resource::from_data(&bytes)
 }
 
 pub fn load_icons() -> Result<(), Error> {

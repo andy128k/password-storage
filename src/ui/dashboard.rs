@@ -28,7 +28,6 @@ fn framed<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
 
 mod filerow {
     use crate::markup_builder::bold;
-    use crate::utils::object_data::ObjectDataExt;
     use gtk::prelude::*;
     use lazy_static::lazy_static;
     use std::path::PathBuf;

@@ -29,10 +29,10 @@ pub fn edit_object<T, W: FormWidget<T>>(
 
     if ok {
         let new_object = widget.get_value();
-        dlg.destroy();
+        dlg.close();
         new_object
     } else {
-        dlg.destroy();
+        dlg.close();
         None
     }
 }

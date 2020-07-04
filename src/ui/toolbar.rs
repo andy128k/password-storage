@@ -9,14 +9,14 @@ use crate::actions::*;
 use crate::model::record::RECORD_TYPE_GENERIC;
 
 fn button(label: &str, icon: &str, action: &PSAction) -> ToolButton {
-    let image = Image::new_from_icon_name(Some(icon), IconSize::SmallToolbar);
+    let image = Image::from_icon_name(Some(icon), IconSize::SmallToolbar);
     let item = ToolButton::new(Some(&image), Some(label));
     item.set_action_name(Some(action.full_name().as_ref()));
     item
 }
 
 fn button2(label: &str, icon: &str, action: &str) -> ToolButton {
-    let image = Image::new_from_icon_name(Some(icon), IconSize::SmallToolbar);
+    let image = Image::from_icon_name(Some(icon), IconSize::SmallToolbar);
     let item = ToolButton::new(Some(&image), Some(label));
     item.set_action_name(Some(action));
     item
@@ -34,9 +34,9 @@ pub fn create_tool_bar(search_entry: &Widget) -> Toolbar {
     ));
     toolbar.add(&SeparatorToolItem::new());
     toolbar.add(&{
-        let image = Image::new_from_icon_name(Some("list-add"), IconSize::SmallToolbar);
+        let image = Image::from_icon_name(Some("list-add"), IconSize::SmallToolbar);
         let item = MenuToolButton::new(Some(&image), Some("Add entry"));
-        item.set_menu(&Menu::new_from_model(&create_add_entity_menu()));
+        item.set_menu(&Menu::from_model(&create_add_entity_menu()));
         let default_action =
             PSAction::ViewMode(ViewModeAction::Add(RECORD_TYPE_GENERIC.name.to_string()));
         item.set_action_name(Some(default_action.full_name().as_ref()));
