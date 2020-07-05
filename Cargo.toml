@@ -10,7 +10,6 @@ readme = "README.md"
 
 [dependencies]
 lazy_static = "1"
-debug-cell = "0.1"
 
 rand = "0.7"
 aes = "0.4"
