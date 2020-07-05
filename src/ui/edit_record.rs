@@ -9,7 +9,7 @@ use gtk::{Widget, Window};
 fn record_to_vec(record_type: &'static RecordType, record: &Record) -> Vec<String> {
     let mut values = Vec::new();
     for field in &record_type.fields {
-        values.push(record.get_field(field));
+        values.push(record.get_field(field).to_string());
     }
     values
 }

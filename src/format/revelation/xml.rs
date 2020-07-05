@@ -140,16 +140,16 @@ fn record_from_xml(xml_type: &str, xml_node: &Element) -> Result<Record> {
     let mut record = record_type.new_record();
     record
         .values
-        .insert("name", &entry_node_get_value(xml_node, "name"));
+        .insert("name".to_string(), entry_node_get_value(xml_node, "name"));
     record.values.insert(
-        "description",
-        &entry_node_get_value(xml_node, "description"),
+        "description".to_string(),
+        entry_node_get_value(xml_node, "description"),
     );
 
     for &(ref field, ref id) in mappings {
         record
             .values
-            .insert(field, &entry_field_by_id(xml_node, id));
+            .insert(field.to_string(), entry_field_by_id(xml_node, id));
     }
 
     Ok(record)
@@ -177,7 +177,9 @@ fn record_to_xml(record: &Record) -> Result<Element> {
         elem = elem.append(
             Element::builder("field")
                 .attr("id", *id)
-                .append(Node::Text(record.values.get(field).unwrap_or_default()))
+                .append(Node::Text(
+                    record.values.get(*field).cloned().unwrap_or_default(),
+                ))
                 .build(),
         );
     }

@@ -1,6 +1,6 @@
-use crate::utils::hash_table::HashTable;
 use glib::subclass::prelude::*;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldType {
@@ -52,7 +52,7 @@ pub struct RecordType {
 #[gboxed(type_name = "PSRecord")]
 pub struct Record {
     pub record_type: &'static RecordType,
-    pub values: HashTable,
+    pub values: HashMap<String, String>,
 }
 
 pub const FIELD_NAME: Field = Field::new("name", "Name", FieldType::Text);
@@ -254,10 +254,10 @@ impl RecordType {
     }
 
     pub fn new_record(&'static self) -> Record {
-        let mut values = HashTable::new();
-        values.insert(RECORD_TYPE_FIELD, &self.name);
+        let mut values = HashMap::new();
+        values.insert(RECORD_TYPE_FIELD.to_owned(), self.name.to_owned());
         for field in &self.fields {
-            values.insert(field.name, "");
+            values.insert(field.name.to_owned(), String::new());
         }
         Record {
             record_type: self,
@@ -290,30 +290,31 @@ fn common_name(names: &[String]) -> String {
 
 impl Record {
     pub fn name(&self) -> String {
-        self.values.get("name").unwrap_or_default()
+        self.values.get("name").cloned().unwrap_or_default()
     }
 
-    pub fn get_field(&self, field: &Field) -> String {
-        match self.values.get(field.name) {
-            Some(name) => name,
-            None => String::new(),
-        }
+    pub fn get_field(&self, field: &Field) -> &str {
+        self.values
+            .get(field.name)
+            .map_or("", |value| value.as_str())
     }
 
     pub fn set_field(&mut self, field: &Field, value: &str) {
-        self.values.insert(field.name, value);
+        self.values.insert(field.name.to_owned(), value.to_owned());
     }
 
-    pub fn username(&self) -> Option<String> {
+    pub fn username(&self) -> Option<&str> {
         self.record_type
             .username_field
             .and_then(|field| self.values.get(field))
+            .map(|value| value.as_str())
     }
 
-    pub fn password(&self) -> Option<String> {
+    pub fn password(&self) -> Option<&str> {
         self.record_type
             .password_field
             .and_then(|field| self.values.get(field))
+            .map(|value| value.as_str())
     }
 
     pub fn has_text(&self, text: &str, look_at_secrets: bool) -> bool {
