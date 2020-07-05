@@ -1,9 +1,7 @@
-mod transform;
-
 use crate::entropy::*;
 use crate::model::record::Record;
 use crate::model::tree::{RecordNode, RecordTree};
-use crate::utils::hash_table::*;
+use glib::subclass::boxed::BoxedType;
 use glib::{Type, Value};
 use gtk::prelude::*;
 use gtk::{TreeIter, TreeModel, TreeStore};
@@ -75,7 +73,7 @@ fn delete_checked(model: &TreeStore, parent: Option<&TreeIter>) {
 impl PSStore {
     pub fn new() -> Self {
         let model = TreeStore::new(&[
-            HashTable::glib_type(),
+            Record::get_type(),
             Type::String,
             Type::String,
             Type::Bool,
@@ -139,9 +137,7 @@ impl PSStore {
         let model = self.as_model();
         let mut result = Vec::new();
         for i in crate::utils::tree::tree_parents_entries(&model, iter) {
-            if let Some(record) =
-                Record::try_from_value(&model.get_value(&i, TreeStoreColumn::Record.into()))
-            {
+            if let Some(record) = self.get(&i) {
                 result.push((i, record));
             }
         }
@@ -152,9 +148,7 @@ impl PSStore {
         let model = self.as_model();
         let mut result = Vec::new();
         for i in crate::utils::tree::tree_children_entries(&model, iter) {
-            if let Some(record) =
-                Record::try_from_value(&model.get_value(&i, TreeStoreColumn::Record.into()))
-            {
+            if let Some(record) = self.get(&i) {
                 result.push((i, record));
             }
         }
@@ -163,7 +157,7 @@ impl PSStore {
 
     pub fn update(&self, iter: &TreeIter, record: &Record) {
         self.model
-            .set_value(iter, TreeStoreColumn::Record.into(), &record.clone().into());
+            .set_value(iter, TreeStoreColumn::Record.into(), &record.to_value());
         self.model.set_value(
             iter,
             TreeStoreColumn::Name.into(),
@@ -207,7 +201,11 @@ impl PSStore {
     }
 
     pub fn get(&self, iter: &TreeIter) -> Option<Record> {
-        Record::try_from_value(&self.model.get_value(iter, TreeStoreColumn::Record.into()))
+        self.model
+            .get_value(iter, TreeStoreColumn::Record.into())
+            .get_some::<&Record>()
+            .ok()
+            .cloned()
     }
 
     pub fn delete(&self, iter: &TreeIter) {

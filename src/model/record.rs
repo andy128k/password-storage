@@ -1,4 +1,5 @@
 use crate::utils::hash_table::HashTable;
+use glib::subclass::prelude::*;
 use lazy_static::lazy_static;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,7 +48,8 @@ pub struct RecordType {
     password_field: Option<&'static str>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, glib::GBoxed)]
+#[gboxed(type_name = "PSRecord")]
 pub struct Record {
     pub record_type: &'static RecordType,
     pub values: HashTable,
