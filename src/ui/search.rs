@@ -1,20 +1,19 @@
 use crate::utils::string::non_empty;
 use glib::Cast;
 use gtk::prelude::*;
-use gtk::{EditableSignals, Entry, EntryExt, EntryIconPosition, Widget};
 
-pub struct PSSearchEntry(Entry);
+pub struct PSSearchEntry(gtk::Entry);
 
 impl PSSearchEntry {
     pub fn new() -> Self {
-        let entry = Entry::new();
+        let entry = gtk::Entry::new();
 
-        entry.set_icon_from_icon_name(EntryIconPosition::Primary, Some("edit-find"));
-        entry.set_icon_from_icon_name(EntryIconPosition::Secondary, Some("edit-clear"));
+        entry.set_icon_from_icon_name(gtk::EntryIconPosition::Primary, Some("edit-find"));
+        entry.set_icon_from_icon_name(gtk::EntryIconPosition::Secondary, Some("edit-clear"));
 
-        entry.connect_icon_release(move |e, pos, _button| {
-            if pos == EntryIconPosition::Secondary {
-                e.set_text("");
+        entry.connect_icon_release(move |entry, pos, _button| {
+            if pos == gtk::EntryIconPosition::Secondary {
+                entry.set_text("");
             }
         });
 
@@ -28,7 +27,7 @@ impl PSSearchEntry {
         });
     }
 
-    pub fn get_widget(&self) -> Widget {
+    pub fn get_widget(&self) -> gtk::Widget {
         self.0.clone().upcast()
     }
 

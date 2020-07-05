@@ -26,11 +26,6 @@ use gio::prelude::*;
 use gio::{SimpleAction, SimpleActionGroup};
 use glib::clone;
 use gtk::prelude::*;
-use gtk::{
-    Adjustment, Align, Application, ApplicationWindow, ContainerExt, Grid, GtkApplicationExt,
-    Orientation, Paned, PolicyType, ScrolledWindow, ScrolledWindowExt, ShadowType, Stack,
-    Statusbar, TreeIter, TreeViewExt, Widget, Window, WindowPosition,
-};
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::convert::Into;
@@ -46,7 +41,7 @@ enum AppMode {
 
 struct PSMainWindowPrivate {
     mode: Cell<AppMode>,
-    stack: Stack,
+    stack: gtk::Stack,
     dashboard: PSDashboard,
     data: RefCell<PSStore>,
     view: PSTreeView,
@@ -56,7 +51,7 @@ struct PSMainWindowPrivate {
 
     search_entry: PSSearchEntry,
 
-    statusbar: Statusbar,
+    statusbar: gtk::Statusbar,
 
     filename: RefCell<Option<PathBuf>>,
     password: RefCell<Option<String>>,
@@ -94,7 +89,7 @@ fn set_status(win: &PSMainWindow, message: &str) {
 }
 
 impl PSMainWindow {
-    pub fn from_window(window: &Window) -> Option<Self> {
+    pub fn from_window(window: &gtk::Window) -> Option<Self> {
         let app_window = window.clone().downcast::<gtk::ApplicationWindow>().ok()?;
         if !unsafe { *app_window.get_data("is_main_window").unwrap_or(&false) } {
             return None;
@@ -145,7 +140,7 @@ impl PSMainWindow {
     }
 }
 
-fn get_selected_group_iter(win: &PSMainWindow) -> Option<TreeIter> {
+fn get_selected_group_iter(win: &PSMainWindow) -> Option<gtk::TreeIter> {
     let model = &win.private().data.borrow();
     let selection = win.private().view.get_selected_iter();
     if let Some((iter, _path)) = selection {
@@ -185,7 +180,11 @@ fn listview_cursor_changed(win: &PSMainWindow, record: Option<Record>) {
 }
 
 fn get_usernames(win: &PSMainWindow) -> Vec<String> {
-    fn traverse(store: &PSStore, parent_iter: Option<&TreeIter>, result: &mut HashSet<String>) {
+    fn traverse(
+        store: &PSStore,
+        parent_iter: Option<&gtk::TreeIter>,
+        result: &mut HashSet<String>,
+    ) {
         for (i, record) in store.children(parent_iter) {
             if record.record_type.is_group {
                 traverse(store, Some(&i), result);
@@ -289,7 +288,7 @@ fn cb_merge(win: &PSMainWindow) -> Result<()> {
     let checked = {
         fn collect_checked(
             model: &PSStore,
-            parent: Option<&TreeIter>,
+            parent: Option<&gtk::TreeIter>,
             path: &[String],
             result: &mut Vec<(Record, Vec<String>)>,
         ) {
@@ -358,13 +357,13 @@ fn cb_merge(win: &PSMainWindow) -> Result<()> {
     Ok(())
 }
 
-fn load_data(filename: &Path, parent_window: &Window) -> Option<(RecordTree, String)> {
+fn load_data(filename: &Path, parent_window: &gtk::Window) -> Option<(RecordTree, String)> {
     read_file(parent_window, |password| {
         format::revelation::load_revelation_file(filename, password)
     })
 }
 
-fn new_password(parent_window: &Window) -> Option<String> {
+fn new_password(parent_window: &gtk::Window) -> Option<String> {
     // TODO: ADD confirmation
     let mut form = ui::form::form::Form::new();
     form.add("Password", Box::new(ui::form::entry::Password::new()), true);
@@ -641,60 +640,66 @@ fn set_merge_mode(win: &PSMainWindow, merge: bool) -> Result<()> {
     Ok(())
 }
 
-fn create_file_widget(tree_view: &PSTreeView, preview: &PSPreviewPanel) -> Widget {
-    let paned = Paned::new(Orientation::Horizontal);
+fn create_file_widget(tree_view: &PSTreeView, preview: &PSPreviewPanel) -> gtk::Widget {
+    let paned = gtk::PanedBuilder::new()
+        .orientation(gtk::Orientation::Horizontal)
+        .hexpand(true)
+        .vexpand(true)
+        .build();
 
-    let sw = ScrolledWindow::new(None::<&Adjustment>, None::<&Adjustment>);
-    sw.set_can_focus(true);
-    sw.set_property_hscrollbar_policy(PolicyType::Automatic);
-    sw.set_property_vscrollbar_policy(PolicyType::Automatic);
-    sw.set_shadow_type(ShadowType::In);
+    let sw = gtk::ScrolledWindowBuilder::new()
+        .can_focus(true)
+        .hscrollbar_policy(gtk::PolicyType::Automatic)
+        .vscrollbar_policy(gtk::PolicyType::Automatic)
+        .shadow_type(gtk::ShadowType::In)
+        .build();
     sw.add(&tree_view.get_widget());
 
     paned.pack1(&sw, true, false);
 
     paned.pack2(&preview.get_widget(), false, false);
 
-    paned.set_hexpand(true);
-    paned.set_vexpand(true);
-
     paned.upcast()
 }
 
-fn create_content_widget(dashboard: &Widget, file_widget: &Widget) -> Stack {
-    let stack = Stack::new();
+fn create_content_widget(dashboard: &gtk::Widget, file_widget: &gtk::Widget) -> gtk::Stack {
+    let stack = gtk::Stack::new();
     stack.add_named(dashboard, "dashboard");
     stack.add_named(file_widget, "file");
     stack
 }
 
 fn create_main_window(
-    gtk_app: &Application,
-    content: &Widget,
-) -> (ApplicationWindow, PSSearchEntry, Statusbar) {
-    let main_window = ApplicationWindow::new(gtk_app);
+    gtk_app: &gtk::Application,
+    content: &gtk::Widget,
+) -> (gtk::ApplicationWindow, PSSearchEntry, gtk::Statusbar) {
     gtk_app.set_menubar(Some(&ui::menu::create_menu_bar()));
-    main_window.set_title(WINDOW_TITLE);
-    main_window.set_icon_name(Some("password-storage"));
-    main_window.set_property_window_position(WindowPosition::Center);
-    main_window.set_default_size(1000, 800);
+
+    let main_window = gtk::ApplicationWindowBuilder::new()
+        .application(gtk_app)
+        .title(WINDOW_TITLE)
+        .icon_name("password-storage")
+        .window_position(gtk::WindowPosition::Center)
+        .default_width(1000)
+        .default_height(800)
+        .build();
 
     let search_entry = PSSearchEntry::new();
 
-    let statusbar = Statusbar::new();
+    let statusbar = gtk::Statusbar::new();
 
     let grid = {
-        let grid = Grid::new();
+        let grid = gtk::Grid::new();
 
         let toolbar = ui::toolbar::create_tool_bar(&search_entry.get_widget());
-        toolbar.set_halign(Align::Fill);
-        toolbar.set_valign(Align::Start);
+        toolbar.set_halign(gtk::Align::Fill);
+        toolbar.set_valign(gtk::Align::Start);
         grid.attach(&toolbar, 0, 0, 1, 1);
 
         grid.attach(content, 0, 1, 1, 1);
 
-        statusbar.set_halign(Align::Fill);
-        statusbar.set_valign(Align::End);
+        statusbar.set_halign(gtk::Align::Fill);
+        statusbar.set_valign(gtk::Align::End);
         grid.attach(&statusbar, 0, 2, 1, 1);
 
         grid
