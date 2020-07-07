@@ -138,7 +138,7 @@ mod test {
         let mut map = HashMap::new();
         for ch in 0..=255 {
             let class = classifier.classify(ch);
-            let class_chars = map.entry(class).or_insert(vec![]);
+            let class_chars = map.entry(class).or_insert_with(Vec::new);
             class_chars.push(ch);
         }
         for (class, chars) in &map {

@@ -186,8 +186,8 @@ impl PSTreeView {
         self.view.clone().upcast()
     }
 
-    pub fn set_model(&self, model: Option<&TreeModel>) {
-        self.view.set_model(model);
+    pub fn set_model(&self, model: &TreeModel) {
+        self.view.set_model(Some(model));
     }
 
     pub fn get_selected_iter(&self) -> Option<(TreeIter, TreePath)> {

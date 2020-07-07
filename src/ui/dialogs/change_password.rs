@@ -1,6 +1,6 @@
 use crate::ui::edit_object::edit_object;
-use crate::ui::form::entry::Password;
-use crate::ui::form::form::{Form, ValidationResult};
+use crate::ui::forms::entry::Password;
+use crate::ui::forms::form::{Form, ValidationResult};
 use gtk::Window;
 
 pub fn change_password(parent_window: &Window) -> Option<String> {

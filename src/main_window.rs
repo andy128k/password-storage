@@ -78,7 +78,7 @@ impl glib::clone::Upgrade for PSMainWindowWeak {
     type Strong = PSMainWindow;
 
     fn upgrade(&self) -> Option<Self::Strong> {
-        glib::clone::Upgrade::upgrade(&self.0).map(|upgraded_inner| PSMainWindow(upgraded_inner))
+        glib::clone::Upgrade::upgrade(&self.0).map(PSMainWindow)
     }
 }
 
@@ -224,7 +224,7 @@ fn cb_add_record(win: &PSMainWindow, record_type: &'static RecordType) -> Result
     Ok(())
 }
 
-fn cb_edit_record(win: &PSMainWindow) -> Result<()> {
+fn cb_edit_record(win: &PSMainWindow) {
     let selection = win.private().view.get_selected_iter();
     if let Some((iter, _path)) = selection {
         let record_opt = win.private().data.borrow().get(&iter);
@@ -239,7 +239,6 @@ fn cb_edit_record(win: &PSMainWindow) -> Result<()> {
             }
         }
     }
-    Ok(())
 }
 
 fn cb_convert_record(win: &PSMainWindow, dest_record_type: &'static RecordType) -> Result<()> {
@@ -367,8 +366,12 @@ fn load_data(filename: &Path, parent_window: &gtk::Window) -> Option<(RecordTree
 
 fn new_password(parent_window: &gtk::Window) -> Option<String> {
     // TODO: ADD confirmation
-    let mut form = ui::form::form::Form::new();
-    form.add("Password", Box::new(ui::form::entry::Password::new()), true);
+    let mut form = ui::forms::form::Form::new();
+    form.add(
+        "Password",
+        Box::new(ui::forms::entry::Password::new()),
+        true,
+    );
     let result = ui::edit_object::edit_object(
         None,
         form,
@@ -429,7 +432,7 @@ impl PSMainWindow {
 
             let data = PSStore::new();
             *self.private().data.borrow_mut() = data.clone();
-            self.private().view.set_model(Some(&data.as_model()));
+            self.private().view.set_model(&data.as_model());
 
             set_filename(self, None);
             self.private().search_entry.set_text("");
@@ -449,7 +452,7 @@ pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
 
         let data = PSStore::from_tree(&entries);
         *win.private().data.borrow_mut() = data.clone();
-        win.private().view.set_model(Some(&data.as_model()));
+        win.private().view.set_model(&data.as_model());
 
         {
             set_filename(win, Some(filename));
@@ -487,7 +490,7 @@ fn cb_merge_file(win: &PSMainWindow) -> Result<()> {
 
             let data = PSStore::from_tree(&records_tree);
             *win.private().data.borrow_mut() = data.clone();
-            win.private().view.set_model(Some(&data.as_model()));
+            win.private().view.set_model(&data.as_model());
 
             win.private().changed.set(true);
         }
@@ -521,7 +524,7 @@ fn cb_close(win: &PSMainWindow) -> Result<()> {
 
         let data = PSStore::new();
         *win.private().data.borrow_mut() = data.clone();
-        win.private().view.set_model(Some(&data.as_model()));
+        win.private().view.set_model(&data.as_model());
 
         set_filename(win, None);
         *win.private().password.borrow_mut() = None;
@@ -578,11 +581,14 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
                 };
                 action.set_enabled(enabled);
             }
-            win.private()
+            if let Some(action) = win
+                .private()
                 .actions
                 .borrow()
                 .get(&PSAction::Doc(DocAction::MergeMode))
-                .map(|action| action.set_state(&false.into()));
+            {
+                action.set_state(&false.into());
+            }
             win.private().search_entry.set_sensitive(false);
             win.private().view.set_selection_mode(false);
             win.private().stack.set_visible_child_name("dashboard");
@@ -598,11 +604,14 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
                 };
                 action.set_enabled(enabled);
             }
-            win.private()
+            if let Some(action) = win
+                .private()
                 .actions
                 .borrow()
                 .get(&PSAction::Doc(DocAction::MergeMode))
-                .map(|action| action.set_state(&false.into()));
+            {
+                action.set_state(&false.into());
+            }
             win.private().search_entry.set_sensitive(true);
             win.private().view.set_selection_mode(false);
             win.private().stack.set_visible_child_name("file");
@@ -617,11 +626,14 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
                 };
                 action.set_enabled(enabled);
             }
-            win.private()
+            if let Some(action) = win
+                .private()
                 .actions
                 .borrow()
                 .get(&PSAction::Doc(DocAction::MergeMode))
-                .map(|action| action.set_state(&true.into()));
+            {
+                action.set_state(&true.into());
+            }
             win.private().search_entry.set_sensitive(true);
             win.private().view.set_selection_mode(true);
             win.private().stack.set_visible_child_name("file");
@@ -774,7 +786,7 @@ pub fn old_main(
 
     let (main_window, search_entry, statusbar) = create_main_window(app1, &stack.clone().upcast());
 
-    view.set_model(Some(&data.as_model()));
+    view.set_model(&data.as_model());
 
     let private = PSMainWindowPrivate {
         mode: Cell::new(AppMode::Initial),
@@ -885,7 +897,10 @@ pub fn old_main(
         create_action(
             &win,
             PSAction::Record(RecordAction::Edit),
-            Box::new(cb_edit_record),
+            Box::new(|win| {
+                cb_edit_record(win);
+                Ok(())
+            }),
         );
         create_action(
             &win,
@@ -918,49 +933,46 @@ pub fn old_main(
         }
     }
 
-    {
-        let win1 = win.clone();
-        win.private().dashboard.connect_activate(move |filename| {
-            do_open_file(&win1, filename);
-        });
-    }
+    win.private()
+        .dashboard
+        .connect_activate(clone!(@weak win => move |filename| {
+            do_open_file(&win, filename);
+        }));
 
-    {
-        let win1 = win.clone();
-        win.private().search_entry.connect_changed(move |text| {
+    win.private()
+        .search_entry
+        .connect_changed(clone!(@weak win => move |text| {
             if let Some(search_text) = text {
-                let look_at_secrets = win1.private().config.borrow().search_in_secrets;
-                set_status(&win1, "View is filtered.");
+                let look_at_secrets = win.private().config.borrow().search_in_secrets;
+                set_status(&win, "View is filtered.");
                 let model = create_model_filter(
-                    &win1.private().data.borrow(),
+                    &win.private().data.borrow(),
                     &search_text,
                     look_at_secrets,
                 );
-                win1.private().view.set_model(Some(&model.upcast()));
-                win1.private().view.view.set_reorderable(false);
-                win1.refilter();
-                win1.private().view.view.expand_all();
+                win.private().view.set_model(&model.upcast());
+                win.private().view.view.set_reorderable(false);
+                win.refilter();
+                win.private().view.view.expand_all();
             } else {
-                set_status(&win1, "View filter was reset.");
-                let model = win1.private().data.borrow().as_model();
-                win1.private().view.set_model(Some(&model));
-                win1.private().view.view.set_reorderable(true);
-                win1.private().view.view.collapse_all();
+                set_status(&win, "View filter was reset.");
+                let model = win.private().data.borrow().as_model();
+                win.private().view.set_model(&model);
+                win.private().view.view.set_reorderable(true);
+                win.private().view.view.collapse_all();
             }
-            listview_cursor_changed(&win1, None);
-        });
-    }
+            listview_cursor_changed(&win, None);
+        }));
 
-    {
-        let win1 = win.clone();
-        win.private().view.connect_cursor_changed(move |selection| {
+    win.private()
+        .view
+        .connect_cursor_changed(clone!(@weak win => move |selection| {
             let mut record = None;
             if let Some((iter, _path)) = selection {
-                record = win1.private().data.borrow().get(&iter);
+                record = win.private().data.borrow().get(&iter);
             }
-            listview_cursor_changed(&win1, record);
-        });
-    }
+            listview_cursor_changed(&win, record);
+        }));
 
     win.private()
         .view
@@ -982,9 +994,7 @@ pub fn old_main(
                     if record.record_type.is_group {
                         win.private().view.toggle_group(&path);
                     } else {
-                        if let Err(err) = cb_edit_record(&win) {
-                            eprintln!("{:?}", err);
-                        }
+                        cb_edit_record(&win);
                     }
                 }
             }

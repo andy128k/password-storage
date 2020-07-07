@@ -1,8 +1,8 @@
 use super::edit_object::edit_object;
-use super::form::base::*;
-use super::form::entry::*;
-use super::form::form::*;
-use super::form::multiline::*;
+use super::forms::base::*;
+use super::forms::entry::*;
+use super::forms::form::*;
+use super::forms::multiline::*;
 use crate::model::record::{FieldType, Record, RecordType};
 use gtk::{Widget, Window};
 
@@ -14,7 +14,7 @@ fn record_to_vec(record_type: &'static RecordType, record: &Record) -> Vec<Strin
     values
 }
 
-fn vec_to_record(record_type: &'static RecordType, values: &Vec<String>) -> Record {
+fn vec_to_record(record_type: &'static RecordType, values: &[String]) -> Record {
     let mut record = record_type.new_record();
     for (field, value) in record_type.fields.iter().zip(values.iter()) {
         record.set_field(field, value);

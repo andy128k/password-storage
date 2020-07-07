@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::ui::edit_object::edit_object;
-use crate::ui::form::base::FormWidget;
+use crate::ui::forms::base::FormWidget;
 use gtk::prelude::*;
 use gtk::{CheckButton, Grid, Widget, Window};
 

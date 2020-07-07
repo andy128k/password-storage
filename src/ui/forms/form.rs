@@ -16,7 +16,6 @@ pub enum ValidationResult {
 pub type FormDataValidate = Box<dyn Fn(&FormData) -> ValidationResult>;
 
 struct FormEntry {
-    label: String,
     widget: Box<dyn FormWidget<String>>,
     required: bool,
 }
@@ -139,11 +138,10 @@ impl Form {
             .grid
             .attach(&widget.get_widget(), 1, index as i32, 1, 1);
 
-        self.0.borrow_mut().fields.push(FormEntry {
-            label: label.to_string(),
-            widget,
-            required,
-        });
+        self.0
+            .borrow_mut()
+            .fields
+            .push(FormEntry { widget, required });
     }
 
     pub fn set_validator(&mut self, validate: FormDataValidate) {
@@ -183,7 +181,7 @@ impl FormWidget<FormData> for Form {
 mod test {
     use super::*;
     use crate::test::test_gtk_init;
-    use crate::ui::form::entry::Text;
+    use crate::ui::forms::entry::Text;
     use std::cell::RefCell;
     use std::rc::Rc;
 

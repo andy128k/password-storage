@@ -4,7 +4,7 @@ pub mod edit_object;
 pub mod edit_record;
 pub mod error_label;
 pub mod filter;
-pub mod form;
+pub mod forms;
 pub mod menu;
 pub mod preview_panel;
 pub mod search;

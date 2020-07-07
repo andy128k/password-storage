@@ -1,5 +1,5 @@
 use super::dialogs::std::make_std_dialog;
-use super::form::base::FormWidget;
+use super::forms::base::FormWidget;
 use gtk::prelude::*;
 use gtk::{ResponseType, Window};
 

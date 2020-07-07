@@ -34,7 +34,7 @@ impl glib::clone::Upgrade for PSApplicationWeak {
     type Strong = PSApplication;
 
     fn upgrade(&self) -> Option<Self::Strong> {
-        glib::clone::Upgrade::upgrade(&self.0).map(|upgraded_inner| PSApplication(upgraded_inner))
+        glib::clone::Upgrade::upgrade(&self.0).map(PSApplication)
     }
 }
 
