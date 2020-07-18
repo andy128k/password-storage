@@ -1,7 +1,4 @@
 use gtk::prelude::*;
-use gtk::{
-    ButtonsType, DialogFlags, MessageDialog, MessageType, ResponseType, Window, WindowPosition,
-};
 
 pub enum AskSave {
     Discard,
@@ -9,31 +6,27 @@ pub enum AskSave {
     Save,
 }
 
-pub fn ask_save(parent_window: &Window, message: &str) -> AskSave {
-    let dlg = MessageDialog::new(
-        Some(parent_window),
-        DialogFlags::empty(),
-        MessageType::Warning,
-        ButtonsType::None,
-        message,
-    );
-    dlg.set_title("Password Storage");
-    dlg.set_icon_name(Some("password-storage"));
-    dlg.set_transient_for(Some(parent_window));
-    dlg.set_property_use_markup(false);
-    dlg.set_property_window_position(WindowPosition::CenterOnParent);
-
-    dlg.add_button("_Discard changes", ResponseType::Reject);
-    dlg.add_button("_Cancel", ResponseType::Cancel);
-    dlg.add_button("_Save", ResponseType::Ok);
-    dlg.set_default_response(ResponseType::Ok);
+pub fn ask_save(parent_window: &gtk::Window, message: &str) -> AskSave {
+    let dlg = gtk::MessageDialogBuilder::new()
+        .transient_for(parent_window)
+        .window_position(gtk::WindowPosition::CenterOnParent)
+        .title("Password Storage")
+        .icon_name("password-storage")
+        .message_type(gtk::MessageType::Warning)
+        .use_markup(false)
+        .text(message)
+        .build();
+    dlg.add_button("_Discard changes", gtk::ResponseType::Reject);
+    dlg.add_button("_Cancel", gtk::ResponseType::Cancel);
+    dlg.add_button("_Save", gtk::ResponseType::Ok);
+    dlg.set_default_response(gtk::ResponseType::Ok);
 
     let answer = dlg.run();
     dlg.close();
 
     match answer {
-        ResponseType::Reject => AskSave::Discard,
-        ResponseType::Ok => AskSave::Save,
+        gtk::ResponseType::Reject => AskSave::Discard,
+        gtk::ResponseType::Ok => AskSave::Save,
         _ => AskSave::Cancel,
     }
 }

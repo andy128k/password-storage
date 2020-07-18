@@ -7,4 +7,3 @@ pub mod preferences;
 pub mod read_file;
 pub mod save_file;
 pub mod say;
-pub mod std;

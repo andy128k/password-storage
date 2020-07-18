@@ -1,40 +1,33 @@
 use gtk::prelude::*;
-use gtk::{
-    ButtonsType, DialogFlags, MessageDialog, MessageType, ResponseType, Window, WindowPosition,
-};
 
-pub fn say_error(parent_window: &Window, message: &str) {
-    let dlg = MessageDialog::new(
-        Some(parent_window),
-        DialogFlags::empty(),
-        MessageType::Error,
-        ButtonsType::Ok,
-        message,
-    );
-    dlg.set_title("Password Storage");
-    dlg.set_icon_name(Some("password-storage"));
-    dlg.set_transient_for(Some(parent_window));
-    dlg.set_property_use_markup(false);
-    dlg.set_property_window_position(WindowPosition::CenterOnParent);
-    dlg.set_default_response(ResponseType::Ok);
+pub fn say_error(parent_window: &gtk::Window, message: &str) {
+    let dlg = gtk::MessageDialogBuilder::new()
+        .transient_for(parent_window)
+        .window_position(gtk::WindowPosition::CenterOnParent)
+        .message_type(gtk::MessageType::Error)
+        .title("Password Storage")
+        .icon_name("password-storage")
+        .buttons(gtk::ButtonsType::Ok)
+        .use_markup(false)
+        .text(message)
+        .build();
+    dlg.set_default_response(gtk::ResponseType::Ok);
     dlg.run();
     dlg.close();
 }
 
-pub fn say_info(parent_window: &Window, message: &str) {
-    let dlg = MessageDialog::new(
-        Some(parent_window),
-        DialogFlags::empty(),
-        MessageType::Info,
-        ButtonsType::Ok,
-        message,
-    );
-    dlg.set_title("Password Storage");
-    dlg.set_icon_name(Some("password-storage"));
-    dlg.set_transient_for(Some(parent_window));
-    dlg.set_property_use_markup(false);
-    dlg.set_property_window_position(WindowPosition::CenterOnParent);
-    dlg.set_default_response(ResponseType::Ok);
+pub fn say_info(parent_window: &gtk::Window, message: &str) {
+    let dlg = gtk::MessageDialogBuilder::new()
+        .transient_for(parent_window)
+        .window_position(gtk::WindowPosition::CenterOnParent)
+        .message_type(gtk::MessageType::Info)
+        .title("Password Storage")
+        .icon_name("password-storage")
+        .buttons(gtk::ButtonsType::Ok)
+        .use_markup(false)
+        .text(message)
+        .build();
+    dlg.set_default_response(gtk::ResponseType::Ok);
     dlg.run();
     dlg.close();
 }
