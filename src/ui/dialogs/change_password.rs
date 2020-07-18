@@ -1,9 +1,8 @@
 use crate::ui::edit_object::edit_object;
 use crate::ui::forms::entry::Password;
 use crate::ui::forms::form::{Form, ValidationResult};
-use gtk::Window;
 
-pub fn change_password(parent_window: &Window) -> Option<String> {
+pub fn change_password(parent_window: &gtk::Window) -> Option<String> {
     let mut form = Form::new();
     form.add("Password", Box::new(Password::new()), true);
     form.add("Confirm password", Box::new(Password::new()), true);
