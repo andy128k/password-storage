@@ -1,5 +1,5 @@
 use aes::{
-    block_cipher::{
+    cipher::block::{
         generic_array::{typenum::U16, GenericArray},
         BlockCipher, NewBlockCipher,
     },
