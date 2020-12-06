@@ -31,11 +31,18 @@ mod filerow {
     use crate::markup_builder::bold;
     use glib::clone;
     use gtk::prelude::*;
-    use lazy_static::lazy_static;
     use std::path::{Path, PathBuf};
 
-    lazy_static! {
-        static ref FILENAME_DATA_KEY: glib::Quark = glib::Quark::from_string("filename");
+    thread_local! {
+        static FILENAME_DATA_KEY: glib::Quark = glib::Quark::from_string("filename");
+
+        static CSS_PROVIDER: gtk::CssProvider = {
+            let provider = gtk::CssProvider::new();
+            provider
+                .load_from_data(br##"label.error { color: #FF3333; }"##)
+                .expect("CSS is loaded");
+            provider
+        };
     }
 
     pub fn create(
@@ -58,7 +65,7 @@ mod filerow {
 
         let remove_button =
             gtk::Button::from_icon_name(Some("window-close"), gtk::IconSize::SmallToolbar);
-        remove_button.set_tooltip_text(Some("Forget this file"));
+        remove_button.set_tooltip_text(Some("Forget this file."));
         remove_button.set_relief(gtk::ReliefStyle::None);
         remove_button.set_vexpand(false);
         remove_button.set_hexpand(false);
@@ -68,13 +75,22 @@ mod filerow {
             .label(filename.to_string_lossy().as_ref())
             .halign(gtk::Align::Start)
             .build();
+        if !filename.is_file() {
+            label2.set_tooltip_text(Some("File does not exist."));
+            let context = label2.get_style_context();
+            context.add_provider(
+                &CSS_PROVIDER.with(Clone::clone),
+                gtk::STYLE_PROVIDER_PRIORITY_FALLBACK,
+            );
+            context.add_class(&gtk::STYLE_CLASS_ERROR);
+        }
         grid.attach(&label2, 0, 1, 2, 1);
 
         let row = gtk::ListBoxRow::new();
         row.add(&grid);
 
         unsafe {
-            row.set_qdata(*FILENAME_DATA_KEY, filename);
+            row.set_qdata(FILENAME_DATA_KEY.with(Clone::clone), filename);
         }
 
         remove_button.connect_clicked(clone!(@weak row => move |_| {
@@ -87,7 +103,7 @@ mod filerow {
     }
 
     pub fn get_filename(row: &gtk::ListBoxRow) -> Option<&PathBuf> {
-        unsafe { row.get_qdata(*FILENAME_DATA_KEY) }
+        unsafe { row.get_qdata(FILENAME_DATA_KEY.with(Clone::clone)) }
     }
 }
 
