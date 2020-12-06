@@ -54,6 +54,11 @@ impl Cache {
         private.recent_files.insert(0, filename.to_owned());
     }
 
+    pub fn remove_file(&self, filename: &Path) {
+        let mut private = self.0.borrow_mut();
+        private.recent_files.retain(|f| f != filename);
+    }
+
     pub fn recent_files(&self) -> Vec<PathBuf> {
         self.0.borrow().recent_files.clone()
     }

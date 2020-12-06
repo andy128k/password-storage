@@ -1,4 +1,5 @@
 use crate::cache::Cache;
+use glib::clone;
 use gtk::prelude::*;
 use std::path::Path;
 
@@ -28,15 +29,19 @@ fn framed<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
 
 mod filerow {
     use crate::markup_builder::bold;
+    use glib::clone;
     use gtk::prelude::*;
     use lazy_static::lazy_static;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     lazy_static! {
         static ref FILENAME_DATA_KEY: glib::Quark = glib::Quark::from_string("filename");
     }
 
-    pub fn create(filename: PathBuf) -> Option<gtk::ListBoxRow> {
+    pub fn create(
+        filename: PathBuf,
+        on_remove: impl Fn(&gtk::ListBoxRow, &Path) + 'static,
+    ) -> Option<gtk::ListBoxRow> {
         let basename = filename.file_name()?;
 
         let grid = gtk::Grid::new();
@@ -47,14 +52,23 @@ mod filerow {
             .label(&bold(basename.to_string_lossy().as_ref()))
             .margin_bottom(5)
             .halign(gtk::Align::Start)
+            .hexpand(true)
             .build();
         grid.attach(&label1, 0, 0, 1, 1);
+
+        let remove_button =
+            gtk::Button::from_icon_name(Some("window-close"), gtk::IconSize::SmallToolbar);
+        remove_button.set_tooltip_text(Some("Forget this file"));
+        remove_button.set_relief(gtk::ReliefStyle::None);
+        remove_button.set_vexpand(false);
+        remove_button.set_hexpand(false);
+        grid.attach(&remove_button, 1, 0, 1, 1);
 
         let label2 = gtk::LabelBuilder::new()
             .label(filename.to_string_lossy().as_ref())
             .halign(gtk::Align::Start)
             .build();
-        grid.attach(&label2, 0, 1, 1, 1);
+        grid.attach(&label2, 0, 1, 2, 1);
 
         let row = gtk::ListBoxRow::new();
         row.add(&grid);
@@ -62,6 +76,12 @@ mod filerow {
         unsafe {
             row.set_qdata(*FILENAME_DATA_KEY, filename);
         }
+
+        remove_button.connect_clicked(clone!(@weak row => move |_| {
+            if let Some(filename) = get_filename(&row) {
+                on_remove(&row, filename);
+            }
+        }));
 
         Some(row)
     }
@@ -102,7 +122,13 @@ impl PSDashboard {
         let mut first_row = None;
         let cache = &self.cache;
         for filename in cache.recent_files() {
-            if let Some(row) = filerow::create(filename) {
+            if let Some(row) = filerow::create(
+                filename,
+                clone!(@weak self.listbox as listbox, @strong cache => move |row, filename| {
+                    cache.remove_file(filename);
+                    listbox.remove(row);
+                }),
+            ) {
                 self.listbox.add(&row);
                 if first_row.is_none() {
                     first_row = Some(row);
