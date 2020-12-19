@@ -64,7 +64,7 @@ struct PSMainWindowPrivate {
 #[derive(Clone)]
 pub struct PSMainWindow(gtk::ApplicationWindow);
 
-pub struct PSMainWindowWeak(glib::object::WeakRef<gtk::ApplicationWindow>);
+pub struct PSMainWindowWeak(<gtk::ApplicationWindow as glib::clone::Downgrade>::Weak);
 
 impl glib::clone::Downgrade for PSMainWindow {
     type Weak = PSMainWindowWeak;

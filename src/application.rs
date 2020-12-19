@@ -20,7 +20,7 @@ struct PSApplicationPrivate {
 #[derive(Clone)]
 pub struct PSApplication(gtk::Application);
 
-pub struct PSApplicationWeak(glib::object::WeakRef<gtk::Application>);
+pub struct PSApplicationWeak(<gtk::Application as glib::clone::Downgrade>::Weak);
 
 impl glib::clone::Downgrade for PSApplication {
     type Weak = PSApplicationWeak;

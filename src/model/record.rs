@@ -388,14 +388,14 @@ impl Record {
                 desc.push_str("\n\n");
             }
             desc.push_str(&record.get_field(&FIELD_NAME));
-            desc.push_str("\n");
+            desc.push('\n');
             desc.push_str("----------");
-            desc.push_str("\n");
+            desc.push('\n');
             for field in unmapped {
                 desc.push_str(field.title);
                 desc.push_str(": ");
                 desc.push_str(&record.get_field(field));
-                desc.push_str("\n");
+                desc.push('\n');
             }
 
             self.set_field(&FIELD_DESCRIPTION, &desc);
