@@ -3,11 +3,11 @@ mod xml;
 
 use crate::error::*;
 use crate::model::tree::RecordTree;
-use std::fs::{read, write};
-use std::path::Path;
+use std::io::{Read, Write};
 
-pub fn load_revelation_file(filename: &Path, password: &str) -> Result<RecordTree> {
-    let buf = read(filename)?;
+pub fn load_revelation_file(source: &mut dyn Read, password: &str) -> Result<RecordTree> {
+    let mut buf = Vec::new();
+    source.read_to_end(&mut buf)?;
     let decrypted = crypto_container::decrypt_file(&buf, password)?;
     let string: String = String::from_utf8(decrypted)?;
     let element = string.parse()?;
@@ -15,13 +15,17 @@ pub fn load_revelation_file(filename: &Path, password: &str) -> Result<RecordTre
     Ok(tree)
 }
 
-pub fn save_revelation_file(filename: &Path, password: &str, tree: &RecordTree) -> Result<()> {
+pub fn save_revelation_file(
+    destination: &mut dyn Write,
+    password: &str,
+    tree: &RecordTree,
+) -> Result<()> {
     let element = xml::record_tree_to_xml(tree)?;
 
     let mut buf: Vec<u8> = Vec::new();
     element.write_to(&mut buf)?;
 
     let file_dump = crypto_container::encrypt_file(&buf, password);
-    write(filename, &file_dump)?;
+    destination.write_all(&file_dump)?;
     Ok(())
 }

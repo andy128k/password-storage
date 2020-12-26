@@ -360,7 +360,7 @@ fn cb_merge(win: &PSMainWindow) -> Result<()> {
 
 fn load_data(filename: &Path, parent_window: &gtk::Window) -> Option<(RecordTree, String)> {
     read_file(parent_window, |password| {
-        format::revelation::load_revelation_file(filename, password)
+        format::load_file(filename, password)
     })
 }
 
@@ -394,7 +394,7 @@ fn save_data(win: &PSMainWindow, filename: &Path) -> Result<()> {
     if let Some(password) = ensure_password_is_set(win) {
         let tree = win.private().data.borrow().to_tree();
 
-        format::revelation::save_revelation_file(filename, &password, &tree)?;
+        format::save_file(filename, &password, &tree)?;
 
         set_status(
             win,
