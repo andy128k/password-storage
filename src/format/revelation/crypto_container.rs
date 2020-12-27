@@ -1,3 +1,4 @@
+use super::file_header::FileHeader;
 use aes::{
     cipher::block::{
         generic_array::{typenum::U16, GenericArray},
@@ -9,6 +10,7 @@ use block_modes::{block_padding::Pkcs7, BlockMode, Cbc};
 use deflate::deflate_bytes_zlib;
 use inflate::inflate_bytes_zlib;
 use rand::random;
+use std::io::{Read, Write};
 
 #[derive(Debug)]
 pub enum CryptoError {
@@ -16,6 +18,7 @@ pub enum CryptoError {
     WrongSize,
     CorruptedFile(String),
     DecryptError,
+    Io(std::io::Error),
 }
 
 impl std::error::Error for CryptoError {}
@@ -27,6 +30,7 @@ impl std::fmt::Display for CryptoError {
             CryptoError::WrongSize => write!(f, "Bad file (wrong size)"),
             CryptoError::CorruptedFile(_) => write!(f, "Bad file (corrupted)"),
             CryptoError::DecryptError => write!(f, "File cannot be decrypted"),
+            CryptoError::Io(err) => write!(f, "I/O error: {}", err),
         }
     }
 }
@@ -39,41 +43,40 @@ fn adjust_password(password: &str) -> [u8; 32] {
     array
 }
 
-#[rustfmt::skip]
-const MAGIC: [u8; 12] = [
-    0x72, 0x76, 0x6C, 0x00, // magic string
-    0x01,                   // data version
-    0x00,                   // separator
-    0x00, 0x04, 0x0B,       // app version
-    0x00, 0x00, 0x00        // separator
-];
+pub fn decrypt_file(source: &mut dyn Read, password: &str) -> Result<Vec<u8>, CryptoError> {
+    let header = FileHeader::read(source).map_err(CryptoError::Io)?;
 
-pub fn decrypt_file(buffer: &[u8], password: &str) -> Result<Vec<u8>, CryptoError> {
-    if buffer.len() < 28 || (buffer.len() - 28) % 16 != 0 {
-        return Err(CryptoError::WrongSize);
+    if header.data_version != 1 {
+        return Err(CryptoError::UnknownFormat);
     }
 
-    if buffer[0..MAGIC.len()] != MAGIC {
-        return Err(CryptoError::UnknownFormat);
+    let mut iv = GenericArray::<u8, U16>::default();
+    source.read_exact(&mut iv).map_err(CryptoError::Io)?;
+
+    let mut encrypted_content = Vec::new();
+    source
+        .read_to_end(&mut encrypted_content)
+        .map_err(CryptoError::Io)?;
+    if encrypted_content.len() % 16 != 0 {
+        return Err(CryptoError::WrongSize);
     }
 
     let password = adjust_password(password).into();
 
     // decrypt the initial vector for CBC decryption
-    let mut iv = GenericArray::<u8, U16>::clone_from_slice(&buffer[12..28]);
     Aes256::new(&password).decrypt_block(&mut iv);
 
     let decrypted = Cbc::<Aes256, Pkcs7>::new_fix(&password, &iv)
-        .decrypt_vec(&buffer[28..])
+        .decrypt_vec(&encrypted_content)
         .map_err(|_| CryptoError::DecryptError)?;
 
     inflate_bytes_zlib(&decrypted).map_err(CryptoError::CorruptedFile)
 }
 
-pub fn encrypt_file(buffer: &[u8], password: &str) -> Vec<u8> {
+pub fn encrypt_file(writer: &mut dyn Write, data: &[u8], password: &str) -> std::io::Result<()> {
     let password = adjust_password(password).into();
 
-    let deflated = deflate_bytes_zlib(buffer);
+    let deflated = deflate_bytes_zlib(data);
 
     let mut iv = random::<[u8; 16]>().into();
 
@@ -81,17 +84,22 @@ pub fn encrypt_file(buffer: &[u8], password: &str) -> Vec<u8> {
 
     Aes256::new(&password).encrypt_block(&mut iv);
 
-    let mut result = Vec::with_capacity(MAGIC.len() + iv.len() + encrypted.len());
-    result.extend_from_slice(&MAGIC);
-    result.extend_from_slice(&iv);
-    result.extend_from_slice(&encrypted);
+    let header = FileHeader {
+        data_version: 1,
+        app_version: (0, 4, 11),
+    };
 
-    result
+    header.write(writer)?;
+    writer.write_all(&iv)?;
+    writer.write_all(&encrypted)?;
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::io::Cursor;
 
     #[test]
     fn test_adjust_password() {
@@ -120,13 +128,13 @@ mod test {
 
     #[test]
     fn test_decrypt() {
-        let buf = decrypt_file(EMPTY_RVL, "secr3t").unwrap();
+        let buf = decrypt_file(&mut Cursor::new(EMPTY_RVL), "secr3t").unwrap();
         assert_eq!(buf, empty_xml());
     }
 
     #[test]
     fn test_decrypt_bad_password() {
-        let buf = decrypt_file(EMPTY_RVL, "iforgotpassword");
+        let buf = decrypt_file(&mut Cursor::new(EMPTY_RVL), "iforgotpassword");
         assert!(buf.is_err());
         let err = buf.err().unwrap();
         assert_eq!(format!("{}", err), "File cannot be decrypted");
@@ -135,10 +143,11 @@ mod test {
     #[test]
     fn test_encrypt_and_decrypt_back() {
         let password = "qwerty123456";
-        let encrypted = encrypt_file(empty_xml(), password);
+        let mut encrypted = Vec::new();
+        encrypt_file(&mut encrypted, empty_xml(), password).unwrap();
         assert_eq!(108, encrypted.len());
         assert_eq!(114, encrypted[0]);
-        let decrypted = decrypt_file(&encrypted, password).unwrap();
+        let decrypted = decrypt_file(&mut Cursor::new(&encrypted), password).unwrap();
         assert_eq!(decrypted, empty_xml());
     }
 }
