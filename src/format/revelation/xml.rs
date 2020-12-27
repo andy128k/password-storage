@@ -214,22 +214,21 @@ pub fn record_tree_from_xml(elem: &Element) -> Result<RecordTree> {
         }
     }
 
-    fn read_records(elem: &Element) -> Result<RecordTree> {
-        let children: Result<Vec<RecordNode>> =
-            subentries(elem).iter().map(|e| read_record(e)).collect();
-        Ok(Box::new(children?))
+    fn read_records(elem: &Element) -> Result<Vec<RecordNode>> {
+        subentries(elem).iter().map(|e| read_record(e)).collect()
     }
 
     if elem.name() == "revelationdata" {
-        read_records(elem)
+        let records = read_records(elem)?;
+        Ok(RecordTree { records })
     } else {
         Err("Bad xml element".into())
     }
 }
 
 pub fn record_tree_to_xml(tree: &RecordTree) -> Result<Element> {
-    fn traverse(tree: &RecordTree, parent_element: &mut Element) -> Result<()> {
-        for node in tree.iter() {
+    fn traverse(tree: &[RecordNode], parent_element: &mut Element) -> Result<()> {
+        for node in tree {
             match *node {
                 RecordNode::Group(ref record, ref nodes) => {
                     let mut element = record_to_xml(record)?;
@@ -249,6 +248,6 @@ pub fn record_tree_to_xml(tree: &RecordTree) -> Result<Element> {
         .attr("version", "0.4.11")
         .attr("dataversion", "1")
         .build();
-    traverse(tree, &mut root)?;
+    traverse(&tree.records, &mut root)?;
     Ok(root)
 }

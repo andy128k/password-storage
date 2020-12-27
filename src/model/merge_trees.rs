@@ -1,8 +1,8 @@
 use super::record::*;
 use super::tree::*;
 
-fn record_exists<P: Fn(&Record) -> bool>(tree: &RecordTree, predicate: &P) -> bool {
-    for node in tree.iter() {
+fn record_exists<P: Fn(&Record) -> bool>(tree: &[RecordNode], predicate: &P) -> bool {
+    for node in tree {
         match *node {
             RecordNode::Group(ref record, ref subtree) => {
                 if predicate(record) || record_exists(subtree, predicate) {
@@ -19,9 +19,9 @@ fn record_exists<P: Fn(&Record) -> bool>(tree: &RecordTree, predicate: &P) -> bo
     false
 }
 
-fn filter_tree<P: Fn(&Record) -> bool>(tree: &RecordTree, predicate: &P) -> RecordTree {
+fn filter_tree<P: Fn(&Record) -> bool>(tree: &[RecordNode], predicate: &P) -> Vec<RecordNode> {
     let mut nodes = Vec::new();
-    for node in tree.iter() {
+    for node in tree {
         match *node {
             RecordNode::Group(ref record, ref subtree) => {
                 if predicate(record) {
@@ -38,11 +38,11 @@ fn filter_tree<P: Fn(&Record) -> bool>(tree: &RecordTree, predicate: &P) -> Reco
             }
         }
     }
-    Box::new(nodes)
+    nodes
 }
 
-pub fn merge_subtries(tree1: &mut RecordTree, tree2: &RecordTree) {
-    for node in tree2.iter() {
+fn merge_subtries(tree1: &mut Vec<RecordNode>, tree2: &[RecordNode]) {
+    for node in tree2 {
         match node {
             &RecordNode::Group(ref group, ref subtree) => {
                 let mut found = false;
@@ -68,8 +68,8 @@ pub fn merge_subtries(tree1: &mut RecordTree, tree2: &RecordTree) {
 }
 
 pub fn merge_trees(tree1: &mut RecordTree, tree2: &RecordTree) {
-    let without_duplicates = filter_tree(tree2, &|record2| {
-        !record_exists(tree1, &|record1| record1 == record2)
+    let without_duplicates = filter_tree(&tree2.records, &|record2| {
+        !record_exists(&tree1.records, &|record1| record1 == record2)
     });
-    merge_subtries(tree1, &without_duplicates);
+    merge_subtries(&mut tree1.records, &without_duplicates);
 }

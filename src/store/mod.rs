@@ -89,11 +89,11 @@ impl PSStore {
     }
 
     pub fn from_tree(tree: &RecordTree) -> Self {
-        fn parse_record(node: &RecordNode, store: &PSStore, parent_iter: Option<&TreeIter>) {
+        fn add_record(node: &RecordNode, store: &PSStore, parent_iter: Option<&TreeIter>) {
             match *node {
                 RecordNode::Group(ref record, ref nodes) => {
                     let iter = store.append(parent_iter, record);
-                    parse(nodes, store, Some(&iter));
+                    add_records(nodes, store, Some(&iter));
                 }
                 RecordNode::Leaf(ref record) => {
                     store.append(parent_iter, record);
@@ -101,19 +101,19 @@ impl PSStore {
             }
         }
 
-        fn parse(tree: &RecordTree, store: &PSStore, parent_iter: Option<&TreeIter>) {
-            for node in tree.iter() {
-                parse_record(node, store, parent_iter);
+        fn add_records(tree: &[RecordNode], store: &PSStore, parent_iter: Option<&TreeIter>) {
+            for node in tree {
+                add_record(node, store, parent_iter);
             }
         }
 
         let data = Self::new();
-        parse(tree, &data, None);
+        add_records(&tree.records, &data, None);
         data
     }
 
     pub fn to_tree(&self) -> RecordTree {
-        fn traverse(store: &PSStore, parent_iter: Option<&TreeIter>) -> RecordTree {
+        fn traverse(store: &PSStore, parent_iter: Option<&TreeIter>) -> Vec<RecordNode> {
             let mut records = Vec::new();
             for (i, record) in store.children(parent_iter) {
                 if record.record_type.is_group {
@@ -123,10 +123,12 @@ impl PSStore {
                     records.push(RecordNode::Leaf(record));
                 }
             }
-            Box::new(records)
+            records
         }
 
-        traverse(self, None)
+        RecordTree {
+            records: traverse(self, None),
+        }
     }
 
     pub fn as_model(&self) -> TreeModel {

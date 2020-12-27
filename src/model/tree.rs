@@ -1,9 +1,12 @@
 use super::record::Record;
 
-pub type RecordTree = Box<Vec<RecordNode>>;
-
 #[derive(Debug, Clone)]
 pub enum RecordNode {
-    Group(Record, RecordTree),
+    Group(Record, Vec<RecordNode>),
     Leaf(Record),
+}
+
+#[derive(Debug, Clone)]
+pub struct RecordTree {
+    pub records: Vec<RecordNode>,
 }
