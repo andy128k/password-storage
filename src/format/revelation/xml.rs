@@ -257,3 +257,158 @@ pub fn record_tree_to_xml(tree: &RecordTree) -> Result<Vec<u8>> {
 
     Ok(buf)
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    const EMPTY_XML: &[u8] = b"<?xml version='1.0' encoding='utf-8'?>\n<revelationdata version=\"0.4.11\" dataversion=\"1\"/>";
+
+    trait RecordBuilder {
+        fn set(self, field: &Field, value: &str) -> Self;
+    }
+
+    impl RecordBuilder for Record {
+        fn set(mut self, field: &Field, value: &str) -> Self {
+            self.set_field(field, value);
+            self
+        }
+    }
+
+    fn test_tree() -> RecordTree {
+        RecordTree {
+            records: vec![
+                RecordNode::Group(
+                    RECORD_TYPE_GROUP.new_record().set(&FIELD_NAME, "Group 1"),
+                    vec![
+                        RecordNode::Leaf(
+                            RECORD_TYPE_WEBSITE
+                                .new_record()
+                                .set(&FIELD_NAME, "website 1")
+                                .set(&FIELD_PASSWORD, "letmein"),
+                        ),
+                        RecordNode::Leaf(
+                            RECORD_TYPE_WEBSITE
+                                .new_record()
+                                .set(&FIELD_NAME, "website 2")
+                                .set(&FIELD_PASSWORD, "secret"),
+                        ),
+                    ],
+                ),
+                RecordNode::Group(
+                    RECORD_TYPE_GROUP.new_record().set(&FIELD_NAME, "Group 2"),
+                    vec![
+                        RecordNode::Group(
+                            RECORD_TYPE_GROUP
+                                .new_record()
+                                .set(&FIELD_NAME, "Subgroup 1"),
+                            vec![
+                                RecordNode::Leaf(
+                                    RECORD_TYPE_WEBSITE
+                                        .new_record()
+                                        .set(&FIELD_NAME, "website 3"),
+                                ),
+                                RecordNode::Leaf(
+                                    RECORD_TYPE_WEBSITE
+                                        .new_record()
+                                        .set(&FIELD_NAME, "website 4"),
+                                ),
+                            ],
+                        ),
+                        RecordNode::Group(
+                            RECORD_TYPE_GROUP
+                                .new_record()
+                                .set(&FIELD_NAME, "Subgroup 2"),
+                            vec![
+                                RecordNode::Leaf(
+                                    RECORD_TYPE_WEBSITE
+                                        .new_record()
+                                        .set(&FIELD_NAME, "website 5"),
+                                ),
+                                RecordNode::Leaf(
+                                    RECORD_TYPE_WEBSITE
+                                        .new_record()
+                                        .set(&FIELD_NAME, "website 6"),
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+                RecordNode::Leaf(
+                    RECORD_TYPE_GENERIC
+                        .new_record()
+                        .set(&FIELD_NAME, "generic entry"),
+                ),
+                RecordNode::Leaf(
+                    RECORD_TYPE_WEBSITE
+                        .new_record()
+                        .set(&FIELD_NAME, "website 7"),
+                ),
+                RecordNode::Leaf(
+                    RECORD_TYPE_WEBSITE
+                        .new_record()
+                        .set(&FIELD_NAME, "website 8"),
+                ),
+            ],
+        }
+    }
+
+    fn test_xml() -> String {
+        r##"<revelationdata dataversion="1" version="0.4.11">
+            <entry type="folder">
+                <name>Group 1</name>
+                <description></description>
+                <entry type="website"><name>website 1</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password">letmein</field></entry>
+                <entry type="website"><name>website 2</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password">secret</field></entry>
+            </entry>
+            <entry type="folder">
+                <name>Group 2</name>
+                <description></description>
+                <entry type="folder">
+                    <name>Subgroup 1</name>
+                    <description></description>
+                    <entry type="website"><name>website 3</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password"></field></entry>
+                    <entry type="website"><name>website 4</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password"></field></entry>
+                </entry>
+                <entry type="folder">
+                    <name>Subgroup 2</name>
+                    <description></description>
+                    <entry type="website"><name>website 5</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password"></field></entry>
+                    <entry type="website"><name>website 6</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password"></field></entry>
+                </entry>
+            </entry>
+            <entry type="generic"><name>generic entry</name><description></description><field id="generic-hostname"></field><field id="generic-username"></field><field id="generic-password"></field></entry>
+            <entry type="website"><name>website 7</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password"></field></entry>
+            <entry type="website"><name>website 8</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password"></field></entry>
+        </revelationdata>"##.lines().map(|s| s.trim()).fold(String::new(), |a, b| a + b)
+    }
+
+    #[test]
+    fn test_read_empty() {
+        let tree = record_tree_from_xml(EMPTY_XML).unwrap();
+        assert!(tree.records.is_empty());
+    }
+
+    #[test]
+    fn test_write_empty() {
+        let empty_tree = RecordTree { records: vec![] };
+        let data = record_tree_to_xml(&empty_tree).unwrap();
+        assert_eq!(
+            data,
+            br#"<revelationdata dataversion="1" version="0.4.11"/>"#
+        );
+    }
+
+    #[test]
+    fn test_read_tree() {
+        let tree = record_tree_from_xml(test_xml().as_bytes()).unwrap();
+        assert_eq!(tree, test_tree());
+    }
+
+    #[test]
+    fn test_write_tree() {
+        let tree = test_tree();
+        let data = record_tree_to_xml(&tree).unwrap();
+        assert_eq!(std::str::from_utf8(&data).unwrap(), test_xml());
+    }
+}
