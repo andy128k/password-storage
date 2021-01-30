@@ -199,7 +199,7 @@ fn subentries(elem: &Element) -> Vec<&Element> {
     result
 }
 
-pub fn record_tree_from_xml(elem: &Element) -> Result<RecordTree> {
+pub fn record_tree_from_xml(data: &[u8]) -> Result<RecordTree> {
     fn read_record(elem: &Element) -> Result<RecordNode> {
         if let Some(type_) = elem.attr("type") {
             let record = record_from_xml(type_, elem)?;
@@ -218,15 +218,17 @@ pub fn record_tree_from_xml(elem: &Element) -> Result<RecordTree> {
         subentries(elem).iter().map(|e| read_record(e)).collect()
     }
 
+    let elem: Element = std::str::from_utf8(data)?.parse()?;
+
     if elem.name() == "revelationdata" {
-        let records = read_records(elem)?;
+        let records = read_records(&elem)?;
         Ok(RecordTree { records })
     } else {
         Err("Bad xml element".into())
     }
 }
 
-pub fn record_tree_to_xml(tree: &RecordTree) -> Result<Element> {
+pub fn record_tree_to_xml(tree: &RecordTree) -> Result<Vec<u8>> {
     fn traverse(tree: &[RecordNode], parent_element: &mut Element) -> Result<()> {
         for node in tree {
             match *node {
@@ -249,5 +251,9 @@ pub fn record_tree_to_xml(tree: &RecordTree) -> Result<Element> {
         .attr("dataversion", "1")
         .build();
     traverse(&tree.records, &mut root)?;
-    Ok(root)
+
+    let mut buf: Vec<u8> = Vec::new();
+    root.write_to(&mut buf)?;
+
+    Ok(buf)
 }

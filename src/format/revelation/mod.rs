@@ -8,9 +8,7 @@ use std::io::{Read, Write};
 
 pub fn load_revelation_file(source: &mut dyn Read, password: &str) -> Result<RecordTree> {
     let decrypted = crypto_container::decrypt_file(source, password)?;
-    let string: String = String::from_utf8(decrypted)?;
-    let element = string.parse()?;
-    let tree = xml::record_tree_from_xml(&element)?;
+    let tree = xml::record_tree_from_xml(&decrypted)?;
     Ok(tree)
 }
 
@@ -19,12 +17,7 @@ pub fn save_revelation_file(
     password: &str,
     tree: &RecordTree,
 ) -> Result<()> {
-    let element = xml::record_tree_to_xml(tree)?;
-
-    let mut buf: Vec<u8> = Vec::new();
-    element.write_to(&mut buf)?;
-
-    crypto_container::encrypt_file(destination, &buf, password)?;
-
+    let xml = xml::record_tree_to_xml(tree)?;
+    crypto_container::encrypt_file(destination, &xml, password)?;
     Ok(())
 }
