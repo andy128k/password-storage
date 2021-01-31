@@ -99,7 +99,6 @@ pub fn encrypt_file(writer: &mut dyn Write, data: &[u8], password: &str) -> std:
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::io::Cursor;
 
     #[test]
     fn test_adjust_password() {
@@ -118,36 +117,5 @@ mod test {
                 0x33, 0x74, 0x73, 0x65
             ]
         );
-    }
-
-    const EMPTY_RVL: &[u8] = include_bytes!("./fixtures/empty.rvl");
-
-    fn empty_xml() -> &'static [u8] {
-        "<?xml version='1.0' encoding='utf-8'?>\n<revelationdata version=\"0.4.11\" dataversion=\"1\"/>".as_bytes()
-    }
-
-    #[test]
-    fn test_decrypt() {
-        let buf = decrypt_file(&mut Cursor::new(EMPTY_RVL), "secr3t").unwrap();
-        assert_eq!(buf, empty_xml());
-    }
-
-    #[test]
-    fn test_decrypt_bad_password() {
-        let buf = decrypt_file(&mut Cursor::new(EMPTY_RVL), "iforgotpassword");
-        assert!(buf.is_err());
-        let err = buf.err().unwrap();
-        assert_eq!(format!("{}", err), "File cannot be decrypted");
-    }
-
-    #[test]
-    fn test_encrypt_and_decrypt_back() {
-        let password = "qwerty123456";
-        let mut encrypted = Vec::new();
-        encrypt_file(&mut encrypted, empty_xml(), password).unwrap();
-        assert_eq!(108, encrypted.len());
-        assert_eq!(114, encrypted[0]);
-        let decrypted = decrypt_file(&mut Cursor::new(&encrypted), password).unwrap();
-        assert_eq!(decrypted, empty_xml());
     }
 }
