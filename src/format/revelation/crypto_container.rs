@@ -57,6 +57,7 @@ pub fn encrypt(writer: &mut dyn Write, data: &[u8], password: &str) -> Result<()
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::io::Cursor;
 
     #[test]
     fn test_adjust_password() {
@@ -75,5 +76,15 @@ mod test {
                 0x33, 0x74, 0x73, 0x65
             ]
         );
+    }
+
+    #[test]
+    fn test_encrypt_and_decrypt_back() {
+        let password = "qwerty123456";
+        let data = b"Hello, World!";
+        let mut encrypted = Vec::new();
+        encrypt(&mut encrypted, data, password).unwrap();
+        let decrypted = decrypt(&mut Cursor::new(&encrypted), password).unwrap();
+        assert_eq!(decrypted, data);
     }
 }
