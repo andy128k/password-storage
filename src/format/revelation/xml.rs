@@ -1,261 +1,390 @@
-use crate::error::*;
+use crate::error::Result;
 use crate::model::record::*;
 use crate::model::tree::{RecordNode, RecordTree};
 use lazy_static::lazy_static;
-use minidom::{Element, Node};
-
-type TypeMapping = Vec<(&'static str, &'static RecordType)>;
-
-lazy_static! {
-    pub static ref TYPES: TypeMapping = vec![
-        ("folder", &RECORD_TYPE_GROUP),
-        ("generic", &RECORD_TYPE_GENERIC),
-        ("creditcard", &RECORD_TYPE_CREDITCARD),
-        ("cryptokey", &RECORD_TYPE_CRYPTOKEY),
-        ("database", &RECORD_TYPE_DATABASE),
-        ("door", &RECORD_TYPE_DOOR),
-        ("email", &RECORD_TYPE_EMAIL),
-        ("ftp", &RECORD_TYPE_FTP),
-        ("phone", &RECORD_TYPE_PHONE),
-        ("shell", &RECORD_TYPE_SHELL),
-        ("website", &RECORD_TYPE_WEBSITE)
-    ];
-}
-
-fn detect_type_by_xml_type(xml_type: &str) -> Option<&'static RecordType> {
-    for &(xml_type_name, record_type) in TYPES.iter() {
-        if xml_type_name == xml_type {
-            return Some(record_type);
-        }
-    }
-    None
-}
-
-fn detect_xml_type_by_type(record_type: &'static RecordType) -> Option<&'static str> {
-    for &(xml_type_name, record_type_ref) in TYPES.iter() {
-        if RecordType::ref_eq(record_type_ref, record_type) {
-            return Some(xml_type_name);
-        }
-    }
-    None
-}
-
-type Mapping = &'static [(&'static str, &'static str)];
-
-fn get_fields_mapping(record_type: &'static RecordType) -> Option<Mapping> {
-    if record_type.ref_eq(&RECORD_TYPE_GROUP) {
-        Some(&[])
-    } else if record_type.ref_eq(&RECORD_TYPE_GENERIC) {
-        Some(&[
-            ("hostname", "generic-hostname"),
-            ("username", "generic-username"),
-            ("password", "generic-password"),
-        ])
-    } else if record_type.ref_eq(&RECORD_TYPE_CREDITCARD) {
-        Some(&[
-            ("cardtype", "creditcard-cardtype"),
-            ("cardnumber", "creditcard-cardnumber"),
-            ("expirydate", "creditcard-expirydate"),
-            ("ccv", "creditcard-ccv"),
-            ("pin", "generic-pin"),
-        ])
-    } else if record_type.ref_eq(&RECORD_TYPE_CRYPTOKEY) {
-        Some(&[
-            ("hostname", "generic-hostname"),
-            ("certificate", "generic-certificate"),
-            ("keyfile", "generic-keyfile"),
-            ("password", "generic-password"),
-        ])
-    } else if record_type.ref_eq(&RECORD_TYPE_DATABASE) {
-        Some(&[
-            ("hostname", "generic-hostname"),
-            ("username", "generic-username"),
-            ("password", "generic-password"),
-            ("database", "generic-database"),
-        ])
-    } else if record_type.ref_eq(&RECORD_TYPE_DOOR) {
-        Some(&[("location", "generic-location"), ("code", "generic-code")])
-    } else if record_type.ref_eq(&RECORD_TYPE_EMAIL) {
-        Some(&[
-            ("email", "generic-email"),
-            ("hostname", "generic-hostname"),
-            ("username", "generic-username"),
-            ("password", "generic-password"),
-        ])
-    } else if record_type.ref_eq(&RECORD_TYPE_FTP) {
-        Some(&[
-            ("hostname", "generic-hostname"),
-            ("port", "generic-port"),
-            ("username", "generic-username"),
-            ("password", "generic-password"),
-        ])
-    } else if record_type.ref_eq(&RECORD_TYPE_PHONE) {
-        Some(&[("phonenumber", "phone-phonenumber"), ("pin", "generic-pin")])
-    } else if record_type.ref_eq(&RECORD_TYPE_SHELL) {
-        Some(&[
-            ("hostname", "generic-hostname"),
-            ("domain", "generic-domain"),
-            ("username", "generic-username"),
-            ("password", "generic-password"),
-        ])
-    } else if record_type.ref_eq(&RECORD_TYPE_WEBSITE) {
-        Some(&[
-            ("url", "generic-url"),
-            ("username", "generic-username"),
-            ("password", "generic-password"),
-        ])
-    } else {
-        None
-    }
-}
-
-fn entry_node_get_value(xml_node: &Element, tag_name: &str) -> String {
-    for node in xml_node.nodes() {
-        if let Node::Element(ref ch) = *node {
-            if ch.name() == tag_name {
-                return ch.text();
-            }
-        }
-    }
-    String::new()
-}
-
-fn entry_field_by_id(xml_node: &Element, id: &str) -> String {
-    for node in xml_node.nodes() {
-        if let Node::Element(ref ch) = *node {
-            if ch.name() == "field" && ch.attr("id") == Some(id) {
-                return ch.text();
-            }
-        }
-    }
-    String::new()
-}
-
-fn record_from_xml(xml_type: &str, xml_node: &Element) -> Result<Record> {
-    let record_type = detect_type_by_xml_type(xml_type)
-        .ok_or_else(|| format!("Bad entry type '{}'.", xml_type))?;
-    let mappings =
-        get_fields_mapping(record_type).ok_or_else(|| format!("Bad entry type '{}'.", xml_type))?;
-
-    let mut record = record_type.new_record();
-    record
-        .values
-        .insert("name".to_string(), entry_node_get_value(xml_node, "name"));
-    record.values.insert(
-        "description".to_string(),
-        entry_node_get_value(xml_node, "description"),
-    );
-
-    for &(ref field, ref id) in mappings {
-        record
-            .values
-            .insert(field.to_string(), entry_field_by_id(xml_node, id));
-    }
-
-    Ok(record)
-}
-
-fn record_to_xml(record: &Record) -> Result<Element> {
-    let xml_type = detect_xml_type_by_type(record.record_type)
-        .ok_or_else(|| format!("Bad entry type '{}'.", record.record_type.name))?;
-    let mappings = get_fields_mapping(record.record_type)
-        .ok_or_else(|| format!("Bad entry type '{}'.", xml_type))?;
-
-    let mut elem = Element::builder("entry").attr("type", xml_type);
-
-    elem = elem.append(
-        Element::builder("name")
-            .append(record.get_field(&FIELD_NAME))
-            .build(),
-    );
-    elem = elem.append(
-        Element::builder("description")
-            .append(record.get_field(&FIELD_DESCRIPTION))
-            .build(),
-    );
-    for &(ref field, ref id) in mappings {
-        elem = elem.append(
-            Element::builder("field")
-                .attr("id", *id)
-                .append(Node::Text(
-                    record.values.get(*field).cloned().unwrap_or_default(),
-                ))
-                .build(),
-        );
-    }
-
-    Ok(elem.build())
-}
-
-fn subentries(elem: &Element) -> Vec<&Element> {
-    let mut result = Vec::new();
-    for node in elem.nodes() {
-        if let Node::Element(ref ch) = *node {
-            if ch.name() == "entry" {
-                result.push(ch);
-            }
-        }
-    }
-    result
-}
+use quick_xml::{
+    events::{attributes::Attributes, BytesDecl, BytesEnd, BytesStart, BytesText, Event},
+    Reader, Writer,
+};
+use std::io::{BufRead, Write};
 
 pub fn record_tree_from_xml(data: &[u8]) -> Result<RecordTree> {
-    fn read_record(elem: &Element) -> Result<RecordNode> {
-        if let Some(type_) = elem.attr("type") {
-            let record = record_from_xml(type_, elem)?;
-            if type_ == "folder" {
-                let children = read_records(elem)?;
-                Ok(RecordNode::Group(record, children))
-            } else {
-                Ok(RecordNode::Leaf(record))
+    let mut reader = Reader::from_reader(data);
+    let record_tree = read_document(&mut reader)?;
+    Ok(record_tree)
+}
+
+fn read_document<R: BufRead>(reader: &mut Reader<R>) -> Result<RecordTree> {
+    let mut buf = Vec::new();
+    let mut record_tree = None;
+    loop {
+        buf.clear();
+        match reader.read_event(&mut buf)? {
+            Event::Decl(..) => {}
+            Event::Start(ref e) if record_tree.is_none() && e.name() == b"revelationdata" => {
+                record_tree = Some(read_revelationdata(reader, &mut e.attributes())?);
             }
-        } else {
-            Err("Bad xml element".into())
+            Event::Empty(ref e) if record_tree.is_none() && e.name() == b"revelationdata" => {
+                record_tree = Some(vec![]);
+            }
+            Event::Text(element) if element.unescape_and_decode(reader)?.trim().is_empty() => {}
+            Event::Eof => break,
+            e => return Err(format!("Unexpected XML event {:?}.", e).into()),
         }
     }
 
-    fn read_records(elem: &Element) -> Result<Vec<RecordNode>> {
-        subentries(elem).iter().map(|e| read_record(e)).collect()
-    }
-
-    let elem: Element = std::str::from_utf8(data)?.parse()?;
-
-    if elem.name() == "revelationdata" {
-        let records = read_records(&elem)?;
-        Ok(RecordTree { records })
+    if let Some(record_tree) = record_tree {
+        Ok(RecordTree {
+            records: record_tree,
+        })
     } else {
         Err("Bad xml element".into())
     }
 }
 
-pub fn record_tree_to_xml(tree: &RecordTree) -> Result<Vec<u8>> {
-    fn traverse(tree: &[RecordNode], parent_element: &mut Element) -> Result<()> {
-        for node in tree {
-            match *node {
-                RecordNode::Group(ref record, ref nodes) => {
-                    let mut element = record_to_xml(record)?;
-                    traverse(nodes, &mut element)?;
-                    parent_element.append_child(element);
-                }
-                RecordNode::Leaf(ref record) => {
-                    let element = record_to_xml(record)?;
-                    parent_element.append_child(element);
-                }
+fn read_revelationdata<R: BufRead>(
+    reader: &mut Reader<R>,
+    atts: &mut Attributes,
+) -> Result<Vec<RecordNode>> {
+    let _version = read_attribute(reader, atts, b"version")?;
+    let _dataversion = read_attribute(reader, atts, b"dataversion")?;
+
+    let mut records = Vec::new();
+    let mut buf = Vec::new();
+    loop {
+        buf.clear();
+        match reader.read_event(&mut buf)? {
+            Event::Start(ref e) if e.name() == b"entry" => {
+                let record_node = read_record_node(reader, &mut e.attributes())?;
+                records.push(record_node);
             }
+            Event::Empty(ref e) if e.name() == b"entry" => {
+                let record_node = read_empty_record_node(reader, &mut e.attributes())?;
+                records.push(record_node);
+            }
+            Event::Text(element) if element.unescape_and_decode(reader)?.trim().is_empty() => {}
+            Event::End(ref e) if e.name() == b"revelationdata" => break,
+            e => return Err(format!("Unexpected XML event {:?}.", e).into()),
         }
-        Ok(())
+    }
+    Ok(records)
+}
+
+fn read_record_node<R: BufRead>(
+    reader: &mut Reader<R>,
+    atts: &mut Attributes,
+) -> Result<RecordNode> {
+    let xml_type = expect_attribute(reader, atts, "type")?;
+
+    let mapping = KNOWN_TYPES
+        .iter()
+        .find(|mapping| mapping.xml_type_name == xml_type)
+        .ok_or_else(|| format!("Bad entry type '{}'.", xml_type))?;
+
+    let is_group = xml_type == "folder";
+
+    let mut record = mapping.record_type.new_record();
+    let mut children = Vec::new();
+    let mut buf = Vec::new();
+    loop {
+        buf.clear();
+        match reader.read_event(&mut buf)? {
+            Event::Start(ref e) => match e.name() {
+                b"name" => {
+                    let value = expect_text(reader)?;
+                    expect_end(reader, b"name")?;
+                    record.values.insert("name".to_string(), value);
+                }
+                b"description" => {
+                    let value = expect_text(reader)?;
+                    expect_end(reader, b"description")?;
+                    record.values.insert("description".to_string(), value);
+                }
+                b"field" => {
+                    let id = expect_attribute(reader, &mut e.attributes(), "id")?;
+                    let field_name = mapping
+                        .fields
+                        .iter()
+                        .filter_map(|(ref field_name, ref xml_id)| {
+                            if *xml_id == id {
+                                Some(field_name)
+                            } else {
+                                None
+                            }
+                        })
+                        .next()
+                        .ok_or_else(|| {
+                            format!(
+                                "Field {} is not expected in a record of type {}.",
+                                id, xml_type
+                            )
+                        })?;
+                    let value = expect_text(reader)?;
+                    expect_end(reader, b"field")?;
+                    record.values.insert(field_name.to_string(), value);
+                }
+                b"entry" if is_group => {
+                    let child = read_record_node(reader, &mut e.attributes())?;
+                    children.push(child);
+                }
+                e => return Err(format!("Unexpected element {:?}.", e).into()),
+            },
+            Event::Empty(ref e) => match e.name() {
+                b"name" | b"description" | b"field" => {}
+                b"entry" if is_group => {
+                    let child = read_empty_record_node(reader, &mut e.attributes())?;
+                    children.push(child);
+                }
+                e => return Err(format!("Unexpected element {:?}.", e).into()),
+            },
+            Event::Text(element) if element.unescape_and_decode(reader)?.trim().is_empty() => {}
+            Event::End(ref e) if e.name() == b"entry" => break,
+            e => return Err(format!("Unexpected XML event {:?}.", e).into()),
+        }
     }
 
-    let mut root = Element::builder("revelationdata")
-        .attr("version", "0.4.11")
-        .attr("dataversion", "1")
-        .build();
-    traverse(&tree.records, &mut root)?;
+    if is_group {
+        Ok(RecordNode::Group(record, children))
+    } else {
+        Ok(RecordNode::Leaf(record))
+    }
+}
 
-    let mut buf: Vec<u8> = Vec::new();
-    root.write_to(&mut buf)?;
+fn read_empty_record_node<R: BufRead>(
+    reader: &mut Reader<R>,
+    atts: &mut Attributes,
+) -> Result<RecordNode> {
+    let xml_type = expect_attribute(reader, atts, "type")?;
 
-    Ok(buf)
+    let mapping = KNOWN_TYPES
+        .iter()
+        .find(|mapping| mapping.xml_type_name == xml_type)
+        .ok_or_else(|| format!("Bad entry type '{}'.", xml_type))?;
+
+    let is_group = xml_type == "folder";
+    let record = mapping.record_type.new_record();
+    if is_group {
+        Ok(RecordNode::Group(record, vec![]))
+    } else {
+        Ok(RecordNode::Leaf(record))
+    }
+}
+
+fn expect_text<R: BufRead>(reader: &mut Reader<R>) -> Result<String> {
+    let mut buf = Vec::new();
+    match reader.read_event(&mut buf)? {
+        Event::Text(element) => {
+            let content = element.unescape_and_decode(reader)?;
+            Ok(content)
+        }
+        e => Err(format!("Unexpected XML event {:?}.", e).into()),
+    }
+}
+
+fn expect_end<R: BufRead>(reader: &mut Reader<R>, name: &[u8]) -> Result<()> {
+    let mut buf = Vec::new();
+    match reader.read_event(&mut buf)? {
+        Event::End(e) if e.name() == name => Ok(()),
+        e => Err(format!("Unexpected XML event {:?}.", e).into()),
+    }
+}
+
+fn read_attribute<R: BufRead>(
+    reader: &mut Reader<R>,
+    atts: &mut Attributes,
+    name: &[u8],
+) -> Result<Option<String>> {
+    for attr in atts.with_checks(false) {
+        let attr = attr?;
+        if attr.key == name {
+            let value = attr.unescape_and_decode_value(reader)?;
+            return Ok(Some(value));
+        }
+    }
+    Ok(None)
+}
+
+fn expect_attribute<R: BufRead>(
+    reader: &mut Reader<R>,
+    atts: &mut Attributes,
+    name: &str,
+) -> Result<String> {
+    let value = read_attribute(reader, atts, name.as_bytes())?;
+    let value = value.ok_or_else(|| format!("Attribute '{}' was not found.", name))?;
+    Ok(value)
+}
+
+pub fn record_tree_to_xml(tree: &RecordTree) -> Result<Vec<u8>> {
+    let mut buffer = Vec::new();
+    let mut writer = Writer::new(&mut buffer);
+
+    writer.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"utf-8"), None)))?;
+    writer.write_event(Event::Start({
+        let mut element = BytesStart::borrowed_name(b"revelationdata");
+        element.push_attribute(("version", "0.4.11"));
+        element.push_attribute(("dataversion", "1"));
+        element
+    }))?;
+
+    for node in &tree.records {
+        write_record_node(&mut writer, node)?;
+    }
+
+    writer.write_event(Event::End(BytesEnd::borrowed(b"revelationdata")))?;
+
+    Ok(buffer)
+}
+
+fn write_record_node<W: Write>(writer: &mut Writer<W>, record_node: &RecordNode) -> Result<()> {
+    let record = record_node.record();
+
+    let mapping = KNOWN_TYPES
+        .iter()
+        .find(|mapping| RecordType::ref_eq(mapping.record_type, record.record_type))
+        .unwrap();
+
+    writer.write_event(Event::Start({
+        let mut element = BytesStart::borrowed_name(b"entry");
+        element.push_attribute(("type", mapping.xml_type_name));
+        element
+    }))?;
+
+    write_field(writer, b"name", record.get_field(&FIELD_NAME))?;
+    write_field(writer, b"description", record.get_field(&FIELD_DESCRIPTION))?;
+    for &(ref field, ref id) in mapping.fields {
+        let value: &str = record.values.get(*field).map_or("", |v| &**v);
+        write_generic_field(writer, id, value)?;
+    }
+
+    for child_node in record_node.children() {
+        write_record_node(writer, child_node)?;
+    }
+
+    writer.write_event(Event::End(BytesEnd::borrowed(b"entry")))?;
+    Ok(())
+}
+
+fn write_field<W: Write>(writer: &mut Writer<W>, name: &[u8], value: &str) -> Result<()> {
+    writer.write_event(Event::Start(BytesStart::borrowed_name(name)))?;
+    writer.write_event(Event::Text(BytesText::from_plain_str(value)))?;
+    writer.write_event(Event::End(BytesEnd::borrowed(name)))?;
+    Ok(())
+}
+
+fn write_generic_field<W: Write>(writer: &mut Writer<W>, id: &str, value: &str) -> Result<()> {
+    writer.write_event(Event::Start({
+        let mut element = BytesStart::borrowed_name(b"field");
+        element.push_attribute(("id", id));
+        element
+    }))?;
+    writer.write_event(Event::Text(BytesText::from_plain_str(value)))?;
+    writer.write_event(Event::End(BytesEnd::borrowed(b"field")))?;
+    Ok(())
+}
+
+struct TypeMapping<'a> {
+    xml_type_name: &'a str,
+    record_type: &'a RecordType,
+    fields: &'a [(&'a str, &'a str)],
+}
+
+lazy_static! {
+    static ref KNOWN_TYPES: Vec<TypeMapping<'static>> = vec![
+        TypeMapping {
+            xml_type_name: "folder",
+            record_type: &RECORD_TYPE_GROUP,
+            fields: &[]
+        },
+        TypeMapping {
+            xml_type_name: "generic",
+            record_type: &RECORD_TYPE_GENERIC,
+            fields: &[
+                ("hostname", "generic-hostname"),
+                ("username", "generic-username"),
+                ("password", "generic-password"),
+            ]
+        },
+        TypeMapping {
+            xml_type_name: "creditcard",
+            record_type: &RECORD_TYPE_CREDITCARD,
+            fields: &[
+                ("cardtype", "creditcard-cardtype"),
+                ("cardnumber", "creditcard-cardnumber"),
+                ("expirydate", "creditcard-expirydate"),
+                ("ccv", "creditcard-ccv"),
+                ("pin", "generic-pin"),
+            ]
+        },
+        TypeMapping {
+            xml_type_name: "cryptokey",
+            record_type: &RECORD_TYPE_CRYPTOKEY,
+            fields: &[
+                ("hostname", "generic-hostname"),
+                ("certificate", "generic-certificate"),
+                ("keyfile", "generic-keyfile"),
+                ("password", "generic-password"),
+            ]
+        },
+        TypeMapping {
+            xml_type_name: "database",
+            record_type: &RECORD_TYPE_DATABASE,
+            fields: &[
+                ("hostname", "generic-hostname"),
+                ("username", "generic-username"),
+                ("password", "generic-password"),
+                ("database", "generic-database"),
+            ]
+        },
+        TypeMapping {
+            xml_type_name: "door",
+            record_type: &RECORD_TYPE_DOOR,
+            fields: &[("location", "generic-location"), ("code", "generic-code"),]
+        },
+        TypeMapping {
+            xml_type_name: "email",
+            record_type: &RECORD_TYPE_EMAIL,
+            fields: &[
+                ("email", "generic-email"),
+                ("hostname", "generic-hostname"),
+                ("username", "generic-username"),
+                ("password", "generic-password"),
+            ]
+        },
+        TypeMapping {
+            xml_type_name: "ftp",
+            record_type: &RECORD_TYPE_FTP,
+            fields: &[
+                ("hostname", "generic-hostname"),
+                ("port", "generic-port"),
+                ("username", "generic-username"),
+                ("password", "generic-password"),
+            ]
+        },
+        TypeMapping {
+            xml_type_name: "phone",
+            record_type: &RECORD_TYPE_PHONE,
+            fields: &[("phonenumber", "phone-phonenumber"), ("pin", "generic-pin"),]
+        },
+        TypeMapping {
+            xml_type_name: "shell",
+            record_type: &RECORD_TYPE_SHELL,
+            fields: &[
+                ("hostname", "generic-hostname"),
+                ("domain", "generic-domain"),
+                ("username", "generic-username"),
+                ("password", "generic-password"),
+            ]
+        },
+        TypeMapping {
+            xml_type_name: "website",
+            record_type: &RECORD_TYPE_WEBSITE,
+            fields: &[
+                ("url", "generic-url"),
+                ("username", "generic-username"),
+                ("password", "generic-password"),
+            ]
+        },
+    ];
 }
 
 #[cfg(test)]
@@ -354,7 +483,8 @@ mod test {
     }
 
     fn test_xml() -> String {
-        r##"<revelationdata dataversion="1" version="0.4.11">
+        r##"<?xml version="1.0" encoding="utf-8"?>
+        <revelationdata version="0.4.11" dataversion="1">
             <entry type="folder">
                 <name>Group 1</name>
                 <description></description>
@@ -394,8 +524,8 @@ mod test {
         let empty_tree = RecordTree { records: vec![] };
         let data = record_tree_to_xml(&empty_tree).unwrap();
         assert_eq!(
-            data,
-            br#"<revelationdata dataversion="1" version="0.4.11"/>"#
+            std::str::from_utf8(&data).unwrap(),
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?><revelationdata version=\"0.4.11\" dataversion=\"1\"></revelationdata>"
         );
     }
 
