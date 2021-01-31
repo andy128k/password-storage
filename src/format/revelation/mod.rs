@@ -8,7 +8,17 @@ use crate::version::VERSION_PARSED;
 use std::io::{Read, Write};
 
 pub fn load_revelation_file(source: &mut dyn Read, password: &str) -> Result<RecordTree> {
-    let decrypted = crypto_container::decrypt_file(source, password)?;
+    let header = file_header::FileHeader::read(source)?;
+    let decrypted = match header.data_version {
+        1 => crypto_container::decrypt(source, password)?,
+        version => {
+            return Err(format!(
+                "Unsupported format (rvl {}). Try to use version {} or above.",
+                version, header.app_version
+            )
+            .into());
+        }
+    };
     let tree = xml::record_tree_from_xml(&decrypted)?;
     Ok(tree)
 }
@@ -18,8 +28,15 @@ pub fn save_revelation_file(
     password: &str,
     tree: &RecordTree,
 ) -> Result<()> {
+    let header = file_header::FileHeader {
+        data_version: 1,
+        app_version: *VERSION_PARSED,
+    };
+    header.write(destination)?;
+
     let xml = xml::record_tree_to_xml(tree, *VERSION_PARSED)?;
-    crypto_container::encrypt_file(destination, &xml, password)?;
+    crypto_container::encrypt(destination, &xml, password)?;
+
     Ok(())
 }
 

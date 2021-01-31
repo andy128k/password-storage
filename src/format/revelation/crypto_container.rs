@@ -1,5 +1,3 @@
-use super::file_header::FileHeader;
-use crate::version::VERSION_PARSED;
 use aes::{
     cipher::block::{
         generic_array::{typenum::U16, GenericArray},
@@ -15,7 +13,6 @@ use std::io::{Read, Write};
 
 #[derive(Debug)]
 pub enum CryptoError {
-    UnknownFormat,
     WrongSize,
     CorruptedFile(String),
     DecryptError,
@@ -27,7 +24,6 @@ impl std::error::Error for CryptoError {}
 impl std::fmt::Display for CryptoError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CryptoError::UnknownFormat => write!(f, "Bad file (unknown format)"),
             CryptoError::WrongSize => write!(f, "Bad file (wrong size)"),
             CryptoError::CorruptedFile(_) => write!(f, "Bad file (corrupted)"),
             CryptoError::DecryptError => write!(f, "File cannot be decrypted"),
@@ -44,13 +40,7 @@ fn adjust_password(password: &str) -> [u8; 32] {
     array
 }
 
-pub fn decrypt_file(source: &mut dyn Read, password: &str) -> Result<Vec<u8>, CryptoError> {
-    let header = FileHeader::read(source).map_err(CryptoError::Io)?;
-
-    if header.data_version != 1 {
-        return Err(CryptoError::UnknownFormat);
-    }
-
+pub fn decrypt(source: &mut dyn Read, password: &str) -> Result<Vec<u8>, CryptoError> {
     let mut iv = GenericArray::<u8, U16>::default();
     source.read_exact(&mut iv).map_err(CryptoError::Io)?;
 
@@ -74,7 +64,7 @@ pub fn decrypt_file(source: &mut dyn Read, password: &str) -> Result<Vec<u8>, Cr
     inflate_bytes_zlib(&decrypted).map_err(CryptoError::CorruptedFile)
 }
 
-pub fn encrypt_file(writer: &mut dyn Write, data: &[u8], password: &str) -> std::io::Result<()> {
+pub fn encrypt(writer: &mut dyn Write, data: &[u8], password: &str) -> std::io::Result<()> {
     let password = adjust_password(password).into();
 
     let deflated = deflate_bytes_zlib(data);
@@ -85,12 +75,6 @@ pub fn encrypt_file(writer: &mut dyn Write, data: &[u8], password: &str) -> std:
 
     Aes256::new(&password).encrypt_block(&mut iv);
 
-    let header = FileHeader {
-        data_version: 1,
-        app_version: *VERSION_PARSED,
-    };
-
-    header.write(writer)?;
     writer.write_all(&iv)?;
     writer.write_all(&encrypted)?;
 
