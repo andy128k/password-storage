@@ -54,8 +54,7 @@ impl FileHeader {
     pub fn write(&self, writer: &mut dyn Write) -> Result<()> {
         #[inline]
         fn write_byte(writer: &mut dyn Write, value: u8) -> Result<()> {
-            let buffer: [u8; 1] = [value; 1];
-            writer.write_all(&buffer)
+            writer.write_all(&value.to_be_bytes())
         }
 
         writer.write_all(&Self::MAGIC)?;
