@@ -4,6 +4,7 @@ mod xml;
 
 use crate::error::*;
 use crate::model::tree::RecordTree;
+use crate::version::VERSION_PARSED;
 use std::io::{Read, Write};
 
 pub fn load_revelation_file(source: &mut dyn Read, password: &str) -> Result<RecordTree> {
@@ -17,7 +18,7 @@ pub fn save_revelation_file(
     password: &str,
     tree: &RecordTree,
 ) -> Result<()> {
-    let xml = xml::record_tree_to_xml(tree)?;
+    let xml = xml::record_tree_to_xml(tree, *VERSION_PARSED)?;
     crypto_container::encrypt_file(destination, &xml, password)?;
     Ok(())
 }
@@ -54,8 +55,8 @@ mod test {
         let password = "qwerty123456";
         let mut encrypted = Vec::new();
         save_revelation_file(&mut encrypted, password, &empty_tree()).unwrap();
-        assert_eq!(encrypted.len(), 12 + 7 * 16);
-        assert_eq!(encrypted[0], 114);
+        assert!(encrypted.len() > 12);
+        assert_eq!(encrypted[0], b'r');
         let decrypted = load_revelation_file(&mut Cursor::new(&encrypted), password).unwrap();
         assert_eq!(decrypted, empty_tree());
     }

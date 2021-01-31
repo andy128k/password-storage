@@ -1,6 +1,7 @@
 use crate::error::Result;
 use crate::model::record::*;
 use crate::model::tree::{RecordNode, RecordTree};
+use crate::version::Version;
 use lazy_static::lazy_static;
 use quick_xml::{
     events::{attributes::Attributes, BytesDecl, BytesEnd, BytesStart, BytesText, Event},
@@ -46,8 +47,12 @@ fn read_revelationdata<R: BufRead>(
     reader: &mut Reader<R>,
     atts: &mut Attributes,
 ) -> Result<Vec<RecordNode>> {
-    let _version = read_attribute(reader, atts, b"version")?;
-    let _dataversion = read_attribute(reader, atts, b"dataversion")?;
+    let _version: Option<Version> = read_attribute(reader, atts, b"version")?
+        .map(|s| s.parse())
+        .transpose()?;
+    let _dataversion: Option<u8> = read_attribute(reader, atts, b"dataversion")?
+        .map(|s| s.parse())
+        .transpose()?;
 
     let mut records = Vec::new();
     let mut buf = Vec::new();
@@ -214,14 +219,14 @@ fn expect_attribute<R: BufRead>(
     Ok(value)
 }
 
-pub fn record_tree_to_xml(tree: &RecordTree) -> Result<Vec<u8>> {
+pub fn record_tree_to_xml(tree: &RecordTree, app_version: Version) -> Result<Vec<u8>> {
     let mut buffer = Vec::new();
     let mut writer = Writer::new(&mut buffer);
 
     writer.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"utf-8"), None)))?;
     writer.write_event(Event::Start({
         let mut element = BytesStart::borrowed_name(b"revelationdata");
-        element.push_attribute(("version", "0.4.11"));
+        element.push_attribute(("version", app_version.to_string().as_str()));
         element.push_attribute(("dataversion", "1"));
         element
     }))?;
@@ -521,8 +526,13 @@ mod test {
 
     #[test]
     fn test_write_empty() {
+        let app_version = Version {
+            major: 0,
+            minor: 4,
+            patch: 11,
+        };
         let empty_tree = RecordTree { records: vec![] };
-        let data = record_tree_to_xml(&empty_tree).unwrap();
+        let data = record_tree_to_xml(&empty_tree, app_version).unwrap();
         assert_eq!(
             std::str::from_utf8(&data).unwrap(),
             "<?xml version=\"1.0\" encoding=\"utf-8\"?><revelationdata version=\"0.4.11\" dataversion=\"1\"></revelationdata>"
@@ -537,8 +547,13 @@ mod test {
 
     #[test]
     fn test_write_tree() {
+        let app_version = Version {
+            major: 0,
+            minor: 4,
+            patch: 11,
+        };
         let tree = test_tree();
-        let data = record_tree_to_xml(&tree).unwrap();
+        let data = record_tree_to_xml(&tree, app_version).unwrap();
         assert_eq!(std::str::from_utf8(&data).unwrap(), test_xml());
     }
 }

@@ -1,4 +1,5 @@
 use super::file_header::FileHeader;
+use crate::version::VERSION_PARSED;
 use aes::{
     cipher::block::{
         generic_array::{typenum::U16, GenericArray},
@@ -86,7 +87,7 @@ pub fn encrypt_file(writer: &mut dyn Write, data: &[u8], password: &str) -> std:
 
     let header = FileHeader {
         data_version: 1,
-        app_version: (0, 4, 11),
+        app_version: *VERSION_PARSED,
     };
 
     header.write(writer)?;
