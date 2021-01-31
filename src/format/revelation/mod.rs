@@ -14,19 +14,13 @@ enum CryptoContainer {
 impl CryptoContainer {
     fn decrypt(&self, source: &mut dyn Read, password: &str) -> Result<Vec<u8>> {
         match self {
-            Self::Aes256 => {
-                let data = crypto_container::decrypt(source, password)?;
-                Ok(data)
-            }
+            Self::Aes256 => crypto_container::decrypt(source, password),
         }
     }
 
     fn encrypt(&self, writer: &mut dyn Write, data: &[u8], password: &str) -> Result<()> {
         match self {
-            Self::Aes256 => {
-                crypto_container::encrypt(writer, data, password)?;
-                Ok(())
-            }
+            Self::Aes256 => crypto_container::encrypt(writer, data, password),
         }
     }
 }
@@ -38,19 +32,13 @@ enum SerializationFormat {
 impl SerializationFormat {
     fn deserialize(&self, data: &[u8]) -> Result<RecordTree> {
         match self {
-            Self::Xml => {
-                let tree = xml::record_tree_from_xml(data)?;
-                Ok(tree)
-            }
+            Self::Xml => xml::record_tree_from_xml(data),
         }
     }
 
     fn serialize(&self, tree: &RecordTree, app_version: Version) -> Result<Vec<u8>> {
         match self {
-            Self::Xml => {
-                let data = xml::record_tree_to_xml(tree, app_version)?;
-                Ok(data)
-            }
+            Self::Xml => xml::record_tree_to_xml(tree, app_version),
         }
     }
 }

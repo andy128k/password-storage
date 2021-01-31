@@ -1,3 +1,4 @@
+use crate::error::Result;
 use aes::{
     cipher::block::{
         generic_array::{typenum::U16, GenericArray},
@@ -11,27 +12,6 @@ use inflate::inflate_bytes_zlib;
 use rand::random;
 use std::io::{Read, Write};
 
-#[derive(Debug)]
-pub enum CryptoError {
-    WrongSize,
-    CorruptedFile(String),
-    DecryptError,
-    Io(std::io::Error),
-}
-
-impl std::error::Error for CryptoError {}
-
-impl std::fmt::Display for CryptoError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CryptoError::WrongSize => write!(f, "Bad file (wrong size)"),
-            CryptoError::CorruptedFile(_) => write!(f, "Bad file (corrupted)"),
-            CryptoError::DecryptError => write!(f, "File cannot be decrypted"),
-            CryptoError::Io(err) => write!(f, "I/O error: {}", err),
-        }
-    }
-}
-
 fn adjust_password(password: &str) -> [u8; 32] {
     let bytes = password.as_bytes();
     let len = usize::min(32, bytes.len());
@@ -40,44 +20,37 @@ fn adjust_password(password: &str) -> [u8; 32] {
     array
 }
 
-pub fn decrypt(source: &mut dyn Read, password: &str) -> Result<Vec<u8>, CryptoError> {
+type Cipher = Cbc<Aes256, Pkcs7>;
+
+pub fn decrypt(source: &mut dyn Read, password: &str) -> Result<Vec<u8>> {
     let mut iv = GenericArray::<u8, U16>::default();
-    source.read_exact(&mut iv).map_err(CryptoError::Io)?;
+    source.read_exact(&mut iv)?;
 
     let mut encrypted_content = Vec::new();
-    source
-        .read_to_end(&mut encrypted_content)
-        .map_err(CryptoError::Io)?;
+    source.read_to_end(&mut encrypted_content)?;
     if encrypted_content.len() % 16 != 0 {
-        return Err(CryptoError::WrongSize);
+        return Err(format!("Corrupted file: wrong size").into());
     }
 
     let password = adjust_password(password).into();
 
     // decrypt the initial vector for CBC decryption
     Aes256::new(&password).decrypt_block(&mut iv);
-
-    let decrypted = Cbc::<Aes256, Pkcs7>::new_fix(&password, &iv)
+    let decrypted = Cipher::new_fix(&password, &iv)
         .decrypt_vec(&encrypted_content)
-        .map_err(|_| CryptoError::DecryptError)?;
-
-    inflate_bytes_zlib(&decrypted).map_err(CryptoError::CorruptedFile)
+        .map_err(|_| "File cannot be decrypted")?;
+    let data = inflate_bytes_zlib(&decrypted).map_err(|e| format!("Corrupted file: {}", e))?;
+    Ok(data)
 }
 
-pub fn encrypt(writer: &mut dyn Write, data: &[u8], password: &str) -> std::io::Result<()> {
+pub fn encrypt(writer: &mut dyn Write, data: &[u8], password: &str) -> Result<()> {
     let password = adjust_password(password).into();
-
     let deflated = deflate_bytes_zlib(data);
-
     let mut iv = random::<[u8; 16]>().into();
-
-    let encrypted = Cbc::<Aes256, Pkcs7>::new_fix(&password, &iv).encrypt_vec(&deflated);
-
+    let encrypted = Cipher::new_fix(&password, &iv).encrypt_vec(&deflated);
     Aes256::new(&password).encrypt_block(&mut iv);
-
     writer.write_all(&iv)?;
     writer.write_all(&encrypted)?;
-
     Ok(())
 }
 
