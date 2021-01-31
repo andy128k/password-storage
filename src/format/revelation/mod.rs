@@ -4,22 +4,74 @@ mod xml;
 
 use crate::error::*;
 use crate::model::tree::RecordTree;
-use crate::version::VERSION_PARSED;
+use crate::version::{Version, VERSION_PARSED};
 use std::io::{Read, Write};
+
+enum CryptoContainer {
+    Aes256,
+}
+
+impl CryptoContainer {
+    fn decrypt(&self, source: &mut dyn Read, password: &str) -> Result<Vec<u8>> {
+        match self {
+            Self::Aes256 => {
+                let data = crypto_container::decrypt(source, password)?;
+                Ok(data)
+            }
+        }
+    }
+
+    fn encrypt(&self, writer: &mut dyn Write, data: &[u8], password: &str) -> Result<()> {
+        match self {
+            Self::Aes256 => {
+                crypto_container::encrypt(writer, data, password)?;
+                Ok(())
+            }
+        }
+    }
+}
+
+enum SerializationFormat {
+    Xml,
+}
+
+impl SerializationFormat {
+    fn deserialize(&self, data: &[u8]) -> Result<RecordTree> {
+        match self {
+            Self::Xml => {
+                let tree = xml::record_tree_from_xml(data)?;
+                Ok(tree)
+            }
+        }
+    }
+
+    fn serialize(&self, tree: &RecordTree, app_version: Version) -> Result<Vec<u8>> {
+        match self {
+            Self::Xml => {
+                let data = xml::record_tree_to_xml(tree, app_version)?;
+                Ok(data)
+            }
+        }
+    }
+}
+
+fn version_impl(version: u8) -> Option<(CryptoContainer, SerializationFormat)> {
+    match version {
+        1 => Some((CryptoContainer::Aes256, SerializationFormat::Xml)),
+        _ => None,
+    }
+}
 
 pub fn load_revelation_file(source: &mut dyn Read, password: &str) -> Result<RecordTree> {
     let header = file_header::FileHeader::read(source)?;
-    let decrypted = match header.data_version {
-        1 => crypto_container::decrypt(source, password)?,
-        version => {
-            return Err(format!(
-                "Unsupported format (rvl {}). Try to use version {} or above.",
-                version, header.app_version
-            )
-            .into());
-        }
-    };
-    let tree = xml::record_tree_from_xml(&decrypted)?;
+    let (container, format) = version_impl(header.data_version).ok_or_else(|| {
+        format!(
+            "Unsupported format (rvl {}). Try to use version {} or above.",
+            header.data_version, header.app_version
+        )
+    })?;
+    let decrypted = container.decrypt(source, password)?;
+    let tree = format.deserialize(&decrypted)?;
     Ok(tree)
 }
 
@@ -28,15 +80,15 @@ pub fn save_revelation_file(
     password: &str,
     tree: &RecordTree,
 ) -> Result<()> {
+    let version = 1;
+    let (container, format) = version_impl(version).expect("Version 1 must be supported.");
     let header = file_header::FileHeader {
-        data_version: 1,
+        data_version: version,
         app_version: *VERSION_PARSED,
     };
     header.write(destination)?;
-
-    let xml = xml::record_tree_to_xml(tree, *VERSION_PARSED)?;
-    crypto_container::encrypt(destination, &xml, password)?;
-
+    let xml = format.serialize(tree, *VERSION_PARSED)?;
+    container.encrypt(destination, &xml, password)?;
     Ok(())
 }
 
