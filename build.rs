@@ -1,6 +1,6 @@
 use std::env;
 use std::error::Error;
-use std::path::Path;
+use std::path::{Path, MAIN_SEPARATOR};
 use std::process::Command;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -16,6 +16,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     #[cfg(target_os = "windows")]
     embed_resource::compile("./icons.rc");
+
+    println!("cargo:rustc-env=PATH_MAIN_SEPARATOR={}", MAIN_SEPARATOR);
 
     Ok(())
 }

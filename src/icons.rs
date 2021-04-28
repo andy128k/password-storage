@@ -1,24 +1,15 @@
 use gio::{resources_register, Resource};
 use glib::{error::Error, Bytes};
 
-fn load_icons_resource() -> Result<Resource, Error> {
-    #[cfg(not(target_os = "windows"))]
-    const ICONS_RESOURCE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/icons.gresource"));
-
-    #[cfg(target_os = "windows")]
-    const ICONS_RESOURCE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\icons.gresource"));
-
-    let bytes = {
-        // https://github.com/gtk-rs/glib/issues/120
-        let aligned = &ICONS_RESOURCE[..];
-        Bytes::from(aligned)
-    };
-
-    Resource::from_data(&bytes)
-}
+const ICONS_RESOURCE: &[u8] = include_bytes!(concat!(
+    env!("OUT_DIR"),
+    env!("PATH_MAIN_SEPARATOR"),
+    "icons.gresource"
+));
 
 pub fn load_icons() -> Result<(), Error> {
-    let resource = load_icons_resource()?;
+    let bytes = Bytes::from_static(ICONS_RESOURCE);
+    let resource = Resource::from_data(&bytes)?;
     resources_register(&resource);
     Ok(())
 }
