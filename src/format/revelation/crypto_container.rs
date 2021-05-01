@@ -1,9 +1,9 @@
 use super::utils::adjust_password;
 use crate::error::Result;
 use aes::{
-    cipher::block::{
+    cipher::{
         generic_array::{typenum::U16, GenericArray},
-        BlockCipher, NewBlockCipher,
+        BlockDecrypt, BlockEncrypt, NewBlockCipher,
     },
     Aes256,
 };
