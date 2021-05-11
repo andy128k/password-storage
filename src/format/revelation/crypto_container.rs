@@ -22,7 +22,7 @@ pub fn decrypt(source: &mut dyn Read, password: &str) -> Result<Vec<u8>> {
     let mut encrypted_content = Vec::new();
     source.read_to_end(&mut encrypted_content)?;
     if encrypted_content.len() % 16 != 0 {
-        return Err(format!("Corrupted file: wrong size").into());
+        return Err("Corrupted file: wrong size".into());
     }
 
     let password = adjust_password(password).into();

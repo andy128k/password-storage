@@ -33,15 +33,15 @@ impl TreeStoreColumn {
     }
 }
 
-impl Into<u32> for TreeStoreColumn {
-    fn into(self) -> u32 {
-        u32::from(self.into_primitive())
+impl From<TreeStoreColumn> for u32 {
+    fn from(column: TreeStoreColumn) -> u32 {
+        u32::from(column.into_primitive())
     }
 }
 
-impl Into<i32> for TreeStoreColumn {
-    fn into(self) -> i32 {
-        i32::from(self.into_primitive())
+impl From<TreeStoreColumn> for i32 {
+    fn from(column: TreeStoreColumn) -> i32 {
+        i32::from(column.into_primitive())
     }
 }
 

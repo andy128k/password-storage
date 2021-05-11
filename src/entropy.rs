@@ -1,5 +1,6 @@
+use std::cmp::Eq;
 use std::collections::{HashMap, HashSet};
-use std::convert::Into;
+use std::hash::Hash;
 
 pub trait CharClassifier<T> {
     fn classify(&self, ch: u8) -> T;
@@ -24,14 +25,13 @@ impl CharClassifier<AsciiCharClass> for AsciiClassifier {
     fn classify(&self, ch: u8) -> AsciiCharClass {
         match ch {
             0..=31 | 127 => AsciiCharClass::Control,
-            48..=57 => AsciiCharClass::Number,
-            65..=90 => AsciiCharClass::Upper,
-            97..=122 => AsciiCharClass::Lower,
-            32 | 33 | 35 | 36 | 37 | 38 | 40 | 41 | 42 | 43 | 45 | 47 | 61 | 64 | 94 | 95 => {
-                AsciiCharClass::Punct1
-            }
-            34 | 39 | 44 | 46 | 58 | 59 | 60 | 62 | 63 | 91 | 92 | 93 | 96 | 123 | 124 | 125
-            | 126 => AsciiCharClass::Punct2,
+            b'0'..=b'9' => AsciiCharClass::Number,
+            b'A'..=b'Z' => AsciiCharClass::Upper,
+            b'a'..=b'z' => AsciiCharClass::Lower,
+            b' ' | b'!' | b'#' | b'$' | b'%' | b'&' | b'(' | b')' | b'*' | b',' | b'.' | b'/'
+            | b'=' | b'@' | b'^' | b'_' => AsciiCharClass::Punct1,
+            b'"' | b'\'' | b'+' | b'-' | b':' | b';' | b'<' | b'>' | b'?' | b'[' | b'\\' | b']'
+            | b'`' | b'{' | b'|' | b'}' | b'~' => AsciiCharClass::Punct2,
             128..=255 => AsciiCharClass::Extended,
         }
     }
@@ -49,6 +49,17 @@ impl CharClassifier<AsciiCharClass> for AsciiClassifier {
     }
 }
 
+#[derive(Default)]
+struct Counter<T>(pub HashMap<T, u32>);
+
+impl<T: Hash + Eq> Counter<T> {
+    fn count(&mut self, value: T) -> u32 {
+        let c = self.0.entry(value).or_insert(0);
+        *c += 1;
+        *c
+    }
+}
+
 fn character_distance(ch1: u8, ch2: u8) -> i32 {
     // TODO: check in known sequences... qwertyuiop, PI digits...
     (i32::from(ch1) - i32::from(ch2)).abs()
@@ -59,10 +70,10 @@ where
     T: Eq + std::hash::Hash,
 {
     let mut classes = HashSet::new();
-    let mut char_count = HashMap::<u8, u32>::new(); // to count characters quantities
-    let mut distances = HashMap::<i32, u32>::new(); // to collect differences between adjacent characters
+    let mut char_count = Counter::<u8>::default(); // to count characters quantities
+    let mut distances = Counter::<i32>::default(); // to collect differences between adjacent characters
 
-    let mut eff_len = 0f32;
+    let mut eff_len = 0_f32;
     let mut prev_nc: Option<u8> = None;
 
     for nc in passw {
@@ -73,16 +84,10 @@ where
             None => 1,
             Some(pnc) => {
                 let d = character_distance(*nc, pnc);
-                let ddw = distances.entry(d).or_insert(0);
-                *ddw += 1;
-                *ddw
+                distances.count(d)
             }
         };
-        let cw = {
-            let ccw = char_count.entry(*nc).or_insert(0);
-            *ccw += 1;
-            *ccw
-        };
+        let cw = char_count.count(*nc);
 
         let dcw = (dw * cw) as f32;
 
@@ -112,15 +117,15 @@ pub enum PasswordStrenth {
     VeryStrong,
 }
 
-impl Into<PasswordStrenth> for f32 {
-    fn into(self) -> PasswordStrenth {
-        if self < 28.0 {
+impl From<f32> for PasswordStrenth {
+    fn from(entropy: f32) -> Self {
+        if entropy < 28.0 {
             PasswordStrenth::VeryWeak
-        } else if self >= 28.0 && self < 36.0 {
+        } else if entropy < 36.0 {
             PasswordStrenth::Weak
-        } else if self >= 36.0 && self < 60.0 {
+        } else if entropy < 60.0 {
             PasswordStrenth::Reasonable
-        } else if self < 128.0 {
+        } else if entropy < 128.0 {
             PasswordStrenth::Strong
         } else {
             PasswordStrenth::VeryStrong
