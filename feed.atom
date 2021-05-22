@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <id>http://andy128k.github.com/password-storage</id>
-  <updated>2021-05-22T18:25:20+0000</updated>
+  <updated>2021-05-22T18:30:04+0000</updated>
 
   <title type="text">PasswordStorage News</title>
   <subtitle type="text">Secure storage for your secrets</subtitle>
@@ -329,6 +329,26 @@
 </content>
 
     <link rel="alternate" href="/password-storage/2020/06/20/version-0.18.0.html" type="text/html"/>
+
+    <author>
+      <name>Andrey Kutejko</name>
+      <uri>http://github.com/andy128k</uri>
+      <email>andy128k@gmail.com</email>
+    </author>
+  </entry>
+  
+  <entry>
+    <id>/password-storage/2021/05/22/version-0.19.0.html</id>
+    <published>2021-05-22T00:00:00+0000</published>
+    <updated>2021-05-22T00:00:00+0000</updated>
+
+    <title type="text">Version 0.19.0</title>
+    <content type="html">Version 0.19.0 is released.
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/andy128k/password-storage/releases/0.19.0&#34;&gt;Downloads&lt;/a&gt;&lt;/p&gt;
+</content>
+
+    <link rel="alternate" href="/password-storage/2021/05/22/version-0.19.0.html" type="text/html"/>
 
     <author>
       <name>Andrey Kutejko</name>
