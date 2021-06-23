@@ -21,7 +21,7 @@ quick-xml = "0.22"
 toml = "0.5"
 serde = { version = "1", features = ["derive"] }
 
-glib = "0.10"
+glib = "0.14"
 gio = "0.9"
 gdk = "0.13"
 gtk = { version = "0.9", features = ["v3_22"] }
