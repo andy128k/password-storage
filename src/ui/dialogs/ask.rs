@@ -1,7 +1,7 @@
 use gtk::prelude::*;
 
 pub fn ask(parent_window: &gtk::Window, message: &str) -> bool {
-    let dlg = gtk::MessageDialogBuilder::new()
+    let dlg = gtk::MessageDialog::builder()
         .transient_for(parent_window)
         .window_position(gtk::WindowPosition::CenterOnParent)
         .title("Password Storage")

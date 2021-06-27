@@ -1,14 +1,11 @@
 use crate::entropy::*;
 use crate::model::record::Record;
 use crate::model::tree::{RecordNode, RecordTree};
-use glib::subclass::boxed::BoxedType;
-use glib::{Type, Value};
-use gtk::prelude::*;
-use gtk::{TreeIter, TreeModel, TreeStore};
+use gtk::{glib, prelude::*};
 
 #[derive(Clone)]
 pub struct PSStore {
-    model: TreeStore,
+    model: gtk::TreeStore,
 }
 
 pub enum TreeStoreColumn {
@@ -45,16 +42,14 @@ impl From<TreeStoreColumn> for i32 {
     }
 }
 
-fn is_selected(model: &TreeModel, iter: &TreeIter) -> bool {
+fn is_selected(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> bool {
     model
-        .get_value(iter, TreeStoreColumn::Selection.into())
-        .downcast()
-        .ok()
-        .and_then(|v| v.get())
+        .value(iter, TreeStoreColumn::Selection.into())
+        .get()
         .unwrap_or(false)
 }
 
-fn delete_checked(model: &TreeStore, parent: Option<&TreeIter>) {
+fn delete_checked(model: &gtk::TreeStore, parent: Option<&gtk::TreeIter>) {
     if let Some(i) = model.iter_children(parent) {
         loop {
             let cont = if is_selected(&model.clone().upcast(), &i) {
@@ -72,24 +67,24 @@ fn delete_checked(model: &TreeStore, parent: Option<&TreeIter>) {
 
 impl PSStore {
     pub fn new() -> Self {
-        let model = TreeStore::new(&[
-            Record::get_type(),
-            Type::String,
-            Type::String,
-            Type::Bool,
-            Type::String,
-            Type::Bool,
+        let model = gtk::TreeStore::new(&[
+            Record::static_type(),
+            glib::Type::STRING,
+            glib::Type::STRING,
+            glib::Type::BOOL,
+            glib::Type::STRING,
+            glib::Type::BOOL,
         ]);
         PSStore { model }
     }
 
-    pub fn from_tree_model(model: &TreeModel) -> Option<Self> {
+    pub fn from_tree_model(model: &gtk::TreeModel) -> Option<Self> {
         let model = model.clone().downcast().ok()?;
         Some(Self { model })
     }
 
     pub fn from_tree(tree: &RecordTree) -> Self {
-        fn add_record(node: &RecordNode, store: &PSStore, parent_iter: Option<&TreeIter>) {
+        fn add_record(node: &RecordNode, store: &PSStore, parent_iter: Option<&gtk::TreeIter>) {
             match *node {
                 RecordNode::Group(ref record, ref nodes) => {
                     let iter = store.append(parent_iter, record);
@@ -101,7 +96,7 @@ impl PSStore {
             }
         }
 
-        fn add_records(tree: &[RecordNode], store: &PSStore, parent_iter: Option<&TreeIter>) {
+        fn add_records(tree: &[RecordNode], store: &PSStore, parent_iter: Option<&gtk::TreeIter>) {
             for node in tree {
                 add_record(node, store, parent_iter);
             }
@@ -113,7 +108,7 @@ impl PSStore {
     }
 
     pub fn to_tree(&self) -> RecordTree {
-        fn traverse(store: &PSStore, parent_iter: Option<&TreeIter>) -> Vec<RecordNode> {
+        fn traverse(store: &PSStore, parent_iter: Option<&gtk::TreeIter>) -> Vec<RecordNode> {
             let mut records = Vec::new();
             for (i, record) in store.children(parent_iter) {
                 if record.record_type.is_group {
@@ -131,11 +126,11 @@ impl PSStore {
         }
     }
 
-    pub fn as_model(&self) -> TreeModel {
+    pub fn as_model(&self) -> gtk::TreeModel {
         self.model.clone().upcast()
     }
 
-    pub fn parents(&self, iter: &TreeIter) -> Vec<(TreeIter, Record)> {
+    pub fn parents(&self, iter: &gtk::TreeIter) -> Vec<(gtk::TreeIter, Record)> {
         let model = self.as_model();
         let mut result = Vec::new();
         for i in crate::utils::tree::tree_parents_entries(&model, iter) {
@@ -146,7 +141,7 @@ impl PSStore {
         result
     }
 
-    pub fn children(&self, iter: Option<&TreeIter>) -> Vec<(TreeIter, Record)> {
+    pub fn children(&self, iter: Option<&gtk::TreeIter>) -> Vec<(gtk::TreeIter, Record)> {
         let model = self.as_model();
         let mut result = Vec::new();
         for i in crate::utils::tree::tree_children_entries(&model, iter) {
@@ -157,18 +152,18 @@ impl PSStore {
         result
     }
 
-    pub fn update(&self, iter: &TreeIter, record: &Record) {
+    pub fn update(&self, iter: &gtk::TreeIter, record: &Record) {
         self.model
             .set_value(iter, TreeStoreColumn::Record.into(), &record.to_value());
         self.model.set_value(
             iter,
             TreeStoreColumn::Name.into(),
-            &Value::from(&record.name()),
+            &glib::Value::from(&record.name()),
         );
         self.model.set_value(
             iter,
             TreeStoreColumn::TypeIcon.into(),
-            &Value::from(record.record_type.icon),
+            &glib::Value::from(record.record_type.icon),
         );
         if let Some(password) = record.password() {
             let entropy = password_entropy(&AsciiClassifier, password.as_bytes());
@@ -182,39 +177,42 @@ impl PSStore {
             self.model.set_value(
                 iter,
                 TreeStoreColumn::Strength.into(),
-                &Value::from(strength_icon),
+                &glib::Value::from(strength_icon),
             );
         } else {
-            self.model
-                .set_value(iter, TreeStoreColumn::Strength.into(), &Value::from(""));
+            self.model.set_value(
+                iter,
+                TreeStoreColumn::Strength.into(),
+                &glib::Value::from(""),
+            );
         }
 
         self.model.set_value(
             iter,
             TreeStoreColumn::SelectionVisible.into(),
-            &Value::from(&!record.record_type.is_group),
+            &glib::Value::from(&!record.record_type.is_group),
         );
     }
 
-    pub fn append(&self, parent_iter: Option<&TreeIter>, record: &Record) -> TreeIter {
+    pub fn append(&self, parent_iter: Option<&gtk::TreeIter>, record: &Record) -> gtk::TreeIter {
         let iter = self.model.append(parent_iter);
         self.update(&iter, record);
         iter
     }
 
-    pub fn get(&self, iter: &TreeIter) -> Option<Record> {
+    pub fn get(&self, iter: &gtk::TreeIter) -> Option<Record> {
         self.model
-            .get_value(iter, TreeStoreColumn::Record.into())
-            .get_some::<&Record>()
+            .value(iter, TreeStoreColumn::Record.into())
+            .get::<&Record>()
             .ok()
             .cloned()
     }
 
-    pub fn delete(&self, iter: &TreeIter) {
+    pub fn delete(&self, iter: &gtk::TreeIter) {
         self.model.remove(iter);
     }
 
-    pub fn is_selected(&self, iter: &TreeIter) -> bool {
+    pub fn is_selected(&self, iter: &gtk::TreeIter) -> bool {
         is_selected(&self.as_model(), iter)
     }
 
@@ -223,9 +221,13 @@ impl PSStore {
     }
 
     pub fn uncheck_all(&self) {
-        fn uncheck(model: &TreeStore, parent: Option<&TreeIter>) {
+        fn uncheck(model: &gtk::TreeStore, parent: Option<&gtk::TreeIter>) {
             for i in crate::utils::tree::tree_children_entries(&model.clone().upcast(), parent) {
-                model.set_value(&i, TreeStoreColumn::Selection.into(), &Value::from(&false));
+                model.set_value(
+                    &i,
+                    TreeStoreColumn::Selection.into(),
+                    &glib::Value::from(&false),
+                );
                 uncheck(model, Some(&i));
             }
         }

@@ -22,10 +22,11 @@ use crate::ui::preview_panel::PSPreviewPanel;
 use crate::ui::search::PSSearchEntry;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
-use gio::prelude::*;
-use gio::{SimpleAction, SimpleActionGroup};
-use glib::clone;
-use gtk::prelude::*;
+use gtk::{
+    gio,
+    glib::{self, clone},
+    prelude::*,
+};
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::convert::Into;
@@ -47,7 +48,7 @@ struct PSMainWindowPrivate {
     view: PSTreeView,
     preview: PSPreviewPanel,
 
-    actions: RefCell<HashMap<PSAction, SimpleAction>>,
+    actions: RefCell<HashMap<PSAction, gio::SimpleAction>>,
 
     search_entry: PSSearchEntry,
 
@@ -91,14 +92,24 @@ fn set_status(win: &PSMainWindow, message: &str) {
 impl PSMainWindow {
     pub fn from_window(window: &gtk::Window) -> Option<Self> {
         let app_window = window.clone().downcast::<gtk::ApplicationWindow>().ok()?;
-        if !unsafe { *app_window.get_data("is_main_window").unwrap_or(&false) } {
+        if !unsafe {
+            app_window
+                .data::<bool>("is_main_window")
+                .map_or(false, |p| *p.as_ptr())
+        } {
             return None;
         }
         Some(Self(app_window))
     }
 
     fn private(&self) -> &PSMainWindowPrivate {
-        unsafe { self.0.get_data("private").unwrap() }
+        unsafe {
+            &*self
+                .0
+                .data::<PSMainWindowPrivate>("private")
+                .unwrap()
+                .as_ptr()
+        }
     }
 
     pub fn window(&self) -> gtk::Window {
@@ -132,7 +143,7 @@ impl PSMainWindow {
     }
 
     fn refilter(&self) {
-        if let Some(model) = self.private().view.view.get_model() {
+        if let Some(model) = self.private().view.view.model() {
             if let Ok(filter) = model.downcast::<gtk::TreeModelFilter>() {
                 filter.refilter();
             }
@@ -587,7 +598,7 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
                 .borrow()
                 .get(&PSAction::Doc(DocAction::MergeMode))
             {
-                action.set_state(&false.into());
+                action.set_state(&false.to_variant());
             }
             win.private().search_entry.set_sensitive(false);
             win.private().view.set_selection_mode(false);
@@ -610,7 +621,7 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
                 .borrow()
                 .get(&PSAction::Doc(DocAction::MergeMode))
             {
-                action.set_state(&false.into());
+                action.set_state(&false.to_variant());
             }
             win.private().search_entry.set_sensitive(true);
             win.private().view.set_selection_mode(false);
@@ -632,7 +643,7 @@ fn set_mode(win: &PSMainWindow, mode: AppMode) {
                 .borrow()
                 .get(&PSAction::Doc(DocAction::MergeMode))
             {
-                action.set_state(&true.into());
+                action.set_state(&true.to_variant());
             }
             win.private().search_entry.set_sensitive(true);
             win.private().view.set_selection_mode(true);
@@ -655,13 +666,13 @@ fn set_merge_mode(win: &PSMainWindow, merge: bool) -> Result<()> {
 }
 
 fn create_file_widget(tree_view: &PSTreeView, preview: &PSPreviewPanel) -> gtk::Widget {
-    let paned = gtk::PanedBuilder::new()
+    let paned = gtk::Paned::builder()
         .orientation(gtk::Orientation::Horizontal)
         .hexpand(true)
         .vexpand(true)
         .build();
 
-    let sw = gtk::ScrolledWindowBuilder::new()
+    let sw = gtk::ScrolledWindow::builder()
         .can_focus(true)
         .hscrollbar_policy(gtk::PolicyType::Automatic)
         .vscrollbar_policy(gtk::PolicyType::Automatic)
@@ -689,7 +700,7 @@ fn create_main_window(
 ) -> (gtk::ApplicationWindow, PSSearchEntry, gtk::Statusbar) {
     gtk_app.set_menubar(Some(&ui::menu::create_menu_bar()));
 
-    let main_window = gtk::ApplicationWindowBuilder::new()
+    let main_window = gtk::ApplicationWindow::builder()
         .application(gtk_app)
         .title(WINDOW_TITLE)
         .icon_name("password-storage")
@@ -749,15 +760,15 @@ fn create_toggle_action(
     cb: Box<dyn Fn(&PSMainWindow, bool) -> Result<()>>,
 ) {
     let (_action_group_name, action_name) = ps_action_name.name();
-    let action = gio::SimpleAction::new_stateful(&action_name, None, &false.into());
+    let action = gio::SimpleAction::new_stateful(&action_name, None, &false.to_variant());
     let win1 = win.clone();
     action.connect_activate(move |action, _| {
         let prev_state: bool = action
-            .get_state()
+            .state()
             .and_then(|state| state.get())
             .unwrap_or(false);
         let new_state: bool = !prev_state;
-        action.set_state(&new_state.into());
+        action.set_state(&new_state.to_variant());
         if let Err(error) = cb(&win1, new_state) {
             let window = win1.window();
             say_error(&window, &error.to_string());
@@ -924,7 +935,7 @@ pub fn old_main(
         for (name, action) in win.private().actions.borrow().iter() {
             groups
                 .entry(name.group())
-                .or_insert_with(SimpleActionGroup::new)
+                .or_insert_with(gio::SimpleActionGroup::new)
                 .add_action(action);
         }
 

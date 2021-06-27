@@ -1,34 +1,33 @@
 use crate::markup_builder::*;
 use crate::model::record::Record;
-use gtk::prelude::*;
-use gtk::{Align, Grid, Image, Label, Widget};
+use gtk::{glib, prelude::*};
 
 pub struct PSPreviewPanel {
-    grid: Grid,
-    icon: Image,
-    title: Label,
-    view: Label,
+    grid: gtk::Grid,
+    icon: gtk::Image,
+    title: gtk::Label,
+    view: gtk::Label,
 }
 
 impl PSPreviewPanel {
     pub fn new() -> Self {
-        let grid = Grid::new();
-        grid.set_property_width_request(300);
-        grid.set_property_margin(16);
+        let grid = gtk::Grid::new();
+        grid.set_width_request(300);
+        grid.set_margin(16);
 
-        let icon = Image::new();
+        let icon = gtk::Image::new();
         icon.set_margin_end(8);
-        icon.set_halign(Align::Start);
-        icon.set_valign(Align::Start);
+        icon.set_halign(gtk::Align::Start);
+        icon.set_valign(gtk::Align::Start);
         grid.attach(&icon, 0, 0, 1, 1);
 
-        let title = Label::new(None);
+        let title = gtk::Label::new(None);
         title.set_hexpand(true);
         title.set_xalign(0f32);
         title.set_line_wrap(true);
         grid.attach(&title, 1, 0, 1, 1);
 
-        let view = Label::new(None);
+        let view = gtk::Label::new(None);
         view.set_margin_top(16);
         view.set_hexpand(true);
         view.set_xalign(0f32);
@@ -43,19 +42,18 @@ impl PSPreviewPanel {
         }
     }
 
-    pub fn get_widget(&self) -> Widget {
+    pub fn get_widget(&self) -> gtk::Widget {
         self.grid.clone().upcast()
     }
 
     pub fn update(&self, record_opt: Option<Record>, show_secrets: bool) {
         if let Some(record) = record_opt {
-            self.icon
-                .set_property_icon_name(Some(record.record_type.icon));
+            self.icon.set_icon_name(Some(record.record_type.icon));
             self.title.set_markup(&big(&record.name()));
             self.view
                 .set_markup(&record_to_markup(&record, show_secrets));
         } else {
-            self.icon.set_property_icon_name(None);
+            self.icon.set_icon_name(None);
             self.title.set_markup("");
             self.view.set_markup("");
         }

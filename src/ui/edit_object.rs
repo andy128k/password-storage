@@ -1,6 +1,9 @@
 use super::forms::base::FormWidget;
-use glib::clone;
-use gtk::prelude::*;
+use gtk::{
+    gdk,
+    glib::{self, clone},
+    prelude::*,
+};
 
 pub fn edit_object<T, W: FormWidget<T>>(
     object: Option<&T>,
@@ -9,7 +12,7 @@ pub fn edit_object<T, W: FormWidget<T>>(
     title: &str,
     icon: &str,
 ) -> Option<T> {
-    let dlg = gtk::DialogBuilder::new()
+    let dlg = gtk::Dialog::builder()
         .type_hint(gdk::WindowTypeHint::Dialog)
         .gravity(gdk::Gravity::Center)
         .transient_for(parent_window)
@@ -27,7 +30,7 @@ pub fn edit_object<T, W: FormWidget<T>>(
     dlg.add_button("_Ok", gtk::ResponseType::Ok);
     dlg.set_default_response(gtk::ResponseType::Ok);
 
-    dlg.get_content_area()
+    dlg.content_area()
         .pack_start(&widget.get_widget(), true, true, 8);
     dlg.show_all();
 

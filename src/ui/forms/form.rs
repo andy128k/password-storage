@@ -1,7 +1,6 @@
 use super::base::*;
 use crate::ui::error_label::create_error_label;
 use gtk::prelude::*;
-use gtk::{Grid, Label, Widget};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -21,12 +20,12 @@ struct FormEntry {
 }
 
 struct FormValidation {
-    label: Label,
+    label: gtk::Label,
     callback: FormDataValidate,
 }
 
 struct FormPrivate {
-    grid: Grid,
+    grid: gtk::Grid,
     fields: Vec<FormEntry>,
     change_callback: Option<FormDataChanged>,
     validation: Option<FormValidation>,
@@ -102,7 +101,7 @@ pub struct Form(Rc<RefCell<FormPrivate>>);
 
 impl Form {
     pub fn new() -> Self {
-        let grid = Grid::new();
+        let grid = gtk::Grid::new();
         grid.set_column_spacing(8);
         grid.set_row_spacing(8);
 
@@ -121,7 +120,7 @@ impl Form {
     pub fn add(&mut self, label: &str, mut widget: Box<dyn FormWidget<String>>, required: bool) {
         let index = self.0.borrow().fields.len();
 
-        let label_widget = Label::new(Some(label));
+        let label_widget = gtk::Label::new(Some(label));
         label_widget.set_xalign(0f32);
         label_widget.set_yalign(0.5f32);
         self.0
@@ -159,7 +158,7 @@ impl Form {
 }
 
 impl FormWidget<FormData> for Form {
-    fn get_widget(&self) -> Widget {
+    fn get_widget(&self) -> gtk::Widget {
         self.0.borrow().grid.clone().upcast()
     }
 

@@ -1,16 +1,15 @@
-use gio::prelude::*;
-use gio::ApplicationFlags;
-use glib::clone;
-use gtk::prelude::*;
-use gtk::Application;
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use crate::cache::Cache;
 use crate::config::Config;
 use crate::main_window::{do_open_file, old_main, PSMainWindow};
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
+use gtk::{
+    gio,
+    glib::{self, clone},
+    prelude::*,
+};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 struct PSApplicationPrivate {
     config: Rc<RefCell<Config>>,
@@ -40,11 +39,10 @@ impl glib::clone::Upgrade for PSApplicationWeak {
 
 impl PSApplication {
     fn create() -> Self {
-        let gtk_app = Application::new(
+        let gtk_app = gtk::Application::new(
             Some("net.andy128k.password-storage"),
-            ApplicationFlags::HANDLES_OPEN,
-        )
-        .expect("Initialization of application failed.");
+            gio::ApplicationFlags::HANDLES_OPEN,
+        );
         let private = PSApplicationPrivate {
             config: Rc::new(RefCell::new(Config::load())),
             cache: Cache::load(),
@@ -56,7 +54,13 @@ impl PSApplication {
     }
 
     fn private(&self) -> &PSApplicationPrivate {
-        unsafe { self.0.get_data("private").unwrap() }
+        unsafe {
+            &*self
+                .0
+                .data::<PSApplicationPrivate>("private")
+                .unwrap()
+                .as_ptr()
+        }
     }
 
     pub fn new_app() -> Self {
@@ -75,7 +79,7 @@ impl PSApplication {
         }));
         app.0
             .connect_open(clone!(@weak app => move |_app, files, _hint| {
-                if let Some(path) = files[0].get_path() {
+                if let Some(path) = files[0].path() {
                     let win = app.activate();
                     do_open_file(&win, &path);
                 }
@@ -84,7 +88,7 @@ impl PSApplication {
         app.0.add_action(&{
             let action = gio::SimpleAction::new("quit", None);
             action.connect_activate(clone!(@weak app => move |_, _| {
-                for window in app.0.get_windows() {
+                for window in app.0.windows() {
                     if let Some(win) = PSMainWindow::from_window(&window) {
                         win.close();
                     }
@@ -95,7 +99,7 @@ impl PSApplication {
         app.0.add_action(&{
             let action = gio::SimpleAction::new("about", None);
             action.connect_activate(clone!(@weak app => move |_, _| {
-                let win = app.0.get_active_window();
+                let win = app.0.active_window();
                 about(win.as_ref());
             }));
             action
@@ -136,14 +140,13 @@ impl PSApplication {
     }
 
     pub fn run(&self) {
-        let argv: Vec<String> = std::env::args().collect();
-        let code = self.0.run(&argv);
+        let code = self.0.run();
         std::process::exit(code);
     }
 
     fn active_window(&self) -> Option<PSMainWindow> {
         self.0
-            .get_active_window()
+            .active_window()
             .and_then(|w| PSMainWindow::from_window(&w))
     }
 

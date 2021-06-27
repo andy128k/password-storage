@@ -2,33 +2,30 @@ use crate::config::Config;
 use crate::ui::edit_object::edit_object;
 use crate::ui::forms::base::FormWidget;
 use gtk::prelude::*;
-use gtk::{CheckButton, Grid, Widget, Window};
 
 struct ConfigForm {
-    grid: Grid,
-    search_in_secrets: CheckButton,
-    show_secrets_on_preview: CheckButton,
+    grid: gtk::Grid,
+    search_in_secrets: gtk::CheckButton,
+    show_secrets_on_preview: gtk::CheckButton,
 }
 
 impl ConfigForm {
     fn new() -> Self {
-        let grid = Grid::new();
+        let grid = gtk::Grid::new();
         grid.set_column_spacing(8);
         grid.set_row_spacing(8);
 
-        let search_in_secrets = {
-            let button = CheckButton::with_label("Search in secrets (passwords)");
-            button.set_can_focus(true);
-            grid.attach(&button, 0, 0, 2, 1);
-            button
-        };
+        let search_in_secrets = gtk::CheckButton::builder()
+            .label("Search in secrets (passwords)")
+            .can_focus(true)
+            .build();
+        grid.attach(&search_in_secrets, 0, 0, 2, 1);
 
-        let show_secrets_on_preview = {
-            let button = CheckButton::with_label("Show secrets (passwords) on preview panel");
-            button.set_can_focus(true);
-            grid.attach(&button, 0, 1, 2, 1);
-            button
-        };
+        let show_secrets_on_preview = gtk::CheckButton::builder()
+            .label("Show secrets (passwords) on preview panel")
+            .can_focus(true)
+            .build();
+        grid.attach(&show_secrets_on_preview, 0, 1, 2, 1);
 
         Self {
             grid,
@@ -39,14 +36,14 @@ impl ConfigForm {
 }
 
 impl FormWidget<Config> for ConfigForm {
-    fn get_widget(&self) -> Widget {
+    fn get_widget(&self) -> gtk::Widget {
         self.grid.clone().upcast()
     }
 
     fn get_value(&self) -> Option<Config> {
         Some(Config {
-            search_in_secrets: self.search_in_secrets.get_active(),
-            show_secrets_on_preview: self.show_secrets_on_preview.get_active(),
+            search_in_secrets: self.search_in_secrets.is_active(),
+            show_secrets_on_preview: self.show_secrets_on_preview.is_active(),
         })
     }
 
@@ -69,7 +66,7 @@ impl FormWidget<Config> for ConfigForm {
     }
 }
 
-pub fn preferences(parent_window: &Window, config: &Config) -> Option<Config> {
+pub fn preferences(parent_window: &gtk::Window, config: &Config) -> Option<Config> {
     let form = ConfigForm::new();
     edit_object(
         Some(config),

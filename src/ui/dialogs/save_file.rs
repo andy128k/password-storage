@@ -2,7 +2,7 @@ use gtk::prelude::*;
 use std::path::PathBuf;
 
 pub fn save_file(parent_window: &gtk::Window) -> Option<PathBuf> {
-    let dlg = gtk::FileChooserDialogBuilder::new()
+    let dlg = gtk::FileChooserDialog::builder()
         .title("Save file")
         .transient_for(parent_window)
         .action(gtk::FileChooserAction::Save)
@@ -13,7 +13,7 @@ pub fn save_file(parent_window: &gtk::Window) -> Option<PathBuf> {
     dlg.add_button("_Save", gtk::ResponseType::Ok);
     dlg.set_default_response(gtk::ResponseType::Ok);
     let save_clicked = dlg.run() == gtk::ResponseType::Ok;
-    let filename = dlg.get_filename();
+    let filename = dlg.filename();
     dlg.hide();
 
     if save_clicked {

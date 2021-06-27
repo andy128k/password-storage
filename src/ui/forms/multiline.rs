@@ -1,28 +1,29 @@
 use super::base::*;
 use crate::utils::string::non_empty;
 use gtk::prelude::*;
-use gtk::{Adjustment, PolicyType, ScrolledWindow, ShadowType, TextBuffer, TextView, Widget};
 
 pub struct MultiLine {
-    scrolled_window: ScrolledWindow,
-    text_view: TextView,
+    scrolled_window: gtk::ScrolledWindow,
+    text_view: gtk::TextView,
 }
 
 impl MultiLine {
     pub fn new() -> Self {
-        let text_view = TextView::new();
-        text_view.set_can_focus(true);
-        text_view.set_accepts_tab(false);
-        text_view.set_left_margin(8);
-        text_view.set_right_margin(8);
-        text_view.set_top_margin(8);
-        text_view.set_bottom_margin(8);
+        let text_view = gtk::TextView::builder()
+            .can_focus(true)
+            .accepts_tab(false)
+            .left_margin(8)
+            .right_margin(8)
+            .top_margin(8)
+            .bottom_margin(8)
+            .build();
 
-        let scrolled_window = ScrolledWindow::new(None::<&Adjustment>, None::<&Adjustment>);
-        scrolled_window.set_can_focus(true);
-        scrolled_window.set_property_hscrollbar_policy(PolicyType::Automatic);
-        scrolled_window.set_property_vscrollbar_policy(PolicyType::Automatic);
-        scrolled_window.set_shadow_type(ShadowType::In);
+        let scrolled_window = gtk::ScrolledWindow::builder()
+            .can_focus(true)
+            .hscrollbar_policy(gtk::PolicyType::Automatic)
+            .vscrollbar_policy(gtk::PolicyType::Automatic)
+            .shadow_type(gtk::ShadowType::In)
+            .build();
         scrolled_window.add(&text_view);
 
         scrolled_window.set_hexpand(true);
@@ -36,24 +37,24 @@ impl MultiLine {
     }
 }
 
-fn buffer_get_text(buffer: &TextBuffer) -> Option<String> {
-    let (start, end) = buffer.get_bounds();
-    buffer.get_text(&start, &end, true).and_then(non_empty)
+fn buffer_get_text(buffer: &gtk::TextBuffer) -> Option<String> {
+    let (start, end) = buffer.bounds();
+    buffer.text(&start, &end, true).and_then(non_empty)
 }
 
 impl FormWidget<String> for MultiLine {
-    fn get_widget(&self) -> Widget {
+    fn get_widget(&self) -> gtk::Widget {
         self.scrolled_window.clone().upcast()
     }
 
     fn get_value(&self) -> Option<String> {
         self.text_view
-            .get_buffer()
+            .buffer()
             .and_then(|buffer| buffer_get_text(&buffer))
     }
 
     fn set_value(&self, value: Option<&String>) {
-        if let Some(buffer) = self.text_view.get_buffer() {
+        if let Some(buffer) = self.text_view.buffer() {
             match value {
                 Some(text) => buffer.set_text(text),
                 None => buffer.set_text(""),
@@ -62,7 +63,7 @@ impl FormWidget<String> for MultiLine {
     }
 
     fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&String>)>) {
-        if let Some(buffer) = self.text_view.get_buffer() {
+        if let Some(buffer) = self.text_view.buffer() {
             buffer.connect_changed(move |buffer| {
                 callback(buffer_get_text(buffer).as_ref());
             });

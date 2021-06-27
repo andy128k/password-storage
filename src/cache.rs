@@ -1,5 +1,5 @@
 use crate::error::*;
-use glib::get_user_cache_dir;
+use gtk::glib;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::fs::{read, write};
@@ -14,13 +14,8 @@ struct CachePrivate {
 #[derive(Clone)]
 pub struct Cache(Rc<RefCell<CachePrivate>>);
 
-fn cache_path() -> Result<PathBuf> {
-    if let Some(mut path) = get_user_cache_dir() {
-        path.push("password-storage.toml");
-        Ok(path)
-    } else {
-        Err("Path to cache is not detected".into())
-    }
+fn cache_path() -> PathBuf {
+    glib::user_cache_dir().join("password-storage.toml")
 }
 
 impl Cache {
@@ -31,18 +26,17 @@ impl Cache {
     }
 
     pub fn load() -> Self {
+        let filename = cache_path();
         Self(Rc::new(RefCell::new(
-            cache_path()
-                .and_then(|filename| Self::from_file(&filename))
-                .unwrap_or_else(|err| {
-                    eprintln!("{:?}", err);
-                    Default::default()
-                }),
+            Self::from_file(&filename).unwrap_or_else(|err| {
+                eprintln!("{:?}", err);
+                Default::default()
+            }),
         )))
     }
 
     pub fn save(&self) -> Result<()> {
-        let filename = cache_path()?;
+        let filename = cache_path();
         let dump = toml::to_vec(&*self.0.borrow())?;
         write(&filename, &dump)?;
         Ok(())

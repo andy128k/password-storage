@@ -7,7 +7,7 @@ pub enum AskSave {
 }
 
 pub fn ask_save(parent_window: &gtk::Window, message: &str) -> AskSave {
-    let dlg = gtk::MessageDialogBuilder::new()
+    let dlg = gtk::MessageDialog::builder()
         .transient_for(parent_window)
         .window_position(gtk::WindowPosition::CenterOnParent)
         .title("Password Storage")

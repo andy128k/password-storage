@@ -1,12 +1,12 @@
-use gtk::{TreeIter, TreeModel, TreeModelExt};
+use gtk::prelude::*;
 
 pub struct TreeChildrenIter {
-    model: TreeModel,
-    iter: Option<TreeIter>,
+    model: gtk::TreeModel,
+    iter: Option<gtk::TreeIter>,
 }
 
 impl Iterator for TreeChildrenIter {
-    type Item = TreeIter;
+    type Item = gtk::TreeIter;
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.iter.clone();
@@ -22,7 +22,10 @@ impl Iterator for TreeChildrenIter {
     }
 }
 
-pub fn tree_children_entries(model: &TreeModel, parent: Option<&TreeIter>) -> TreeChildrenIter {
+pub fn tree_children_entries(
+    model: &gtk::TreeModel,
+    parent: Option<&gtk::TreeIter>,
+) -> TreeChildrenIter {
     TreeChildrenIter {
         model: model.clone(),
         iter: model.iter_children(parent),
@@ -30,12 +33,12 @@ pub fn tree_children_entries(model: &TreeModel, parent: Option<&TreeIter>) -> Tr
 }
 
 pub struct TreeParentsIter {
-    model: TreeModel,
-    iter: Option<TreeIter>,
+    model: gtk::TreeModel,
+    iter: Option<gtk::TreeIter>,
 }
 
 impl Iterator for TreeParentsIter {
-    type Item = TreeIter;
+    type Item = gtk::TreeIter;
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.iter.clone();
@@ -47,7 +50,7 @@ impl Iterator for TreeParentsIter {
     }
 }
 
-pub fn tree_parents_entries(model: &TreeModel, iter: &TreeIter) -> TreeParentsIter {
+pub fn tree_parents_entries(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> TreeParentsIter {
     TreeParentsIter {
         model: model.clone(),
         iter: Some(iter.clone()),

@@ -1,5 +1,4 @@
 use crate::utils::string::non_empty;
-use glib::Cast;
 use gtk::prelude::*;
 
 pub struct PSSearchEntry(gtk::Entry);
@@ -22,7 +21,7 @@ impl PSSearchEntry {
 
     pub fn connect_changed<F: Fn(Option<String>) + 'static>(&self, changed: F) {
         self.0.connect_changed(move |e| {
-            let search_text = non_empty(e.get_text());
+            let search_text = non_empty(e.text());
             changed(search_text);
         });
     }

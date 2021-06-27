@@ -1,6 +1,8 @@
 use crate::cache::Cache;
-use glib::clone;
-use gtk::prelude::*;
+use gtk::{
+    glib::{self, clone},
+    prelude::*,
+};
 use std::path::Path;
 
 #[derive(Clone)]
@@ -29,7 +31,7 @@ fn framed<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
 
 mod filerow {
     use crate::markup_builder::bold;
-    use glib::clone;
+    use gtk::glib::{self, clone};
     use gtk::prelude::*;
     use std::path::{Path, PathBuf};
 
@@ -52,9 +54,9 @@ mod filerow {
         let basename = filename.file_name()?;
 
         let grid = gtk::Grid::new();
-        grid.set_property_margin(10);
+        grid.set_margin(10);
 
-        let label1 = gtk::LabelBuilder::new()
+        let label1 = gtk::Label::builder()
             .use_markup(true)
             .label(&bold(basename.to_string_lossy().as_ref()))
             .margin_bottom(5)
@@ -71,13 +73,13 @@ mod filerow {
         remove_button.set_hexpand(false);
         grid.attach(&remove_button, 1, 0, 1, 1);
 
-        let label2 = gtk::LabelBuilder::new()
+        let label2 = gtk::Label::builder()
             .label(filename.to_string_lossy().as_ref())
             .halign(gtk::Align::Start)
             .build();
         if !filename.is_file() {
             label2.set_tooltip_text(Some("File does not exist."));
-            let context = label2.get_style_context();
+            let context = label2.style_context();
             context.add_provider(
                 &CSS_PROVIDER.with(Clone::clone),
                 gtk::STYLE_PROVIDER_PRIORITY_FALLBACK,
@@ -103,22 +105,25 @@ mod filerow {
     }
 
     pub fn get_filename(row: &gtk::ListBoxRow) -> Option<&PathBuf> {
-        unsafe { row.get_qdata(FILENAME_DATA_KEY.with(Clone::clone)) }
+        unsafe {
+            row.qdata::<PathBuf>(FILENAME_DATA_KEY.with(Clone::clone))
+                .map(|p| p.as_ref())
+        }
     }
 }
 
 impl PSDashboard {
     pub fn new(cache: &Cache) -> Self {
-        let title = gtk::LabelBuilder::new()
+        let title = gtk::Label::builder()
             .label("Recent files")
             .halign(gtk::Align::Start)
             .margin_top(20)
             .margin_bottom(5)
             .build();
 
-        let listbox = gtk::ListBoxBuilder::new().hexpand(true).build();
+        let listbox = gtk::ListBox::builder().hexpand(true).build();
 
-        let grid = gtk::GridBuilder::new().width_request(400).build();
+        let grid = gtk::Grid::builder().width_request(400).build();
         grid.attach(&title, 0, 0, 1, 1);
         grid.attach(&framed(&listbox), 0, 1, 1, 1);
 
@@ -132,7 +137,7 @@ impl PSDashboard {
 
     pub fn update(&self) {
         self.content.hide();
-        for row in self.listbox.get_children() {
+        for row in self.listbox.children() {
             self.listbox.remove(&row);
         }
         let mut first_row = None;

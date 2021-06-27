@@ -2,25 +2,23 @@ use super::base::*;
 use crate::password::generate_password;
 use crate::ui::dialogs::ask::ask;
 use crate::utils::string::non_empty;
-use glib::{Type, Value};
-use gtk::prelude::*;
-use gtk::{Entry, EntryCompletion, EntryIconPosition, InputPurpose, ListStore, Widget};
+use gtk::{glib, prelude::*};
 
 // Common part
 
 pub trait EntryBasedWidget {
-    fn entry(&self) -> Entry;
+    fn entry(&self) -> gtk::Entry;
 }
 
-fn get_value(entry: &Entry) -> Option<String> {
-    non_empty(entry.get_text())
+fn get_value(entry: &gtk::Entry) -> Option<String> {
+    non_empty(entry.text())
 }
 
 impl<T> FormWidget<String> for T
 where
     T: EntryBasedWidget,
 {
-    fn get_widget(&self) -> Widget {
+    fn get_widget(&self) -> gtk::Widget {
         self.entry().upcast()
     }
 
@@ -46,12 +44,12 @@ where
 // Text
 
 pub struct Text {
-    entry: Entry,
+    entry: gtk::Entry,
 }
 
 impl Text {
     pub fn new() -> Self {
-        let entry = Entry::new();
+        let entry = gtk::Entry::new();
         entry.set_can_focus(true);
         entry.set_activates_default(true);
         entry.set_hexpand(true);
@@ -60,7 +58,7 @@ impl Text {
 }
 
 impl EntryBasedWidget for Text {
-    fn entry(&self) -> Entry {
+    fn entry(&self) -> gtk::Entry {
         self.entry.clone()
     }
 }
@@ -68,26 +66,26 @@ impl EntryBasedWidget for Text {
 // Name
 
 pub struct Name {
-    entry: Entry,
+    entry: gtk::Entry,
 }
 
-fn build_completion_model(items: &[String]) -> ListStore {
-    let model = ListStore::new(&[Type::String]);
+fn build_completion_model(items: &[String]) -> gtk::ListStore {
+    let model = gtk::ListStore::new(&[glib::Type::STRING]);
     for item in items {
         let iter = model.append();
-        model.set_value(&iter, 0, &Value::from(item));
+        model.set_value(&iter, 0, &glib::Value::from(item));
     }
     model
 }
 
 impl Name {
     pub fn new(names: &[String]) -> Self {
-        let completion = EntryCompletion::new();
+        let completion = gtk::EntryCompletion::new();
         completion.set_text_column(0);
         completion.set_model(Some(&build_completion_model(names)));
         completion.set_popup_set_width(false);
 
-        let entry = Entry::new();
+        let entry = gtk::Entry::new();
         entry.set_can_focus(true);
         entry.set_activates_default(true);
         entry.set_completion(Some(&completion));
@@ -97,7 +95,7 @@ impl Name {
 }
 
 impl EntryBasedWidget for Name {
-    fn entry(&self) -> Entry {
+    fn entry(&self) -> gtk::Entry {
         self.entry.clone()
     }
 }
@@ -105,28 +103,28 @@ impl EntryBasedWidget for Name {
 // OpenPassword
 
 pub struct OpenPassword {
-    entry: Entry,
+    entry: gtk::Entry,
 }
 
 fn confirm_password_overwrite<P: WidgetExt>(widget: &P) -> bool {
     ask(
-        &widget.get_toplevel().unwrap().downcast().unwrap(),
+        &widget.toplevel().unwrap().downcast().unwrap(),
         "Do you want to overwrite current password?",
     )
 }
 
 impl OpenPassword {
     pub fn new() -> Self {
-        let entry = Entry::new();
+        let entry = gtk::Entry::new();
         entry.set_can_focus(true);
         entry.set_activates_default(true);
-        entry.set_icon_from_icon_name(EntryIconPosition::Secondary, Some("system-run"));
-        entry.set_icon_tooltip_text(EntryIconPosition::Secondary, Some("Generate password"));
+        entry.set_icon_from_icon_name(gtk::EntryIconPosition::Secondary, Some("system-run"));
+        entry.set_icon_tooltip_text(gtk::EntryIconPosition::Secondary, Some("Generate password"));
         entry.set_size_request(300, -1);
 
         entry.connect_icon_release(|e, pos, _button| {
-            if pos == EntryIconPosition::Secondary {
-                let is_empty = e.get_text().is_empty();
+            if pos == gtk::EntryIconPosition::Secondary {
+                let is_empty = e.text().is_empty();
                 if is_empty || confirm_password_overwrite(e) {
                     let password = generate_password();
                     e.set_text(&password);
@@ -141,7 +139,7 @@ impl OpenPassword {
 }
 
 impl EntryBasedWidget for OpenPassword {
-    fn entry(&self) -> Entry {
+    fn entry(&self) -> gtk::Entry {
         self.entry.clone()
     }
 }
@@ -149,23 +147,23 @@ impl EntryBasedWidget for OpenPassword {
 // Password
 
 pub struct Password {
-    entry: Entry,
+    entry: gtk::Entry,
 }
 
 impl Password {
     pub fn new() -> Self {
-        let entry = Entry::new();
+        let entry = gtk::Entry::new();
         entry.set_can_focus(true);
         entry.set_activates_default(true);
         entry.set_hexpand(true);
         entry.set_visibility(false);
-        entry.set_input_purpose(InputPurpose::Password);
+        entry.set_input_purpose(gtk::InputPurpose::Password);
         Self { entry }
     }
 }
 
 impl EntryBasedWidget for Password {
-    fn entry(&self) -> Entry {
+    fn entry(&self) -> gtk::Entry {
         self.entry.clone()
     }
 }

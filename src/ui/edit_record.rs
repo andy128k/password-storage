@@ -4,7 +4,6 @@ use super::forms::entry::*;
 use super::forms::form::*;
 use super::forms::multiline::*;
 use crate::model::record::{FieldType, Record, RecordType};
-use gtk::{Widget, Window};
 
 fn record_to_vec(record_type: &'static RecordType, record: &Record) -> Vec<String> {
     let mut values = Vec::new();
@@ -46,7 +45,7 @@ impl RecordForm {
 }
 
 impl FormWidget<Record> for RecordForm {
-    fn get_widget(&self) -> Widget {
+    fn get_widget(&self) -> gtk::Widget {
         self.form.get_widget()
     }
 
@@ -75,7 +74,7 @@ impl FormWidget<Record> for RecordForm {
 
 pub fn edit_record(
     record: &Record,
-    parent_window: &Window,
+    parent_window: &gtk::Window,
     title: &str,
     names: &[String],
 ) -> Option<Record> {
