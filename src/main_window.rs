@@ -19,9 +19,10 @@ use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
 use crate::ui::filter::create_model_filter;
 use crate::ui::preview_panel::PSPreviewPanel;
-use crate::ui::search::PSSearchEntry;
+use crate::ui::search::create_search_entry;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
+use crate::utils::string::non_empty;
 use gtk::{
     gio,
     glib::{self, clone},
@@ -50,7 +51,7 @@ struct PSMainWindowPrivate {
 
     actions: RefCell<HashMap<PSAction, gio::SimpleAction>>,
 
-    search_entry: PSSearchEntry,
+    search_entry: gtk::Entry,
 
     statusbar: gtk::Statusbar,
 
@@ -697,7 +698,7 @@ fn create_content_widget(dashboard: &gtk::Widget, file_widget: &gtk::Widget) -> 
 fn create_main_window(
     gtk_app: &gtk::Application,
     content: &gtk::Widget,
-) -> (gtk::ApplicationWindow, PSSearchEntry, gtk::Statusbar) {
+) -> (gtk::ApplicationWindow, gtk::Entry, gtk::Statusbar) {
     gtk_app.set_menubar(Some(&ui::menu::create_menu_bar()));
 
     let main_window = gtk::ApplicationWindow::builder()
@@ -709,14 +710,14 @@ fn create_main_window(
         .default_height(800)
         .build();
 
-    let search_entry = PSSearchEntry::new();
+    let search_entry = create_search_entry();
 
     let statusbar = gtk::Statusbar::new();
 
     let grid = {
         let grid = gtk::Grid::new();
 
-        let toolbar = ui::toolbar::create_tool_bar(&search_entry.get_widget());
+        let toolbar = ui::toolbar::create_tool_bar(&search_entry.clone().upcast());
         toolbar.set_halign(gtk::Align::Fill);
         toolbar.set_valign(gtk::Align::Start);
         grid.attach(&toolbar, 0, 0, 1, 1);
@@ -952,8 +953,8 @@ pub fn old_main(
 
     win.private()
         .search_entry
-        .connect_changed(clone!(@weak win => move |text| {
-            if let Some(search_text) = text {
+        .connect_changed(clone!(@weak win => move |search_entry| {
+            if let Some(search_text) = non_empty(search_entry.text()) {
                 let look_at_secrets = win.private().config.borrow().search_in_secrets;
                 set_status(&win, "View is filtered.");
                 let model = create_model_filter(

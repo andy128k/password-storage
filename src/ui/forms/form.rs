@@ -26,7 +26,7 @@ struct FormValidation {
 
 struct FormPrivate {
     grid: gtk::Grid,
-    fields: Vec<FormEntry>,
+    entries: Vec<FormEntry>,
     change_callback: Option<FormDataChanged>,
     validation: Option<FormValidation>,
 }
@@ -38,7 +38,7 @@ impl FormPrivate {
             ref widget,
             required,
             ..
-        } in &self.fields
+        } in &self.entries
         {
             match widget.get_value() {
                 Some(value) => new_entry.push(value),
@@ -52,12 +52,13 @@ impl FormPrivate {
     fn set_value(&self, value: Option<&FormData>) {
         match value {
             Some(entry) => {
-                for (&FormEntry { ref widget, .. }, value) in self.fields.iter().zip(entry.iter()) {
+                for (&FormEntry { ref widget, .. }, value) in self.entries.iter().zip(entry.iter())
+                {
                     widget.set_value(Some(value));
                 }
             }
             None => {
-                for &FormEntry { ref widget, .. } in &self.fields {
+                for &FormEntry { ref widget, .. } in &self.entries {
                     widget.set_value(None);
                 }
             }
@@ -107,7 +108,7 @@ impl Form {
 
         let private = FormPrivate {
             grid,
-            fields: Vec::new(),
+            entries: Vec::new(),
             change_callback: None,
             validation: None,
         };
@@ -118,7 +119,7 @@ impl Form {
     }
 
     pub fn add(&mut self, label: &str, mut widget: Box<dyn FormWidget<String>>, required: bool) {
-        let index = self.0.borrow().fields.len();
+        let index = self.0.borrow().entries.len();
 
         let label_widget = gtk::Label::new(Some(label));
         label_widget.set_xalign(0f32);
@@ -139,14 +140,14 @@ impl Form {
 
         self.0
             .borrow_mut()
-            .fields
+            .entries
             .push(FormEntry { widget, required });
     }
 
     pub fn set_validator(&mut self, validate: FormDataValidate) {
         let mut private = self.0.borrow_mut();
 
-        let index = private.fields.len();
+        let index = private.entries.len();
         let error_label = create_error_label().expect("Error label is created.");
         private.grid.attach(&error_label, 0, index as i32, 2, 1);
 

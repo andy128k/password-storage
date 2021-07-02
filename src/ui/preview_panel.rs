@@ -15,26 +15,29 @@ impl PSPreviewPanel {
         grid.set_width_request(300);
         grid.set_margin(16);
 
-        let icon = gtk::Image::new();
-        icon.set_margin_end(8);
-        icon.set_halign(gtk::Align::Start);
-        icon.set_valign(gtk::Align::Start);
+        let icon = gtk::Image::builder()
+            .margin_end(8)
+            .halign(gtk::Align::Start)
+            .valign(gtk::Align::Start)
+            .build();
         grid.attach(&icon, 0, 0, 1, 1);
 
-        let title = gtk::Label::new(None);
-        title.set_hexpand(true);
-        title.set_xalign(0f32);
-        title.set_line_wrap(true);
+        let title = gtk::Label::builder()
+            .hexpand(true)
+            .xalign(0_f32)
+            .wrap(true)
+            .build();
         grid.attach(&title, 1, 0, 1, 1);
 
-        let view = gtk::Label::new(None);
-        view.set_margin_top(16);
-        view.set_hexpand(true);
-        view.set_xalign(0f32);
-        view.set_line_wrap(true);
+        let view = gtk::Label::builder()
+            .margin_top(16)
+            .hexpand(true)
+            .xalign(0_f32)
+            .wrap(true)
+            .build();
         grid.attach(&view, 0, 2, 2, 1);
 
-        PSPreviewPanel {
+        Self {
             grid,
             icon,
             title,

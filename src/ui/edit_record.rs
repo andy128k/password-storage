@@ -40,7 +40,7 @@ impl RecordForm {
             let required = field.name == "name";
             form.add(field.title, fw, required);
         }
-        RecordForm { record_type, form }
+        Self { record_type, form }
     }
 }
 

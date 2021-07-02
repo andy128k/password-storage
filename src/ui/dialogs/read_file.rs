@@ -68,10 +68,10 @@ where
             break;
         }
 
-        let password = entry.text().to_string();
+        let password = entry.text();
         match read_file_callback(&password) {
             Ok(document) => {
-                result = Some((document, password));
+                result = Some((document, password.into()));
                 break;
             }
             Err(e) => {

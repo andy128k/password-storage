@@ -4,29 +4,25 @@ use super::menu::create_add_entity_menu;
 use crate::actions::*;
 use crate::model::record::RECORD_TYPE_GENERIC;
 
-fn button(label: &str, icon: &str, action: &PSAction) -> gtk::ToolButton {
-    let image = gtk::Image::from_icon_name(Some(icon), gtk::IconSize::SmallToolbar);
-    let item = gtk::ToolButton::new(Some(&image), Some(label));
-    item.set_action_name(Some(action.full_name().as_ref()));
-    item
-}
-
-fn button2(label: &str, icon: &str, action: &str) -> gtk::ToolButton {
-    let image = gtk::Image::from_icon_name(Some(icon), gtk::IconSize::SmallToolbar);
-    let item = gtk::ToolButton::new(Some(&image), Some(label));
-    item.set_action_name(Some(action));
-    item
+fn button(label: &str, icon: &str, action: &str) -> gtk::ToolButton {
+    gtk::ToolButton::builder()
+        .label(label)
+        .icon_name(icon)
+        .action_name(action)
+        .has_tooltip(true)
+        .tooltip_text(label)
+        .build()
 }
 
 pub fn create_tool_bar(search_entry: &gtk::Widget) -> gtk::Toolbar {
     let toolbar = gtk::Toolbar::new();
 
-    toolbar.add(&button2("New file", "document-new", "app.new"));
-    toolbar.add(&button2("Open file", "document-open", "app.open"));
+    toolbar.add(&button("New file", "document-new", "app.new"));
+    toolbar.add(&button("Open file", "document-open", "app.open"));
     toolbar.add(&button(
         "Save file",
         "document-save",
-        &PSAction::ViewMode(ViewModeAction::Save),
+        &PSAction::ViewMode(ViewModeAction::Save).full_name(),
     ));
     toolbar.add(&gtk::SeparatorToolItem::new());
     toolbar.add(&{
@@ -54,11 +50,11 @@ pub fn create_tool_bar(search_entry: &gtk::Widget) -> gtk::Toolbar {
     toolbar.add(&button(
         "Merge entries",
         "merge",
-        &PSAction::MergeMode(MergeModeAction::Merge),
+        &PSAction::MergeMode(MergeModeAction::Merge).full_name(),
     ));
 
     toolbar.add(&{
-        // expander / separator
+        // expander
         let item = gtk::ToolItem::new();
         ToolItemExt::set_expand(&item, true);
         item

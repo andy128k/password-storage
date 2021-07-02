@@ -11,7 +11,7 @@ pub trait EntryBasedWidget {
 }
 
 fn get_value(entry: &gtk::Entry) -> Option<String> {
-    non_empty(entry.text())
+    non_empty(entry.text()).map(|gs| gs.to_string())
 }
 
 impl<T> FormWidget<String> for T
@@ -27,10 +27,8 @@ where
     }
 
     fn set_value(&self, value: Option<&String>) {
-        match value {
-            Some(text) => self.entry().set_text(text),
-            None => self.entry().set_text(""),
-        }
+        self.entry()
+            .set_text(value.map(String::as_str).unwrap_or_default());
     }
 
     fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&String>)>) {
@@ -49,10 +47,11 @@ pub struct Text {
 
 impl Text {
     pub fn new() -> Self {
-        let entry = gtk::Entry::new();
-        entry.set_can_focus(true);
-        entry.set_activates_default(true);
-        entry.set_hexpand(true);
+        let entry = gtk::Entry::builder()
+            .can_focus(true)
+            .activates_default(true)
+            .hexpand(true)
+            .build();
         Self { entry }
     }
 }
@@ -80,17 +79,20 @@ fn build_completion_model(items: &[String]) -> gtk::ListStore {
 
 impl Name {
     pub fn new(names: &[String]) -> Self {
-        let completion = gtk::EntryCompletion::new();
-        completion.set_text_column(0);
-        completion.set_model(Some(&build_completion_model(names)));
-        completion.set_popup_set_width(false);
+        let completion = gtk::EntryCompletion::builder()
+            .model(&build_completion_model(names))
+            .text_column(0)
+            .popup_set_width(false)
+            .build();
 
-        let entry = gtk::Entry::new();
-        entry.set_can_focus(true);
-        entry.set_activates_default(true);
-        entry.set_completion(Some(&completion));
-        entry.set_hexpand(true);
-        Name { entry }
+        let entry = gtk::Entry::builder()
+            .can_focus(true)
+            .activates_default(true)
+            .completion(&completion)
+            .hexpand(true)
+            .build();
+
+        Self { entry }
     }
 }
 
@@ -107,20 +109,23 @@ pub struct OpenPassword {
 }
 
 fn confirm_password_overwrite<P: WidgetExt>(widget: &P) -> bool {
-    ask(
-        &widget.toplevel().unwrap().downcast().unwrap(),
-        "Do you want to overwrite current password?",
-    )
+    if let Some(window) = widget.toplevel().and_then(|w| w.downcast().ok()) {
+        ask(&window, "Do you want to overwrite current password?")
+    } else {
+        false
+    }
 }
 
 impl OpenPassword {
     pub fn new() -> Self {
-        let entry = gtk::Entry::new();
-        entry.set_can_focus(true);
-        entry.set_activates_default(true);
-        entry.set_icon_from_icon_name(gtk::EntryIconPosition::Secondary, Some("system-run"));
-        entry.set_icon_tooltip_text(gtk::EntryIconPosition::Secondary, Some("Generate password"));
-        entry.set_size_request(300, -1);
+        let entry = gtk::Entry::builder()
+            .can_focus(true)
+            .activates_default(true)
+            .width_request(300)
+            .hexpand(true)
+            .secondary_icon_name("system-run")
+            .secondary_icon_tooltip_text("Generate password")
+            .build();
 
         entry.connect_icon_release(|e, pos, _button| {
             if pos == gtk::EntryIconPosition::Secondary {
@@ -132,9 +137,7 @@ impl OpenPassword {
             }
         });
 
-        entry.set_hexpand(true);
-
-        OpenPassword { entry }
+        Self { entry }
     }
 }
 
@@ -152,12 +155,13 @@ pub struct Password {
 
 impl Password {
     pub fn new() -> Self {
-        let entry = gtk::Entry::new();
-        entry.set_can_focus(true);
-        entry.set_activates_default(true);
-        entry.set_hexpand(true);
-        entry.set_visibility(false);
-        entry.set_input_purpose(gtk::InputPurpose::Password);
+        let entry = gtk::Entry::builder()
+            .can_focus(true)
+            .activates_default(true)
+            .hexpand(true)
+            .visibility(false)
+            .input_purpose(gtk::InputPurpose::Password)
+            .build();
         Self { entry }
     }
 }

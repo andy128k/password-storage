@@ -23,14 +23,14 @@ impl MultiLine {
             .hscrollbar_policy(gtk::PolicyType::Automatic)
             .vscrollbar_policy(gtk::PolicyType::Automatic)
             .shadow_type(gtk::ShadowType::In)
+            .hexpand(true)
+            .vexpand(true)
+            .width_request(300)
+            .height_request(200)
             .build();
         scrolled_window.add(&text_view);
 
-        scrolled_window.set_hexpand(true);
-        scrolled_window.set_vexpand(true);
-        scrolled_window.set_size_request(300, 200);
-
-        MultiLine {
+        Self {
             scrolled_window,
             text_view,
         }
@@ -39,7 +39,10 @@ impl MultiLine {
 
 fn buffer_get_text(buffer: &gtk::TextBuffer) -> Option<String> {
     let (start, end) = buffer.bounds();
-    buffer.text(&start, &end, true).and_then(non_empty)
+    buffer
+        .text(&start, &end, true)
+        .and_then(non_empty)
+        .map(|gs| gs.to_string())
 }
 
 impl FormWidget<String> for MultiLine {
@@ -55,10 +58,7 @@ impl FormWidget<String> for MultiLine {
 
     fn set_value(&self, value: Option<&String>) {
         if let Some(buffer) = self.text_view.buffer() {
-            match value {
-                Some(text) => buffer.set_text(text),
-                None => buffer.set_text(""),
-            }
+            buffer.set_text(value.map(String::as_str).unwrap_or_default());
         }
     }
 

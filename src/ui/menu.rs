@@ -1,201 +1,200 @@
 use crate::actions::*;
 use crate::model::record::RECORD_TYPES;
+use crate::utils::menu_builder::*;
 use gtk::{gio, glib::prelude::*};
 
-fn item(label: &str, action: &str, accel: Option<&str>, icon: Option<&str>) -> gio::MenuItem {
-    let item = gio::MenuItem::new(Some(label), Some(action));
-
-    if let Some(accel) = accel {
-        item.set_attribute_value("accel", Some(&accel.to_variant()));
-    }
-
-    if let Some(icon_name) = icon {
-        match gio::Icon::for_string(icon_name) {
-            Ok(icon) => item.set_icon(&icon),
-            Err(e) => eprintln!("Cannot find icon {}. Reason: {}", icon_name, e),
-        }
-    }
-
-    item
+pub fn create_add_entity_menu() -> gio::Menu {
+    gio::Menu::from_items(RECORD_TYPES.iter().map(|record_type| {
+        gio::MenuItem::create()
+            .action(&format!("file.add-{}", record_type.name))
+            .label(&format!("Add {}", record_type.name))
+            .icon(record_type.icon)
+    }))
 }
 
-trait MenuBuilderExt {
-    fn item(self, label: &str, action: &PSAction) -> Self;
-    fn item_with_accel(self, label: &str, action: &PSAction, accel: &str) -> Self;
-    fn item2(self, label: &str, action: &str) -> Self;
-    fn with_accel(self, label: &str, action: &str, accel: &str) -> Self;
-    fn submenu(self, label: &str, submenu: gio::MenuModel) -> Self;
-}
-
-impl MenuBuilderExt for gio::Menu {
-    fn item(self, label: &str, action: &PSAction) -> Self {
-        self.append_item(&item(label, action.full_name().as_ref(), None, None));
-        self
-    }
-
-    fn item_with_accel(self, label: &str, action: &PSAction, accel: &str) -> Self {
-        self.append_item(&item(label, action.full_name().as_ref(), Some(accel), None));
-        self
-    }
-
-    fn item2(self, label: &str, action: &str) -> Self {
-        self.append_item(&item(label, action, None, None));
-        self
-    }
-
-    fn with_accel(self, label: &str, action: &str, accel: &str) -> Self {
-        self.append_item(&item(label, action, Some(accel), None));
-        self
-    }
-
-    fn submenu(self, label: &str, submenu: gio::MenuModel) -> Self {
-        self.append_submenu(Some(label), &submenu);
-        self
-    }
-}
-
-pub fn create_add_entity_menu() -> gio::MenuModel {
-    let menu = gio::Menu::new();
-    for record_type in RECORD_TYPES.iter() {
-        let label = format!("Add {}", record_type.name);
-        let action = PSAction::ViewMode(ViewModeAction::Add(record_type.name.to_string()));
-        let item = item(
-            &label,
-            &action.full_name().as_ref(),
-            None,
-            Some(record_type.icon),
-        );
-        menu.append_item(&item);
-    }
-    menu.upcast()
-}
-
-pub fn create_convert_entity_menu() -> gio::MenuModel {
-    let menu = gio::Menu::new();
-    for record_type in RECORD_TYPES.iter() {
-        if !record_type.is_group {
-            let label = format!("Convert to {}", record_type.name);
-            let action = PSAction::Record(RecordAction::ConvertTo(record_type.name.to_string()));
-            let item = item(
-                &label,
-                &action.full_name().as_ref(),
-                None,
-                Some(record_type.icon),
-            );
-            menu.append_item(&item);
-        }
-    }
-    menu.upcast()
+pub fn create_convert_entity_menu() -> gio::Menu {
+    gio::Menu::from_items(
+        RECORD_TYPES
+            .iter()
+            .filter(|rt| !rt.is_group)
+            .map(|record_type| {
+                gio::MenuItem::create()
+                    .action(&format!("entry.convert-to-{}", record_type.name))
+                    .label(&format!("Convert to {}", record_type.name))
+                    .icon(record_type.icon)
+            }),
+    )
 }
 
 pub fn create_menu_bar() -> gio::MenuModel {
-    let menu = gio::Menu::new();
-    menu.append_submenu(Some("_File"), &{
-        let menu = gio::Menu::new();
-        menu.append_section(None, &{
+    gio::Menu::new()
+        .submenu("_File", {
             gio::Menu::new()
-                .with_accel("_New", "app.new", "<Primary>n")
-                .with_accel("_Open", "app.open", "<Primary>o")
-                .item_with_accel(
-                    "_Save",
-                    &PSAction::ViewMode(ViewModeAction::Save),
-                    "<Primary>s",
+                .section(
+                    gio::Menu::new()
+                        .item(
+                            gio::MenuItem::create()
+                                .action("app.new")
+                                .label("_New")
+                                .accel("<Primary>n"),
+                        )
+                        .item(
+                            gio::MenuItem::create()
+                                .action("app.open")
+                                .label("_Open")
+                                .accel("<Primary>o"),
+                        )
+                        .item(
+                            gio::MenuItem::create()
+                                .action(&PSAction::ViewMode(ViewModeAction::Save).full_name())
+                                .label("_Save")
+                                .accel("<Primary>s"),
+                        )
+                        .item(
+                            gio::MenuItem::create()
+                                .action(&PSAction::ViewMode(ViewModeAction::SaveAs).full_name())
+                                .label("Save _As..."),
+                        ),
                 )
-                .item("Save _As...", &PSAction::ViewMode(ViewModeAction::SaveAs))
-        });
-        menu.append_section(None, &{
-            gio::Menu::new().item(
-                "_Merge file",
-                &PSAction::ViewMode(ViewModeAction::MergeFile),
-            )
-        });
-        menu.append_section(None, &{
+                .section(
+                    gio::Menu::new().item(
+                        gio::MenuItem::create()
+                            .action(&PSAction::ViewMode(ViewModeAction::MergeFile).full_name())
+                            .label("_Merge file"),
+                    ),
+                )
+                .section(
+                    gio::Menu::new()
+                        .item(
+                            gio::MenuItem::create()
+                                .action(&PSAction::ViewMode(ViewModeAction::Close).full_name())
+                                .label("_Close")
+                                .accel("<Primary>w"),
+                        )
+                        .item(
+                            gio::MenuItem::create()
+                                .action("app.quit")
+                                .label("_Quit")
+                                .accel("<Primary>q"),
+                        ),
+                )
+        })
+        .submenu("_Edit", {
             gio::Menu::new()
-                .item_with_accel(
-                    "_Close",
-                    &PSAction::ViewMode(ViewModeAction::Close),
-                    "<Primary>w",
+                .section(
+                    gio::Menu::new().item(
+                        gio::MenuItem::create()
+                            .action(&PSAction::ViewMode(ViewModeAction::Find).full_name())
+                            .label("_Find")
+                            .accel("<Primary>f"),
+                    ),
                 )
-                .with_accel("_Quit", "app.quit", "<Primary>q")
-        });
-        menu
-    });
-    menu.append_submenu(Some("_Edit"), &{
-        let menu = gio::Menu::new();
-        menu.append_section(None, &{
-            gio::Menu::new().item_with_accel(
-                "_Find",
-                &PSAction::ViewMode(ViewModeAction::Find),
-                "<Primary>f",
-            )
-        });
-        menu.append_section(None, &{
+                .section(
+                    gio::Menu::new()
+                        .item(
+                            gio::MenuItem::create()
+                                .action(&PSAction::Record(RecordAction::CopyName).full_name())
+                                .label("Copy _name")
+                                .accel("<Primary>c"),
+                        )
+                        .item(
+                            gio::MenuItem::create()
+                                .action(&PSAction::Record(RecordAction::CopyPassword).full_name())
+                                .label("Copy pass_word")
+                                .accel("<Primary><Shift>c"),
+                        ),
+                )
+                .section(
+                    gio::Menu::new().item(
+                        gio::MenuItem::create()
+                            .action(&PSAction::ViewMode(ViewModeAction::ChangePassword).full_name())
+                            .label("Change file _password"),
+                    ),
+                )
+                .section(
+                    gio::Menu::new()
+                        .item(
+                            gio::MenuItem::create()
+                                .action(&PSAction::Doc(DocAction::MergeMode).full_name())
+                                .label("_Merge mode"),
+                        )
+                        .item(
+                            gio::MenuItem::create()
+                                .action(
+                                    &PSAction::MergeMode(MergeModeAction::UncheckAll).full_name(),
+                                )
+                                .label("Uncheck all"),
+                        ),
+                )
+                .section(
+                    gio::Menu::new().item(
+                        gio::MenuItem::create()
+                            .action("app.preferences")
+                            .label("_Preferences"),
+                    ),
+                )
+        })
+        .submenu("_Entry", {
             gio::Menu::new()
-                .item_with_accel(
-                    "Copy _name",
-                    &PSAction::Record(RecordAction::CopyName),
-                    "<Primary>c",
-                )
-                .item_with_accel(
-                    "Copy pass_word",
-                    &PSAction::Record(RecordAction::CopyPassword),
-                    "<Primary><Shift>c",
-                )
-        });
-        menu.append_section(None, &{
-            gio::Menu::new().item(
-                "Change file _password",
-                &PSAction::ViewMode(ViewModeAction::ChangePassword),
-            )
-        });
-        menu.append_section(None, &{
-            gio::Menu::new()
-                .item("_Merge mode", &PSAction::Doc(DocAction::MergeMode))
+                .submenu("_Add", create_add_entity_menu())
                 .item(
-                    "Uncheck all",
-                    &PSAction::MergeMode(MergeModeAction::UncheckAll),
+                    gio::MenuItem::create()
+                        .action(&PSAction::Record(RecordAction::Edit).full_name())
+                        .label("_Edit"),
                 )
-        });
-        menu.append_section(None, &{
-            gio::Menu::new().item2("_Preferences", "app.preferences")
-        });
-        menu
-    });
-    menu.append_submenu(Some("_Entry"), &{
-        gio::Menu::new()
-            .submenu("_Add", create_add_entity_menu())
-            .item("_Edit", &PSAction::Record(RecordAction::Edit))
-            .submenu("_Convert", create_convert_entity_menu())
-            .item("_Delete", &PSAction::Record(RecordAction::Delete))
-            .item("_Merge", &PSAction::MergeMode(MergeModeAction::Merge))
-    });
-    menu.append_submenu(Some("_Help"), &{
-        gio::Menu::new().item2("_About...", "app.about")
-    });
-    menu.upcast()
+                .submenu("_Convert", create_convert_entity_menu())
+                .item(
+                    gio::MenuItem::create()
+                        .action(&PSAction::Record(RecordAction::Delete).full_name())
+                        .label("_Delete"),
+                )
+                .item(
+                    gio::MenuItem::create()
+                        .action(&PSAction::MergeMode(MergeModeAction::Merge).full_name())
+                        .label("_Merge"),
+                )
+        })
+        .submenu("_Help", {
+            gio::Menu::new().item(
+                gio::MenuItem::create()
+                    .action("app.about")
+                    .label("_About..."),
+            )
+        })
+        .upcast()
 }
 
 pub fn create_tree_popup() -> gio::MenuModel {
-    let menu = gio::Menu::new();
-    menu.append_section(None, &{
-        gio::Menu::new()
-            .item_with_accel(
-                "Copy _name",
-                &PSAction::Record(RecordAction::CopyName),
-                "<Primary>c",
-            )
-            .item_with_accel(
-                "Copy pass_word",
-                &PSAction::Record(RecordAction::CopyPassword),
-                "<Primary><Shift>c",
-            )
-    });
-    menu.append_section(None, &create_add_entity_menu());
-    menu.append_section(None, &{
-        gio::Menu::new()
-            .item("_Edit", &PSAction::Record(RecordAction::Edit))
-            .submenu("_Convert", create_convert_entity_menu())
-            .item("_Delete", &PSAction::Record(RecordAction::Delete))
-    });
-    menu.upcast()
+    gio::Menu::new()
+        .section(
+            gio::Menu::new()
+                .item(
+                    gio::MenuItem::create()
+                        .action(&PSAction::Record(RecordAction::CopyName).full_name())
+                        .label("Copy _name")
+                        .accel("<Primary>c"),
+                )
+                .item(
+                    gio::MenuItem::create()
+                        .action(&PSAction::Record(RecordAction::CopyPassword).full_name())
+                        .label("Copy pass_word")
+                        .accel("<Primary><Shift>c"),
+                ),
+        )
+        .section(create_add_entity_menu())
+        .section(
+            gio::Menu::new()
+                .item(
+                    gio::MenuItem::create()
+                        .action(&PSAction::Record(RecordAction::Edit).full_name())
+                        .label("_Edit"),
+                )
+                .submenu("_Convert", create_convert_entity_menu())
+                .item(
+                    gio::MenuItem::create()
+                        .action(&PSAction::Record(RecordAction::Delete).full_name())
+                        .label("_Delete"),
+                ),
+        )
+        .upcast()
 }
