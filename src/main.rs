@@ -18,7 +18,10 @@ mod ui;
 mod utils;
 mod version;
 
+use gtk::prelude::*;
+
 fn main() {
-    let app = application::PSApplication::new_app();
-    app.run();
+    let app = application::PSApplication::new();
+    let code = app.run();
+    std::process::exit(code);
 }

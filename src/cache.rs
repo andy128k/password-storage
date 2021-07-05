@@ -11,7 +11,7 @@ struct CachePrivate {
     pub recent_files: Vec<PathBuf>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Cache(Rc<RefCell<CachePrivate>>);
 
 fn cache_path() -> PathBuf {
@@ -25,14 +25,16 @@ impl Cache {
         Ok(config)
     }
 
-    pub fn load() -> Self {
+    pub fn load(&self) {
         let filename = cache_path();
-        Self(Rc::new(RefCell::new(
-            Self::from_file(&filename).unwrap_or_else(|err| {
+        match Self::from_file(&filename) {
+            Ok(cache) => {
+                *self.0.borrow_mut() = cache;
+            }
+            Err(err) => {
                 eprintln!("{:?}", err);
-                Default::default()
-            }),
-        )))
+            }
+        }
     }
 
     pub fn save(&self) -> Result<()> {

@@ -7,151 +7,102 @@ use gtk::{
     gio,
     glib::{self, clone},
     prelude::*,
+    subclass::prelude::*,
 };
 use std::cell::RefCell;
 use std::rc::Rc;
 
-struct PSApplicationPrivate {
+#[derive(Default)]
+pub struct PSApplicationInner {
     config: Rc<RefCell<Config>>,
     cache: Cache,
 }
 
-#[derive(Clone)]
-pub struct PSApplication(gtk::Application);
-
-pub struct PSApplicationWeak(<gtk::Application as glib::clone::Downgrade>::Weak);
-
-impl glib::clone::Downgrade for PSApplication {
-    type Weak = PSApplicationWeak;
-
-    fn downgrade(&self) -> Self::Weak {
-        PSApplicationWeak(glib::clone::Downgrade::downgrade(&self.0))
-    }
+#[glib::object_subclass]
+impl ObjectSubclass for PSApplicationInner {
+    const NAME: &'static str = "PSApplication";
+    type Type = PSApplication;
+    type ParentType = gtk::Application;
 }
 
-impl glib::clone::Upgrade for PSApplicationWeak {
-    type Strong = PSApplication;
+impl ObjectImpl for PSApplicationInner {
+    fn constructed(&self, app: &Self::Type) {
+        self.parent_constructed(app);
 
-    fn upgrade(&self) -> Option<Self::Strong> {
-        glib::clone::Upgrade::upgrade(&self.0).map(PSApplication)
-    }
-}
+        *self.config.borrow_mut() = Config::load();
+        self.cache.load();
 
-impl PSApplication {
-    fn create() -> Self {
-        let gtk_app = gtk::Application::new(
-            Some("net.andy128k.password-storage"),
-            gio::ApplicationFlags::HANDLES_OPEN,
-        );
-        let private = PSApplicationPrivate {
-            config: Rc::new(RefCell::new(Config::load())),
-            cache: Cache::load(),
-        };
-        unsafe {
-            gtk_app.set_data("private", private);
-        }
-        Self(gtk_app)
-    }
-
-    fn private(&self) -> &PSApplicationPrivate {
-        unsafe {
-            &*self
-                .0
-                .data::<PSApplicationPrivate>("private")
-                .unwrap()
-                .as_ptr()
-        }
-    }
-
-    pub fn new_app() -> Self {
-        let app = Self::create();
-
-        app.0.connect_startup(move |_app| {
+        app.connect_startup(move |_app| {
             crate::icons::load_icons().unwrap();
         });
-        app.0.connect_activate(clone!(@weak app => move |_app| {
-            app.activate();
+        app.connect_activate(clone!(@weak app => move |_app| {
+            app.activate_main_window();
         }));
-        app.0.connect_shutdown(clone!(@weak app => move |_app| {
-            let private = app.private();
+        app.connect_shutdown(clone!(@weak app => move |_app| {
+            let private = PSApplicationInner::from_instance(&app);
+
             private.config.borrow().save().unwrap();
             private.cache.save().unwrap();
         }));
-        app.0
-            .connect_open(clone!(@weak app => move |_app, files, _hint| {
-                if let Some(path) = files[0].path() {
-                    let win = app.activate();
-                    do_open_file(&win, &path);
-                }
-            }));
+        app.connect_open(clone!(@weak app => move |_app, files, _hint| {
+            if let Some(path) = files[0].path() {
+                let win = app.activate_main_window();
+                do_open_file(&win, &path);
+            }
+        }));
 
-        app.0.add_action(&{
+        app.add_action(&{
             let action = gio::SimpleAction::new("quit", None);
-            action.connect_activate(clone!(@weak app => move |_, _| {
-                for window in app.0.windows() {
-                    if let Some(win) = PSMainWindow::from_window(&window) {
-                        win.close();
-                    }
-                }
-            }));
+            action.connect_activate(clone!(@weak app => move |_, _| app.action_quit()));
             action
         });
-        app.0.add_action(&{
+        app.add_action(&{
             let action = gio::SimpleAction::new("about", None);
-            action.connect_activate(clone!(@weak app => move |_, _| {
-                let win = app.0.active_window();
-                about(win.as_ref());
-            }));
+            action.connect_activate(clone!(@weak app => move |_, _| app.action_about()));
             action
         });
-        app.0.add_action(&{
+        app.add_action(&{
             let action = gio::SimpleAction::new("preferences", None);
-            action.connect_activate(clone!(@weak app => move |_, _| {
-                let win = app.activate();
-                let private = app.private();
-                let config = private.config.borrow().clone();
-                if let Some(new_config) = preferences(&win.window(), &config) {
-                    *private.config.borrow_mut() = new_config;
-                }
-            }));
+            action.connect_activate(clone!(@weak app => move |_, _| app.action_preferences()));
             action
         });
-        app.0.add_action(&{
+        app.add_action(&{
             let action = gio::SimpleAction::new("new", None);
-            action.connect_activate(clone!(@weak app => move |_, _| {
-                if let Some(win) = app.active_window() {
-                    win.new_file();
-                } else {
-                    app.new_window();
-                }
-            }));
+            action.connect_activate(clone!(@weak app => move |_, _| app.action_new()));
             action
         });
-        app.0.add_action(&{
+        app.add_action(&{
             let action = gio::SimpleAction::new("open", None);
-            action.connect_activate(clone!(@weak app => move |_, _| {
-                let win = app.activate();
-                win.open_file();
-            }));
+            action.connect_activate(clone!(@weak app => move |_, _| app.action_open()));
             action
         });
+    }
+}
 
-        app
+impl ApplicationImpl for PSApplicationInner {}
+impl GtkApplicationImpl for PSApplicationInner {}
+
+glib::wrapper! {
+    pub struct PSApplication(ObjectSubclass<PSApplicationInner>)
+        @extends gtk::Application, gio::Application, gio::ActionMap;
+}
+
+impl PSApplication {
+    pub fn new() -> Self {
+        glib::Object::new(&[
+            ("application-id", &"net.andy128k.password-storage"),
+            ("flags", &gio::ApplicationFlags::HANDLES_OPEN),
+        ])
+        .expect("Application is created")
     }
 
-    pub fn run(&self) {
-        let code = self.0.run();
-        std::process::exit(code);
-    }
-
-    fn active_window(&self) -> Option<PSMainWindow> {
-        self.0
-            .active_window()
+    fn active_main_window(&self) -> Option<PSMainWindow> {
+        self.active_window()
             .and_then(|w| PSMainWindow::from_window(&w))
     }
 
-    fn activate(&self) -> PSMainWindow {
-        if let Some(win) = self.active_window() {
+    fn activate_main_window(&self) -> PSMainWindow {
+        if let Some(win) = self.active_main_window() {
             win
         } else {
             self.new_window()
@@ -159,8 +110,45 @@ impl PSApplication {
     }
 
     fn new_window(&self) -> PSMainWindow {
-        let gtk_app = self.0.clone();
-        let private = self.private();
-        old_main(&gtk_app, &private.config, &private.cache)
+        let private = PSApplicationInner::from_instance(self);
+        old_main(&self.clone().upcast(), &private.config, &private.cache)
+    }
+}
+
+// actions
+impl PSApplication {
+    fn action_quit(&self) {
+        for window in self.windows() {
+            if let Some(win) = PSMainWindow::from_window(&window) {
+                win.close();
+            }
+        }
+    }
+
+    fn action_about(&self) {
+        let win = self.active_window();
+        about(win.as_ref());
+    }
+
+    fn action_preferences(&self) {
+        let win = self.activate_main_window();
+        let private = PSApplicationInner::from_instance(self);
+        let config = private.config.borrow().clone();
+        if let Some(new_config) = preferences(&win.window(), &config) {
+            *private.config.borrow_mut() = new_config;
+        }
+    }
+
+    fn action_new(&self) {
+        if let Some(win) = self.active_main_window() {
+            win.new_file();
+        } else {
+            self.new_window();
+        }
+    }
+
+    fn action_open(&self) {
+        let win = self.activate_main_window();
+        win.open_file();
     }
 }
