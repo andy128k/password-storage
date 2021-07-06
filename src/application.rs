@@ -1,8 +1,9 @@
 use crate::cache::Cache;
 use crate::config::Config;
-use crate::main_window::{do_open_file, old_main, PSMainWindow};
+use crate::main_window::PSMainWindow;
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
+use crate::ui::menu::create_menu_bar;
 use gtk::{
     gio,
     glib::{self, clone},
@@ -32,8 +33,9 @@ impl ObjectImpl for PSApplicationInner {
         *self.config.borrow_mut() = Config::load();
         self.cache.load();
 
-        app.connect_startup(move |_app| {
+        app.connect_startup(move |app| {
             crate::icons::load_icons().unwrap();
+            app.set_menubar(Some(&create_menu_bar()));
         });
         app.connect_activate(clone!(@weak app => move |_app| {
             app.activate_main_window();
@@ -47,7 +49,7 @@ impl ObjectImpl for PSApplicationInner {
         app.connect_open(clone!(@weak app => move |_app, files, _hint| {
             if let Some(path) = files[0].path() {
                 let win = app.activate_main_window();
-                do_open_file(&win, &path);
+                win.do_open_file(&path);
             }
         }));
 
@@ -111,7 +113,9 @@ impl PSApplication {
 
     fn new_window(&self) -> PSMainWindow {
         let private = PSApplicationInner::from_instance(self);
-        old_main(&self.clone().upcast(), &private.config, &private.cache)
+        let window = PSMainWindow::new(&self.clone().upcast(), &private.config, &private.cache);
+        window.show_all();
+        window
     }
 }
 
@@ -134,7 +138,7 @@ impl PSApplication {
         let win = self.activate_main_window();
         let private = PSApplicationInner::from_instance(self);
         let config = private.config.borrow().clone();
-        if let Some(new_config) = preferences(&win.window(), &config) {
+        if let Some(new_config) = preferences(&win.clone().upcast(), &config) {
             *private.config.borrow_mut() = new_config;
         }
     }

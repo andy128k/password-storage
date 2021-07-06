@@ -10,7 +10,6 @@ pub struct PSDashboard {
     container: gtk::Widget,
     content: gtk::Widget,
     listbox: gtk::ListBox,
-    cache: Cache,
 }
 
 fn centered<W: IsA<gtk::Widget> + WidgetExt>(widget: &W) -> gtk::Widget {
@@ -113,7 +112,7 @@ mod filerow {
 }
 
 impl PSDashboard {
-    pub fn new(cache: &Cache) -> Self {
+    pub fn new() -> Self {
         let title = gtk::Label::builder()
             .label("Recent files")
             .halign(gtk::Align::Start)
@@ -131,17 +130,15 @@ impl PSDashboard {
             container: centered(&grid),
             content: grid.upcast(),
             listbox,
-            cache: cache.clone(),
         }
     }
 
-    pub fn update(&self) {
+    pub fn update(&self, cache: &Cache) {
         self.content.hide();
         for row in self.listbox.children() {
             self.listbox.remove(&row);
         }
         let mut first_row = None;
-        let cache = &self.cache;
         for filename in cache.recent_files() {
             if let Some(row) = filerow::create(
                 filename,

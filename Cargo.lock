@@ -551,6 +551,7 @@ dependencies = [
  "gtk",
  "inflate",
  "lazy_static",
+ "once_cell",
  "quick-xml",
  "rand",
  "serde",

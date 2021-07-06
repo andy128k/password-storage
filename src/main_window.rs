@@ -23,17 +23,22 @@ use crate::ui::search::create_search_entry;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
 use crate::utils::string::non_empty;
+use crate::utils::ui::*;
 use gtk::{
     gio,
     glib::{self, clone},
     prelude::*,
+    subclass::prelude::*,
 };
+use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::convert::Into;
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+
+const WINDOW_TITLE: &str = "Password Storage";
 
 enum AppMode {
     Initial,
@@ -53,94 +58,337 @@ struct PSMainWindowPrivate {
 
     search_entry: gtk::Entry,
 
-    statusbar: gtk::Statusbar,
-
     filename: RefCell<Option<PathBuf>>,
     password: RefCell<Option<String>>,
     changed: Cell<bool>,
 
-    config: Rc<RefCell<Config>>,
-    cache: Cache,
+    config: OnceCell<Rc<RefCell<Config>>>,
+    cache: OnceCell<Cache>,
 }
 
-#[derive(Clone)]
-pub struct PSMainWindow(gtk::ApplicationWindow);
+#[derive(Default)]
+pub struct PSMainWindowInner {
+    private: OnceCell<PSMainWindowPrivate>,
+    statusbar: OnceCell<gtk::Statusbar>,
+}
 
-pub struct PSMainWindowWeak(<gtk::ApplicationWindow as glib::clone::Downgrade>::Weak);
+#[glib::object_subclass]
+impl ObjectSubclass for PSMainWindowInner {
+    const NAME: &'static str = "PSMainWindow";
+    type Type = PSMainWindow;
+    type ParentType = gtk::ApplicationWindow;
+}
 
-impl glib::clone::Downgrade for PSMainWindow {
-    type Weak = PSMainWindowWeak;
+impl ObjectImpl for PSMainWindowInner {
+    fn constructed(&self, win: &Self::Type) {
+        self.parent_constructed(win);
 
-    fn downgrade(&self) -> Self::Weak {
-        PSMainWindowWeak(glib::clone::Downgrade::downgrade(&self.0))
+        win.set_title(WINDOW_TITLE);
+        win.set_icon_name(Some("password-storage"));
+        win.set_window_position(gtk::WindowPosition::Center);
+        win.set_default_width(1000);
+        win.set_default_height(800);
+
+        let data = PSStore::new();
+        let view = PSTreeView::new();
+        let preview = PSPreviewPanel::new();
+
+        let dashboard = PSDashboard::new();
+
+        let search_entry = create_search_entry();
+        let toolbar = ui::toolbar::create_tool_bar(&search_entry.clone().upcast());
+        let statusbar = gtk::Statusbar::new();
+
+        let stack = gtk::Stack::new()
+            .named("dashboard", &dashboard.get_widget())
+            .named(
+                "file",
+                &paned(&scrolled(&view.get_widget()), &preview.get_widget()),
+            );
+
+        let grid = {
+            let grid = gtk::Grid::new();
+
+            toolbar.set_halign(gtk::Align::Fill);
+            toolbar.set_valign(gtk::Align::Start);
+            grid.attach(&toolbar, 0, 0, 1, 1);
+
+            grid.attach(&stack, 0, 1, 1, 1);
+
+            statusbar.set_halign(gtk::Align::Fill);
+            statusbar.set_valign(gtk::Align::End);
+            grid.attach(&statusbar, 0, 2, 1, 1);
+
+            grid
+        };
+
+        win.add(&grid);
+
+        view.set_model(&data.as_model());
+
+        let private = PSMainWindowPrivate {
+            mode: Cell::new(AppMode::Initial),
+            stack,
+            dashboard,
+            data: RefCell::new(data),
+            view,
+            search_entry,
+            preview,
+
+            actions: RefCell::new(HashMap::new()),
+
+            filename: RefCell::new(None),
+            password: RefCell::new(None),
+            changed: Cell::new(false),
+
+            config: OnceCell::new(),
+            cache: OnceCell::new(),
+        };
+
+        self.private
+            .set(private)
+            .ok()
+            .expect("private is set only once");
+
+        self.statusbar
+            .set(statusbar)
+            .ok()
+            .expect("statusbar is set only once");
+
+        win.connect_delete_event(
+            clone!(@weak win => @default-return Inhibit(false), move |_win, _event| {
+                if win.ensure_data_is_saved() {
+                    get_clipboard().clear();
+                    gtk::Inhibit(false)
+                } else {
+                    gtk::Inhibit(true)
+                }
+            }),
+        );
+
+        {
+            create_toggle_action(
+                &win,
+                PSAction::Doc(DocAction::MergeMode),
+                Box::new(|win1, toggled| win1.set_merge_mode(toggled)),
+            );
+
+            create_action(
+                &win,
+                PSAction::ViewMode(ViewModeAction::MergeFile),
+                Box::new(|w| w.cb_merge_file()),
+            );
+            create_action(
+                &win,
+                PSAction::ViewMode(ViewModeAction::Save),
+                Box::new(|w| {
+                    w.cb_save();
+                }),
+            );
+            create_action(
+                &win,
+                PSAction::ViewMode(ViewModeAction::SaveAs),
+                Box::new(|w| {
+                    w.cb_save_as();
+                }),
+            );
+            create_action(
+                &win,
+                PSAction::ViewMode(ViewModeAction::Close),
+                Box::new(|w| w.cb_close()),
+            );
+            create_action(
+                &win,
+                PSAction::ViewMode(ViewModeAction::Find),
+                Box::new(|win| {
+                    win.private().search_entry.grab_focus();
+                }),
+            );
+            create_action(
+                &win,
+                PSAction::ViewMode(ViewModeAction::ChangePassword),
+                Box::new(|w| w.cb_change_password()),
+            );
+
+            for record_type in RECORD_TYPES.iter() {
+                create_action(
+                    &win,
+                    PSAction::ViewMode(ViewModeAction::Add(record_type.name.to_string())),
+                    Box::new(move |win1| win1.cb_add_record(record_type)),
+                );
+            }
+
+            create_action(
+                &win,
+                PSAction::MergeMode(MergeModeAction::UncheckAll),
+                Box::new(|w| w.cb_uncheck_all()),
+            );
+            create_action(
+                &win,
+                PSAction::MergeMode(MergeModeAction::Merge),
+                Box::new(|w| w.cb_merge()),
+            );
+
+            create_action(
+                &win,
+                PSAction::Record(RecordAction::CopyName),
+                Box::new(|w| w.cb_copy_name()),
+            );
+            create_action(
+                &win,
+                PSAction::Record(RecordAction::CopyPassword),
+                Box::new(|w| w.cb_copy_password()),
+            );
+            create_action(
+                &win,
+                PSAction::Record(RecordAction::Edit),
+                Box::new(|win| win.cb_edit_record()),
+            );
+            create_action(
+                &win,
+                PSAction::Record(RecordAction::Delete),
+                Box::new(|w| w.cb_delele_record()),
+            );
+
+            for record_type in RECORD_TYPES.iter() {
+                if !record_type.is_group {
+                    create_action(
+                        &win,
+                        PSAction::Record(RecordAction::ConvertTo(record_type.name.to_string())),
+                        Box::new(move |w| w.cb_convert_record(record_type)),
+                    );
+                }
+            }
+        }
+
+        {
+            let mut groups = HashMap::new();
+            for (name, action) in win.private().actions.borrow().iter() {
+                groups
+                    .entry(name.group())
+                    .or_insert_with(gio::SimpleActionGroup::new)
+                    .add_action(action);
+            }
+
+            for (group_name, group) in &groups {
+                win.insert_action_group(group_name.name(), Some(group));
+            }
+        }
+
+        win.private()
+            .dashboard
+            .connect_activate(clone!(@weak win => move |filename| {
+                win.do_open_file(filename);
+            }));
+
+        win.private()
+            .search_entry
+            .connect_changed(clone!(@weak win => move |search_entry| {
+                if let Some(search_text) = non_empty(search_entry.text()) {
+                    let look_at_secrets = win.private().config.get().unwrap().borrow().search_in_secrets;
+                    win.set_status("View is filtered.");
+                    let model = create_model_filter(
+                        &win.private().data.borrow(),
+                        &search_text,
+                        look_at_secrets,
+                    );
+                    win.private().view.set_model(&model.upcast());
+                    win.private().view.view.set_reorderable(false);
+                    win.refilter();
+                    win.private().view.view.expand_all();
+                } else {
+                    win.set_status("View filter was reset.");
+                    let model = win.private().data.borrow().as_model();
+                    win.private().view.set_model(&model);
+                    win.private().view.view.set_reorderable(true);
+                    win.private().view.view.collapse_all();
+                }
+                win.listview_cursor_changed(None);
+            }));
+
+        win.private()
+            .view
+            .connect_cursor_changed(clone!(@weak win => move |selection| {
+                let mut record = None;
+                if let Some((iter, _path)) = selection {
+                    record = win.private().data.borrow().get(&iter);
+                }
+                win.listview_cursor_changed(record);
+            }));
+
+        win.private()
+            .view
+            .connect_drop(clone!(@weak win => @default-return false, move |iter| {
+                let record_opt = win.private().data.borrow().get(&iter);
+                if let Some(record) = record_opt {
+                    record.record_type.is_group
+                } else {
+                    false
+                }
+            }));
+
+        win.private()
+            .view
+            .connect_row_activated(clone!(@weak win => move |selection| {
+                if let Some((iter, path)) = selection {
+                    let record_opt = win.private().data.borrow().get(&iter);
+                    if let Some(record) = record_opt {
+                        if record.record_type.is_group {
+                            win.private().view.toggle_group(&path);
+                        } else {
+                            win.cb_edit_record();
+                        }
+                    }
+                }
+            }));
+
+        let popup = ui::menu::create_tree_popup();
+        win.private().view.set_popup(&popup);
     }
 }
 
-impl glib::clone::Upgrade for PSMainWindowWeak {
-    type Strong = PSMainWindow;
+impl WidgetImpl for PSMainWindowInner {}
+impl ContainerImpl for PSMainWindowInner {}
+impl BinImpl for PSMainWindowInner {}
+impl WindowImpl for PSMainWindowInner {}
+impl ApplicationWindowImpl for PSMainWindowInner {}
 
-    fn upgrade(&self) -> Option<Self::Strong> {
-        glib::clone::Upgrade::upgrade(&self.0).map(PSMainWindow)
-    }
-}
-
-fn set_status(win: &PSMainWindow, message: &str) {
-    let statusbar = &win.private().statusbar;
-    statusbar.pop(0);
-    statusbar.push(0, message);
+glib::wrapper! {
+    pub struct PSMainWindow(ObjectSubclass<PSMainWindowInner>)
+        @extends gtk::ApplicationWindow, gtk::Window, gtk::Bin, gtk::Container, gtk::Widget;
 }
 
 impl PSMainWindow {
     pub fn from_window(window: &gtk::Window) -> Option<Self> {
-        let app_window = window.clone().downcast::<gtk::ApplicationWindow>().ok()?;
-        if !unsafe {
-            app_window
-                .data::<bool>("is_main_window")
-                .map_or(false, |p| *p.as_ptr())
-        } {
-            return None;
-        }
-        Some(Self(app_window))
+        window.clone().downcast::<Self>().ok()
     }
 
     fn private(&self) -> &PSMainWindowPrivate {
-        unsafe {
-            &*self
-                .0
-                .data::<PSMainWindowPrivate>("private")
-                .unwrap()
-                .as_ptr()
-        }
+        let private = PSMainWindowInner::from_instance(self);
+        private.private.get().unwrap()
     }
 
-    pub fn window(&self) -> gtk::Window {
-        self.0.clone().upcast()
+    fn set_status(&self, message: &str) {
+        let private = PSMainWindowInner::from_instance(self);
+        if let Some(statusbar) = private.statusbar.get() {
+            statusbar.pop(0);
+            statusbar.push(0, message);
+        }
     }
 
     fn ensure_data_is_saved(&self) -> bool {
         if !self.private().changed.get() {
             return true;
         }
-        let window = self.window();
+        let window = self.clone().upcast();
         match ask_save(
             &window,
             "Save changes before closing? If you don't save, changes will be permanently lost.",
         ) {
-            AskSave::Save => {
-                if let Err(error) = cb_save(self) {
-                    say_error(&window, &error.to_string());
-                    false
-                } else {
-                    true
-                }
-            }
+            AskSave::Save => self.cb_save(),
             AskSave::Discard => true,
             AskSave::Cancel => false,
         }
-    }
-
-    pub fn close(&self) {
-        self.0.close();
     }
 
     fn refilter(&self) {
@@ -150,224 +398,551 @@ impl PSMainWindow {
             }
         }
     }
-}
 
-fn get_selected_group_iter(win: &PSMainWindow) -> Option<gtk::TreeIter> {
-    let model = &win.private().data.borrow();
-    let selection = win.private().view.get_selected_iter();
-    if let Some((iter, _path)) = selection {
-        for (i, record) in model.parents(&iter) {
-            if record.record_type.is_group {
-                return Some(i);
+    fn get_selected_group_iter(&self) -> Option<gtk::TreeIter> {
+        let model = &self.private().data.borrow();
+        let selection = self.private().view.get_selected_iter();
+        if let Some((iter, _path)) = selection {
+            for (i, record) in model.parents(&iter) {
+                if record.record_type.is_group {
+                    return Some(i);
+                }
             }
         }
+        None
     }
-    None
-}
 
-fn listview_cursor_changed(win: &PSMainWindow, record: Option<Record>) {
-    for (action_name, action) in win.private().actions.borrow().iter() {
-        if let PSAction::Record(ref record_action_name) = *action_name {
-            let enabled = match *record_action_name {
-                RecordAction::CopyName => record.is_some(),
-                RecordAction::CopyPassword => record.as_ref().and_then(|e| e.password()).is_some(),
-                RecordAction::Edit => record.is_some(),
-                RecordAction::Delete => record.is_some(),
-                RecordAction::ConvertTo(ref to) => {
-                    if let Some(ref e) = record {
-                        !e.record_type.is_group && e.record_type.name != to
-                    } else {
-                        false
+    fn listview_cursor_changed(&self, record: Option<Record>) {
+        for (action_name, action) in self.private().actions.borrow().iter() {
+            if let PSAction::Record(ref record_action_name) = *action_name {
+                let enabled = match *record_action_name {
+                    RecordAction::CopyName => record.is_some(),
+                    RecordAction::CopyPassword => {
+                        record.as_ref().and_then(|e| e.password()).is_some()
                     }
-                }
-            };
-            action.set_enabled(enabled);
-        }
-    }
-
-    let show_secrets_on_preview = win.private().config.borrow().show_secrets_on_preview;
-    win.private()
-        .preview
-        .update(record, show_secrets_on_preview);
-}
-
-fn get_usernames(win: &PSMainWindow) -> Vec<String> {
-    fn traverse(
-        store: &PSStore,
-        parent_iter: Option<&gtk::TreeIter>,
-        result: &mut HashSet<String>,
-    ) {
-        for (i, record) in store.children(parent_iter) {
-            if record.record_type.is_group {
-                traverse(store, Some(&i), result);
-            } else {
-                record
-                    .username()
-                    .map(|username| result.insert(username.to_string()));
+                    RecordAction::Edit => record.is_some(),
+                    RecordAction::Delete => record.is_some(),
+                    RecordAction::ConvertTo(ref to) => {
+                        if let Some(ref e) = record {
+                            !e.record_type.is_group && e.record_type.name != to
+                        } else {
+                            false
+                        }
+                    }
+                };
+                action.set_enabled(enabled);
             }
         }
-    }
 
-    let mut result = HashSet::new();
-    traverse(&win.private().data.borrow(), None, &mut result);
-    result.remove("");
-
-    let mut vec: Vec<String> = result.into_iter().collect();
-    vec.sort();
-    vec
-}
-
-fn cb_add_record(win: &PSMainWindow, record_type: &'static RecordType) -> Result<()> {
-    let window = &win.window();
-
-    let empty_record = record_type.new_record();
-    if let Some(new_record) = edit_record(&empty_record, window, "Add", &get_usernames(win)) {
-        let group_iter = get_selected_group_iter(win);
-        let iter = win
+        let show_secrets_on_preview = self
             .private()
-            .data
+            .config
+            .get()
+            .unwrap()
             .borrow()
-            .append(group_iter.as_ref(), &new_record);
-        win.refilter();
-        win.private().view.select_iter(&iter);
-        set_status(win, "New entry was added");
-        win.private().changed.set(true);
+            .show_secrets_on_preview;
+        self.private()
+            .preview
+            .update(record, show_secrets_on_preview);
     }
-    Ok(())
-}
 
-fn cb_edit_record(win: &PSMainWindow) {
-    let selection = win.private().view.get_selected_iter();
-    if let Some((iter, _path)) = selection {
-        let record_opt = win.private().data.borrow().get(&iter);
-        if let Some(record) = record_opt {
-            let window = win.window();
-            if let Some(new_record) = edit_record(&record, &window, "Edit", &get_usernames(win)) {
-                win.private().data.borrow().update(&iter, &new_record);
-                win.refilter();
-                listview_cursor_changed(win, Some(new_record));
-                set_status(win, "Entry was changed");
-                win.private().changed.set(true);
-            }
-        }
-    }
-}
-
-fn cb_convert_record(win: &PSMainWindow, dest_record_type: &'static RecordType) -> Result<()> {
-    let selection = win.private().view.get_selected_iter();
-    if let Some((iter, _path)) = selection {
-        let record_opt = win.private().data.borrow().get(&iter);
-        if let Some(record) = record_opt {
-            let new_record = {
-                let mut new_record = dest_record_type.new_record();
-                let name = record.get_field(&FIELD_NAME);
-                new_record.set_field(&FIELD_NAME, &name);
-                new_record.join(&record);
-                new_record
-            };
-            win.private().data.borrow().update(&iter, &new_record);
-            win.refilter();
-            set_status(win, "Entry has changed type");
-            win.private().changed.set(true);
-            listview_cursor_changed(win, Some(new_record));
-        }
-    }
-    Ok(())
-}
-
-fn cb_delele_record(win: &PSMainWindow) -> Result<()> {
-    let selection = win.private().view.get_selected_iter();
-    if let Some((iter, _path)) = selection {
-        if ask(
-            &win.window(),
-            "Do you really want to delete selected entry?",
+    fn get_usernames(&self) -> Vec<String> {
+        fn traverse(
+            store: &PSStore,
+            parent_iter: Option<&gtk::TreeIter>,
+            result: &mut HashSet<String>,
         ) {
-            win.private().data.borrow().delete(&iter);
-            listview_cursor_changed(win, None);
-            set_status(win, "Entry was deleted");
-            win.private().changed.set(true);
-        }
-    }
-    Ok(())
-}
-
-fn cb_uncheck_all(win: &PSMainWindow) -> Result<()> {
-    win.private().data.borrow().uncheck_all();
-    set_status(win, "Unchecked all items");
-    Ok(())
-}
-
-fn cb_merge(win: &PSMainWindow) -> Result<()> {
-    let checked = {
-        fn collect_checked(
-            model: &PSStore,
-            parent: Option<&gtk::TreeIter>,
-            path: &[String],
-            result: &mut Vec<(Record, Vec<String>)>,
-        ) {
-            for (i, record) in model.children(parent) {
-                if model.is_selected(&i) {
-                    result.push((record.clone(), path.to_vec()));
+            for (i, record) in store.children(parent_iter) {
+                if record.record_type.is_group {
+                    traverse(store, Some(&i), result);
+                } else {
+                    record
+                        .username()
+                        .map(|username| result.insert(username.to_string()));
                 }
-                let mut p = path.to_vec();
-                p.push(record.name().to_string());
-                collect_checked(model, Some(&i), &p, result);
             }
         }
-        let mut checked = Vec::new();
-        collect_checked(
-            &win.private().data.borrow(),
-            None,
-            &Vec::new(),
-            &mut checked,
-        );
-        checked
-    };
 
-    if checked.len() < 2 {
-        say_info(
-            &win.window(),
-            "Nothing to merge. Select few items and try again.",
-        );
-        return Ok(());
+        let mut result = HashSet::new();
+        traverse(&self.private().data.borrow(), None, &mut result);
+        result.remove("");
+
+        let mut vec: Vec<String> = result.into_iter().collect();
+        vec.sort();
+        vec
     }
 
-    // rename
-    let records = {
-        let mut renamed_records: Vec<Record> = Vec::new();
-        for &(ref record, ref path) in &checked {
-            let mut renamed = record.clone();
-            renamed.rename(move |old_name| format!("{}/{}", path.join("/"), old_name));
-            renamed_records.push(renamed);
-        }
-        renamed_records
-    };
-
-    {
-        let mut message = String::from("Do you want to merge following items?\n");
-        for record in &records {
-            message.push('\n');
-            message.push_str(&record.name());
-        }
-
-        if !ask(&win.window(), &message) {
-            return Ok(());
+    fn cb_add_record(&self, record_type: &'static RecordType) {
+        let empty_record = record_type.new_record();
+        if let Some(new_record) = edit_record(
+            &empty_record,
+            &self.clone().upcast(),
+            "Add",
+            &self.get_usernames(),
+        ) {
+            let group_iter = self.get_selected_group_iter();
+            let iter = self
+                .private()
+                .data
+                .borrow()
+                .append(group_iter.as_ref(), &new_record);
+            self.refilter();
+            self.private().view.select_iter(&iter);
+            self.set_status("New entry was added");
+            self.private().changed.set(true);
         }
     }
 
-    // delete entries
-    win.private().data.borrow().delete_checked();
+    fn cb_edit_record(&self) {
+        let selection = self.private().view.get_selected_iter();
+        if let Some((iter, _path)) = selection {
+            let record_opt = self.private().data.borrow().get(&iter);
+            if let Some(record) = record_opt {
+                if let Some(new_record) = edit_record(
+                    &record,
+                    &self.clone().upcast(),
+                    "Edit",
+                    &self.get_usernames(),
+                ) {
+                    self.private().data.borrow().update(&iter, &new_record);
+                    self.refilter();
+                    self.listview_cursor_changed(Some(new_record));
+                    self.set_status("Entry was changed");
+                    self.private().changed.set(true);
+                }
+            }
+        }
+    }
 
-    // create new entry
-    let result = Record::join_entries(&records);
+    fn cb_convert_record(&self, dest_record_type: &'static RecordType) {
+        let selection = self.private().view.get_selected_iter();
+        if let Some((iter, _path)) = selection {
+            let record_opt = self.private().data.borrow().get(&iter);
+            if let Some(record) = record_opt {
+                let new_record = {
+                    let mut new_record = dest_record_type.new_record();
+                    let name = record.get_field(&FIELD_NAME);
+                    new_record.set_field(&FIELD_NAME, &name);
+                    new_record.join(&record);
+                    new_record
+                };
+                self.private().data.borrow().update(&iter, &new_record);
+                self.refilter();
+                self.set_status("Entry has changed type");
+                self.private().changed.set(true);
+                self.listview_cursor_changed(Some(new_record));
+            }
+        }
+    }
 
-    // TODO: detect common path
-    let iter = win.private().data.borrow().append(None, &result);
-    win.refilter();
-    win.private().view.select_iter(&iter);
-    set_status(win, "New entry was created by merging");
-    win.private().changed.set(true);
-    Ok(())
+    fn cb_delele_record(&self) {
+        let selection = self.private().view.get_selected_iter();
+        if let Some((iter, _path)) = selection {
+            if ask(
+                &self.clone().upcast(),
+                "Do you really want to delete selected entry?",
+            ) {
+                self.private().data.borrow().delete(&iter);
+                self.listview_cursor_changed(None);
+                self.set_status("Entry was deleted");
+                self.private().changed.set(true);
+            }
+        }
+    }
+
+    fn cb_uncheck_all(&self) {
+        self.private().data.borrow().uncheck_all();
+        self.set_status("Unchecked all items");
+    }
+
+    fn cb_merge(&self) {
+        let checked = {
+            fn collect_checked(
+                model: &PSStore,
+                parent: Option<&gtk::TreeIter>,
+                path: &[String],
+                result: &mut Vec<(Record, Vec<String>)>,
+            ) {
+                for (i, record) in model.children(parent) {
+                    if model.is_selected(&i) {
+                        result.push((record.clone(), path.to_vec()));
+                    }
+                    let mut p = path.to_vec();
+                    p.push(record.name().to_string());
+                    collect_checked(model, Some(&i), &p, result);
+                }
+            }
+            let mut checked = Vec::new();
+            collect_checked(
+                &self.private().data.borrow(),
+                None,
+                &Vec::new(),
+                &mut checked,
+            );
+            checked
+        };
+
+        if checked.len() < 2 {
+            say_info(
+                &self.clone().upcast(),
+                "Nothing to merge. Select few items and try again.",
+            );
+            return;
+        }
+
+        // rename
+        let records = {
+            let mut renamed_records: Vec<Record> = Vec::new();
+            for &(ref record, ref path) in &checked {
+                let mut renamed = record.clone();
+                renamed.rename(move |old_name| format!("{}/{}", path.join("/"), old_name));
+                renamed_records.push(renamed);
+            }
+            renamed_records
+        };
+
+        {
+            let mut message = String::from("Do you want to merge following items?\n");
+            for record in &records {
+                message.push('\n');
+                message.push_str(&record.name());
+            }
+
+            if !ask(&self.clone().upcast(), &message) {
+                return;
+            }
+        }
+
+        // delete entries
+        self.private().data.borrow().delete_checked();
+
+        // create new entry
+        let result = Record::join_entries(&records);
+
+        // TODO: detect common path
+        let iter = self.private().data.borrow().append(None, &result);
+        self.refilter();
+        self.private().view.select_iter(&iter);
+        self.set_status("New entry was created by merging");
+        self.private().changed.set(true);
+    }
+
+    fn ensure_password_is_set(&self) -> Option<String> {
+        if self.private().password.borrow().is_none() {
+            *self.private().password.borrow_mut() = new_password(&self.clone().upcast());
+        }
+        self.private().password.borrow().clone()
+    }
+
+    fn save_data(&self, filename: &Path) -> Result<()> {
+        if let Some(password) = self.ensure_password_is_set() {
+            let tree = self.private().data.borrow().to_tree();
+
+            format::save_file(filename, &password, &tree)?;
+
+            self.set_status(&format!("File '{}' was saved", filename.display()));
+            self.private().changed.set(false);
+            self.private().cache.get().unwrap().add_file(filename);
+        }
+        Ok(())
+    }
+
+    fn set_filename(&self, filename: Option<&Path>) {
+        match filename {
+            Some(filename) => {
+                *self.private().filename.borrow_mut() = Some(filename.to_owned());
+                self.set_title(&format!("{} - {}", WINDOW_TITLE, &filename.display()));
+            }
+            None => {
+                *self.private().filename.borrow_mut() = None;
+                self.set_title(WINDOW_TITLE);
+            }
+        }
+    }
+
+    pub fn new_file(&self) {
+        if self.ensure_data_is_saved() {
+            self.private().changed.set(false);
+
+            let data = PSStore::new();
+            *self.private().data.borrow_mut() = data.clone();
+            self.private().view.set_model(&data.as_model());
+
+            self.set_filename(None);
+            self.private().search_entry.set_text("");
+            *self.private().password.borrow_mut() = None;
+            self.listview_cursor_changed(None);
+            self.set_status("New file was created");
+            self.set_mode(AppMode::FileOpened);
+        }
+    }
+
+    pub fn do_open_file(&self, filename: &Path) {
+        if let Some((entries, password)) = load_data(filename, &self.clone().upcast()) {
+            self.private().cache.get().unwrap().add_file(filename);
+            self.private().search_entry.set_text("");
+
+            let data = PSStore::from_tree(&entries);
+            *self.private().data.borrow_mut() = data.clone();
+            self.private().view.set_model(&data.as_model());
+
+            {
+                self.set_filename(Some(filename));
+                *self.private().password.borrow_mut() = Some(password);
+                self.private().changed.set(false);
+            }
+            self.set_mode(AppMode::FileOpened);
+            self.set_status(&format!("File '{}' was opened", filename.display()));
+            self.private().search_entry.grab_focus();
+        }
+    }
+
+    pub fn open_file(&self) {
+        if self.ensure_data_is_saved() {
+            if let Some(filename) = open_file(&self.clone().upcast()) {
+                self.do_open_file(&filename);
+            }
+        }
+    }
+
+    fn cb_merge_file(&self) {
+        self.private().search_entry.set_text("");
+
+        let window = self.clone().upcast();
+        if let Some(filename) = open_file(&window) {
+            if let Some((extra_records, _password)) = load_data(&filename, &window) {
+                let mut records_tree = self.private().data.borrow().to_tree();
+                crate::model::merge_trees::merge_trees(&mut records_tree, &extra_records);
+
+                let data = PSStore::from_tree(&records_tree);
+                *self.private().data.borrow_mut() = data.clone();
+                self.private().view.set_model(&data.as_model());
+
+                self.private().changed.set(true);
+            }
+        }
+    }
+
+    fn cb_save_as(&self) -> bool {
+        let window = self.clone().upcast();
+        if let Some(ref filename) = save_file(&window) {
+            self.set_filename(Some(filename));
+            if let Err(error) = self.save_data(filename) {
+                say_error(&window, &error.to_string());
+                return false;
+            }
+        }
+        true
+    }
+
+    fn cb_save(&self) -> bool {
+        let filename = self.private().filename.borrow().clone();
+        if let Some(ref filename) = filename {
+            if let Err(error) = self.save_data(filename) {
+                let window = self.clone().upcast();
+                say_error(&window, &error.to_string());
+                return false;
+            }
+            true
+        } else {
+            self.cb_save_as()
+        }
+    }
+
+    fn cb_close(&self) {
+        if self.ensure_data_is_saved() {
+            self.private().changed.set(false);
+            self.private().search_entry.set_text("");
+
+            let data = PSStore::new();
+            *self.private().data.borrow_mut() = data.clone();
+            self.private().view.set_model(&data.as_model());
+
+            self.set_filename(None);
+            *self.private().password.borrow_mut() = None;
+            self.listview_cursor_changed(None);
+            self.set_mode(AppMode::Initial);
+            self.set_status("");
+        }
+    }
+
+    fn cb_change_password(&self) {
+        if let Some(new_password) = change_password(&self.clone().upcast()) {
+            *self.private().password.borrow_mut() = Some(new_password);
+            self.private().changed.set(true);
+            self.set_status("File password was changed");
+        }
+    }
+
+    fn cb_copy_name(&self) {
+        if let Some((iter, _path)) = self.private().view.get_selected_iter() {
+            if let Some(record) = self.private().data.borrow().get(&iter) {
+                if let Some(username) = record.username() {
+                    get_clipboard().set_text(&username);
+                    self.set_status("Name was copied to clipboard");
+                }
+            }
+        }
+    }
+
+    fn cb_copy_password(&self) {
+        if let Some((iter, _path)) = self.private().view.get_selected_iter() {
+            if let Some(record) = self.private().data.borrow().get(&iter) {
+                if let Some(password) = record.password() {
+                    get_clipboard().set_text(&password);
+                    self.set_status("Secret (password) was copied to clipboard");
+                }
+            }
+        }
+    }
+
+    fn set_mode(&self, mode: AppMode) {
+        match mode {
+            AppMode::Initial => {
+                for (action_name, action) in self.private().actions.borrow().iter() {
+                    let enabled = match action_name.group() {
+                        PSActionGroup::Doc => false,
+                        PSActionGroup::ViewMode => false,
+                        PSActionGroup::MergeMode => false,
+                        PSActionGroup::Record => false,
+                    };
+                    action.set_enabled(enabled);
+                }
+                if let Some(action) = self
+                    .private()
+                    .actions
+                    .borrow()
+                    .get(&PSAction::Doc(DocAction::MergeMode))
+                {
+                    action.set_state(&false.to_variant());
+                }
+                self.private().search_entry.set_sensitive(false);
+                self.private().view.set_selection_mode(false);
+                self.private().stack.set_visible_child_name("dashboard");
+                if let Some(cache) = self.private().cache.get() {
+                    self.private().dashboard.update(cache);
+                }
+            }
+            AppMode::FileOpened => {
+                for (action_name, action) in self.private().actions.borrow().iter() {
+                    let enabled = match action_name.group() {
+                        PSActionGroup::Doc => true,
+                        PSActionGroup::ViewMode => true,
+                        PSActionGroup::MergeMode => false,
+                        PSActionGroup::Record => true,
+                    };
+                    action.set_enabled(enabled);
+                }
+                if let Some(action) = self
+                    .private()
+                    .actions
+                    .borrow()
+                    .get(&PSAction::Doc(DocAction::MergeMode))
+                {
+                    action.set_state(&false.to_variant());
+                }
+                self.private().search_entry.set_sensitive(true);
+                self.private().view.set_selection_mode(false);
+                self.private().stack.set_visible_child_name("file");
+            }
+            AppMode::MergeMode => {
+                for (action_name, action) in self.private().actions.borrow().iter() {
+                    let enabled = match action_name.group() {
+                        PSActionGroup::Doc => true,
+                        PSActionGroup::ViewMode => false,
+                        PSActionGroup::MergeMode => true,
+                        PSActionGroup::Record => false,
+                    };
+                    action.set_enabled(enabled);
+                }
+                if let Some(action) = self
+                    .private()
+                    .actions
+                    .borrow()
+                    .get(&PSAction::Doc(DocAction::MergeMode))
+                {
+                    action.set_state(&true.to_variant());
+                }
+                self.private().search_entry.set_sensitive(true);
+                self.private().view.set_selection_mode(true);
+                self.private().stack.set_visible_child_name("file");
+            }
+        }
+        self.private().mode.set(mode);
+    }
+
+    fn set_merge_mode(&self, merge: bool) {
+        self.set_mode(if merge {
+            AppMode::MergeMode
+        } else {
+            AppMode::FileOpened
+        });
+    }
+
+    pub fn new(app: &gtk::Application, config: &Rc<RefCell<Config>>, cache: &Cache) -> Self {
+        let win = glib::Object::new(&[("application", app)]).expect("MainWindow is created");
+
+        let private = PSMainWindowInner::from_instance(&win);
+        private
+            .private
+            .get()
+            .unwrap()
+            .config
+            .set(config.clone())
+            .ok()
+            .unwrap();
+        private
+            .private
+            .get()
+            .unwrap()
+            .cache
+            .set(cache.clone())
+            .ok()
+            .unwrap();
+        private.private.get().unwrap().dashboard.update(cache);
+
+        win.set_mode(AppMode::Initial);
+
+        win
+    }
+}
+
+fn create_action(
+    win: &PSMainWindow,
+    ps_action_name: actions::PSAction,
+    cb: Box<dyn Fn(&PSMainWindow)>,
+) {
+    let (_action_group_name, action_name) = ps_action_name.name();
+    let action = gio::SimpleAction::new(&action_name, None);
+    let win1 = win.clone();
+    action.connect_activate(move |_, _| cb(&win1));
+    win.private()
+        .actions
+        .borrow_mut()
+        .insert(ps_action_name, action);
+}
+
+fn create_toggle_action(
+    win: &PSMainWindow,
+    ps_action_name: actions::PSAction,
+    cb: Box<dyn Fn(&PSMainWindow, bool)>,
+) {
+    let (_action_group_name, action_name) = ps_action_name.name();
+    let action = gio::SimpleAction::new_stateful(&action_name, None, &false.to_variant());
+    let win1 = win.clone();
+    action.connect_activate(move |action, _| {
+        let prev_state: bool = action
+            .state()
+            .and_then(|state| state.get())
+            .unwrap_or(false);
+        let new_state: bool = !prev_state;
+        action.set_state(&new_state.to_variant());
+        cb(&win1, new_state);
+    });
+    win.private()
+        .actions
+        .borrow_mut()
+        .insert(ps_action_name, action);
 }
 
 fn load_data(filename: &Path, parent_window: &gtk::Window) -> Option<(RecordTree, String)> {
@@ -392,632 +967,4 @@ fn new_password(parent_window: &gtk::Window) -> Option<String> {
         "password-storage",
     );
     result.map(|mut values| values.remove(0))
-}
-
-fn ensure_password_is_set(win: &PSMainWindow) -> Option<String> {
-    if win.private().password.borrow().is_none() {
-        let window = &win.window();
-        *win.private().password.borrow_mut() = new_password(window);
-    }
-    win.private().password.borrow().clone()
-}
-
-fn save_data(win: &PSMainWindow, filename: &Path) -> Result<()> {
-    if let Some(password) = ensure_password_is_set(win) {
-        let tree = win.private().data.borrow().to_tree();
-
-        format::save_file(filename, &password, &tree)?;
-
-        set_status(
-            win,
-            &format!("File '{}' was saved", filename.to_string_lossy()),
-        );
-        win.private().changed.set(false);
-        win.private().cache.add_file(filename);
-    }
-    Ok(())
-}
-
-const WINDOW_TITLE: &str = "Password Storage";
-
-fn set_filename(win: &PSMainWindow, filename: Option<&Path>) {
-    match filename {
-        Some(filename) => {
-            *win.private().filename.borrow_mut() = Some(filename.to_owned());
-            win.window().set_title(&format!(
-                "{} - {}",
-                WINDOW_TITLE,
-                &filename.to_string_lossy()
-            ));
-        }
-        None => {
-            *win.private().filename.borrow_mut() = None;
-            win.window().set_title(WINDOW_TITLE);
-        }
-    }
-}
-
-impl PSMainWindow {
-    pub fn new_file(&self) {
-        if self.ensure_data_is_saved() {
-            self.private().changed.set(false);
-
-            let data = PSStore::new();
-            *self.private().data.borrow_mut() = data.clone();
-            self.private().view.set_model(&data.as_model());
-
-            set_filename(self, None);
-            self.private().search_entry.set_text("");
-            *self.private().password.borrow_mut() = None;
-            listview_cursor_changed(self, None);
-            set_status(self, "New file was created");
-            set_mode(self, AppMode::FileOpened);
-        }
-    }
-}
-
-pub fn do_open_file(win: &PSMainWindow, filename: &Path) {
-    let window = &win.window();
-    if let Some((entries, password)) = load_data(filename, window) {
-        win.private().cache.add_file(filename);
-        win.private().search_entry.set_text("");
-
-        let data = PSStore::from_tree(&entries);
-        *win.private().data.borrow_mut() = data.clone();
-        win.private().view.set_model(&data.as_model());
-
-        {
-            set_filename(win, Some(filename));
-            *win.private().password.borrow_mut() = Some(password);
-            win.private().changed.set(false);
-        }
-        set_mode(win, AppMode::FileOpened);
-        set_status(
-            win,
-            &format!("File '{}' was opened", filename.to_string_lossy()),
-        );
-        win.private().search_entry.grab_focus();
-    }
-}
-
-impl PSMainWindow {
-    pub fn open_file(&self) {
-        if self.ensure_data_is_saved() {
-            let window = self.window();
-            if let Some(filename) = open_file(&window) {
-                do_open_file(self, &filename);
-            }
-        }
-    }
-}
-
-fn cb_merge_file(win: &PSMainWindow) -> Result<()> {
-    win.private().search_entry.set_text("");
-
-    let window = win.window();
-    if let Some(filename) = open_file(&window) {
-        if let Some((extra_records, _password)) = load_data(&filename, &window) {
-            let mut records_tree = win.private().data.borrow().to_tree();
-            crate::model::merge_trees::merge_trees(&mut records_tree, &extra_records);
-
-            let data = PSStore::from_tree(&records_tree);
-            *win.private().data.borrow_mut() = data.clone();
-            win.private().view.set_model(&data.as_model());
-
-            win.private().changed.set(true);
-        }
-    }
-    Ok(())
-}
-
-fn cb_save_as(win: &PSMainWindow) -> Result<()> {
-    let window = win.window();
-    if let Some(ref filename) = save_file(&window) {
-        set_filename(win, Some(filename));
-        save_data(win, filename)?;
-    }
-    Ok(())
-}
-
-fn cb_save(win: &PSMainWindow) -> Result<()> {
-    let filename = win.private().filename.borrow().clone();
-    if let Some(ref filename) = filename {
-        save_data(win, filename)?;
-    } else {
-        cb_save_as(win)?;
-    }
-    Ok(())
-}
-
-fn cb_close(win: &PSMainWindow) -> Result<()> {
-    if win.ensure_data_is_saved() {
-        win.private().changed.set(false);
-        win.private().search_entry.set_text("");
-
-        let data = PSStore::new();
-        *win.private().data.borrow_mut() = data.clone();
-        win.private().view.set_model(&data.as_model());
-
-        set_filename(win, None);
-        *win.private().password.borrow_mut() = None;
-        listview_cursor_changed(win, None);
-        set_mode(win, AppMode::Initial);
-        set_status(win, "");
-    }
-    Ok(())
-}
-
-fn cb_change_password(win: &PSMainWindow) -> Result<()> {
-    let window = win.window();
-    if let Some(new_password) = change_password(&window) {
-        *win.private().password.borrow_mut() = Some(new_password);
-        win.private().changed.set(true);
-        set_status(win, "File password was changed");
-    }
-    Ok(())
-}
-
-fn cb_copy_name(win: &PSMainWindow) -> Result<()> {
-    if let Some((iter, _path)) = win.private().view.get_selected_iter() {
-        if let Some(record) = win.private().data.borrow().get(&iter) {
-            if let Some(username) = record.username() {
-                get_clipboard().set_text(&username);
-                set_status(win, "Name was copied to clipboard");
-            }
-        }
-    }
-    Ok(())
-}
-
-fn cb_copy_password(win: &PSMainWindow) -> Result<()> {
-    if let Some((iter, _path)) = win.private().view.get_selected_iter() {
-        if let Some(record) = win.private().data.borrow().get(&iter) {
-            if let Some(password) = record.password() {
-                get_clipboard().set_text(&password);
-                set_status(win, "Secret (password) was copied to clipboard");
-            }
-        }
-    }
-    Ok(())
-}
-
-fn set_mode(win: &PSMainWindow, mode: AppMode) {
-    match mode {
-        AppMode::Initial => {
-            for (action_name, action) in win.private().actions.borrow().iter() {
-                let enabled = match action_name.group() {
-                    PSActionGroup::Doc => false,
-                    PSActionGroup::ViewMode => false,
-                    PSActionGroup::MergeMode => false,
-                    PSActionGroup::Record => false,
-                };
-                action.set_enabled(enabled);
-            }
-            if let Some(action) = win
-                .private()
-                .actions
-                .borrow()
-                .get(&PSAction::Doc(DocAction::MergeMode))
-            {
-                action.set_state(&false.to_variant());
-            }
-            win.private().search_entry.set_sensitive(false);
-            win.private().view.set_selection_mode(false);
-            win.private().stack.set_visible_child_name("dashboard");
-            win.private().dashboard.update();
-        }
-        AppMode::FileOpened => {
-            for (action_name, action) in win.private().actions.borrow().iter() {
-                let enabled = match action_name.group() {
-                    PSActionGroup::Doc => true,
-                    PSActionGroup::ViewMode => true,
-                    PSActionGroup::MergeMode => false,
-                    PSActionGroup::Record => true,
-                };
-                action.set_enabled(enabled);
-            }
-            if let Some(action) = win
-                .private()
-                .actions
-                .borrow()
-                .get(&PSAction::Doc(DocAction::MergeMode))
-            {
-                action.set_state(&false.to_variant());
-            }
-            win.private().search_entry.set_sensitive(true);
-            win.private().view.set_selection_mode(false);
-            win.private().stack.set_visible_child_name("file");
-        }
-        AppMode::MergeMode => {
-            for (action_name, action) in win.private().actions.borrow().iter() {
-                let enabled = match action_name.group() {
-                    PSActionGroup::Doc => true,
-                    PSActionGroup::ViewMode => false,
-                    PSActionGroup::MergeMode => true,
-                    PSActionGroup::Record => false,
-                };
-                action.set_enabled(enabled);
-            }
-            if let Some(action) = win
-                .private()
-                .actions
-                .borrow()
-                .get(&PSAction::Doc(DocAction::MergeMode))
-            {
-                action.set_state(&true.to_variant());
-            }
-            win.private().search_entry.set_sensitive(true);
-            win.private().view.set_selection_mode(true);
-            win.private().stack.set_visible_child_name("file");
-        }
-    }
-    win.private().mode.set(mode);
-}
-
-fn set_merge_mode(win: &PSMainWindow, merge: bool) -> Result<()> {
-    set_mode(
-        win,
-        if merge {
-            AppMode::MergeMode
-        } else {
-            AppMode::FileOpened
-        },
-    );
-    Ok(())
-}
-
-fn create_file_widget(tree_view: &PSTreeView, preview: &PSPreviewPanel) -> gtk::Widget {
-    let paned = gtk::Paned::builder()
-        .orientation(gtk::Orientation::Horizontal)
-        .hexpand(true)
-        .vexpand(true)
-        .build();
-
-    let sw = gtk::ScrolledWindow::builder()
-        .can_focus(true)
-        .hscrollbar_policy(gtk::PolicyType::Automatic)
-        .vscrollbar_policy(gtk::PolicyType::Automatic)
-        .shadow_type(gtk::ShadowType::In)
-        .build();
-    sw.add(&tree_view.get_widget());
-
-    paned.pack1(&sw, true, false);
-
-    paned.pack2(&preview.get_widget(), false, false);
-
-    paned.upcast()
-}
-
-fn create_content_widget(dashboard: &gtk::Widget, file_widget: &gtk::Widget) -> gtk::Stack {
-    let stack = gtk::Stack::new();
-    stack.add_named(dashboard, "dashboard");
-    stack.add_named(file_widget, "file");
-    stack
-}
-
-fn create_main_window(
-    gtk_app: &gtk::Application,
-    content: &gtk::Widget,
-) -> (gtk::ApplicationWindow, gtk::Entry, gtk::Statusbar) {
-    gtk_app.set_menubar(Some(&ui::menu::create_menu_bar()));
-
-    let main_window = gtk::ApplicationWindow::builder()
-        .application(gtk_app)
-        .title(WINDOW_TITLE)
-        .icon_name("password-storage")
-        .window_position(gtk::WindowPosition::Center)
-        .default_width(1000)
-        .default_height(800)
-        .build();
-
-    let search_entry = create_search_entry();
-
-    let statusbar = gtk::Statusbar::new();
-
-    let grid = {
-        let grid = gtk::Grid::new();
-
-        let toolbar = ui::toolbar::create_tool_bar(&search_entry.clone().upcast());
-        toolbar.set_halign(gtk::Align::Fill);
-        toolbar.set_valign(gtk::Align::Start);
-        grid.attach(&toolbar, 0, 0, 1, 1);
-
-        grid.attach(content, 0, 1, 1, 1);
-
-        statusbar.set_halign(gtk::Align::Fill);
-        statusbar.set_valign(gtk::Align::End);
-        grid.attach(&statusbar, 0, 2, 1, 1);
-
-        grid
-    };
-
-    main_window.add(&grid);
-
-    (main_window, search_entry, statusbar)
-}
-
-fn create_action(
-    win: &PSMainWindow,
-    ps_action_name: actions::PSAction,
-    cb: Box<dyn Fn(&PSMainWindow) -> Result<()>>,
-) {
-    let (_action_group_name, action_name) = ps_action_name.name();
-    let action = gio::SimpleAction::new(&action_name, None);
-    let win1 = win.clone();
-    action.connect_activate(move |_, _| {
-        if let Err(error) = cb(&win1) {
-            say_error(&win1.window(), &error.to_string());
-        }
-    });
-    win.private()
-        .actions
-        .borrow_mut()
-        .insert(ps_action_name, action);
-}
-
-fn create_toggle_action(
-    win: &PSMainWindow,
-    ps_action_name: actions::PSAction,
-    cb: Box<dyn Fn(&PSMainWindow, bool) -> Result<()>>,
-) {
-    let (_action_group_name, action_name) = ps_action_name.name();
-    let action = gio::SimpleAction::new_stateful(&action_name, None, &false.to_variant());
-    let win1 = win.clone();
-    action.connect_activate(move |action, _| {
-        let prev_state: bool = action
-            .state()
-            .and_then(|state| state.get())
-            .unwrap_or(false);
-        let new_state: bool = !prev_state;
-        action.set_state(&new_state.to_variant());
-        if let Err(error) = cb(&win1, new_state) {
-            let window = win1.window();
-            say_error(&window, &error.to_string());
-        }
-    });
-    win.private()
-        .actions
-        .borrow_mut()
-        .insert(ps_action_name, action);
-}
-
-pub fn old_main(
-    app1: &gtk::Application,
-    config: &Rc<RefCell<Config>>,
-    cache: &Cache,
-) -> PSMainWindow {
-    let data = PSStore::new();
-    let view = PSTreeView::new();
-    let preview = PSPreviewPanel::new();
-
-    let dashboard = PSDashboard::new(cache);
-
-    let file_widget = create_file_widget(&view, &preview);
-
-    let stack = create_content_widget(&dashboard.get_widget(), &file_widget);
-
-    let (main_window, search_entry, statusbar) = create_main_window(app1, &stack.clone().upcast());
-
-    view.set_model(&data.as_model());
-
-    let private = PSMainWindowPrivate {
-        mode: Cell::new(AppMode::Initial),
-        stack,
-        dashboard,
-        data: RefCell::new(data),
-        view,
-        search_entry,
-        preview,
-        statusbar,
-
-        actions: RefCell::new(HashMap::new()),
-
-        filename: RefCell::new(None),
-        password: RefCell::new(None),
-        changed: Cell::new(false),
-
-        config: config.clone(),
-        cache: cache.clone(),
-    };
-    unsafe {
-        main_window.set_data("private", private);
-        main_window.set_data("is_main_window", true);
-    }
-    let win = PSMainWindow(main_window);
-
-    win.0.connect_delete_event(
-        clone!(@weak win => @default-return Inhibit(false), move |_win, _event| {
-            if win.ensure_data_is_saved() {
-                get_clipboard().clear();
-                gtk::Inhibit(false)
-            } else {
-                gtk::Inhibit(true)
-            }
-        }),
-    );
-
-    {
-        create_toggle_action(
-            &win,
-            PSAction::Doc(DocAction::MergeMode),
-            Box::new(set_merge_mode),
-        );
-
-        create_action(
-            &win,
-            PSAction::ViewMode(ViewModeAction::MergeFile),
-            Box::new(cb_merge_file),
-        );
-        create_action(
-            &win,
-            PSAction::ViewMode(ViewModeAction::Save),
-            Box::new(cb_save),
-        );
-        create_action(
-            &win,
-            PSAction::ViewMode(ViewModeAction::SaveAs),
-            Box::new(cb_save_as),
-        );
-        create_action(
-            &win,
-            PSAction::ViewMode(ViewModeAction::Close),
-            Box::new(cb_close),
-        );
-        create_action(
-            &win,
-            PSAction::ViewMode(ViewModeAction::Find),
-            Box::new(|win| {
-                win.private().search_entry.grab_focus();
-                Ok(())
-            }),
-        );
-        create_action(
-            &win,
-            PSAction::ViewMode(ViewModeAction::ChangePassword),
-            Box::new(cb_change_password),
-        );
-
-        for record_type in RECORD_TYPES.iter() {
-            create_action(
-                &win,
-                PSAction::ViewMode(ViewModeAction::Add(record_type.name.to_string())),
-                Box::new(move |app| cb_add_record(app, record_type)),
-            );
-        }
-
-        create_action(
-            &win,
-            PSAction::MergeMode(MergeModeAction::UncheckAll),
-            Box::new(cb_uncheck_all),
-        );
-        create_action(
-            &win,
-            PSAction::MergeMode(MergeModeAction::Merge),
-            Box::new(cb_merge),
-        );
-
-        create_action(
-            &win,
-            PSAction::Record(RecordAction::CopyName),
-            Box::new(cb_copy_name),
-        );
-        create_action(
-            &win,
-            PSAction::Record(RecordAction::CopyPassword),
-            Box::new(cb_copy_password),
-        );
-        create_action(
-            &win,
-            PSAction::Record(RecordAction::Edit),
-            Box::new(|win| {
-                cb_edit_record(win);
-                Ok(())
-            }),
-        );
-        create_action(
-            &win,
-            PSAction::Record(RecordAction::Delete),
-            Box::new(cb_delele_record),
-        );
-
-        for record_type in RECORD_TYPES.iter() {
-            if !record_type.is_group {
-                create_action(
-                    &win,
-                    PSAction::Record(RecordAction::ConvertTo(record_type.name.to_string())),
-                    Box::new(move |app| cb_convert_record(app, record_type)),
-                );
-            }
-        }
-    }
-
-    {
-        let mut groups = HashMap::new();
-        for (name, action) in win.private().actions.borrow().iter() {
-            groups
-                .entry(name.group())
-                .or_insert_with(gio::SimpleActionGroup::new)
-                .add_action(action);
-        }
-
-        for (group_name, group) in &groups {
-            win.0.insert_action_group(group_name.name(), Some(group));
-        }
-    }
-
-    win.private()
-        .dashboard
-        .connect_activate(clone!(@weak win => move |filename| {
-            do_open_file(&win, filename);
-        }));
-
-    win.private()
-        .search_entry
-        .connect_changed(clone!(@weak win => move |search_entry| {
-            if let Some(search_text) = non_empty(search_entry.text()) {
-                let look_at_secrets = win.private().config.borrow().search_in_secrets;
-                set_status(&win, "View is filtered.");
-                let model = create_model_filter(
-                    &win.private().data.borrow(),
-                    &search_text,
-                    look_at_secrets,
-                );
-                win.private().view.set_model(&model.upcast());
-                win.private().view.view.set_reorderable(false);
-                win.refilter();
-                win.private().view.view.expand_all();
-            } else {
-                set_status(&win, "View filter was reset.");
-                let model = win.private().data.borrow().as_model();
-                win.private().view.set_model(&model);
-                win.private().view.view.set_reorderable(true);
-                win.private().view.view.collapse_all();
-            }
-            listview_cursor_changed(&win, None);
-        }));
-
-    win.private()
-        .view
-        .connect_cursor_changed(clone!(@weak win => move |selection| {
-            let mut record = None;
-            if let Some((iter, _path)) = selection {
-                record = win.private().data.borrow().get(&iter);
-            }
-            listview_cursor_changed(&win, record);
-        }));
-
-    win.private()
-        .view
-        .connect_drop(clone!(@weak win => @default-return false, move |iter| {
-            let record_opt = win.private().data.borrow().get(&iter);
-            if let Some(record) = record_opt {
-                record.record_type.is_group
-            } else {
-                false
-            }
-        }));
-
-    win.private()
-        .view
-        .connect_row_activated(clone!(@weak win => move |selection| {
-            if let Some((iter, path)) = selection {
-                let record_opt = win.private().data.borrow().get(&iter);
-                if let Some(record) = record_opt {
-                    if record.record_type.is_group {
-                        win.private().view.toggle_group(&path);
-                    } else {
-                        cb_edit_record(&win);
-                    }
-                }
-            }
-        }));
-
-    let popup = ui::menu::create_tree_popup();
-    win.private().view.set_popup(&popup);
-
-    win.window().show_all();
-
-    set_mode(&win, AppMode::Initial);
-
-    win
 }
