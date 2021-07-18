@@ -72,7 +72,7 @@ impl FormWidget<Record> for RecordForm {
     }
 }
 
-pub fn edit_record(
+pub async fn edit_record(
     record: &Record,
     parent_window: &gtk::Window,
     title: &str,
@@ -85,4 +85,5 @@ pub fn edit_record(
         &format!("{} {}", title, record.record_type.title),
         record.record_type.icon,
     )
+    .await
 }

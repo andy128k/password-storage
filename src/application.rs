@@ -48,8 +48,10 @@ impl ObjectImpl for PSApplicationInner {
         }));
         app.connect_open(clone!(@weak app => move |_app, files, _hint| {
             if let Some(path) = files[0].path() {
-                let win = app.activate_main_window();
-                win.do_open_file(&path);
+                glib::MainContext::default().spawn_local(async move {
+                    let win = app.activate_main_window();
+                    win.do_open_file(&path).await;
+                });
             }
         }));
 
@@ -65,17 +67,23 @@ impl ObjectImpl for PSApplicationInner {
         });
         app.add_action(&{
             let action = gio::SimpleAction::new("preferences", None);
-            action.connect_activate(clone!(@weak app => move |_, _| app.action_preferences()));
+            action.connect_activate(clone!(@weak app => move |_, _| {
+                glib::MainContext::default().spawn_local(async move { app.action_preferences().await; });
+            }));
             action
         });
         app.add_action(&{
             let action = gio::SimpleAction::new("new", None);
-            action.connect_activate(clone!(@weak app => move |_, _| app.action_new()));
+            action.connect_activate(clone!(@weak app => move |_, _| {
+                glib::MainContext::default().spawn_local(async move { app.action_new().await; });
+            }));
             action
         });
         app.add_action(&{
             let action = gio::SimpleAction::new("open", None);
-            action.connect_activate(clone!(@weak app => move |_, _| app.action_open()));
+            action.connect_activate(clone!(@weak app => move |_, _| {
+                glib::MainContext::default().spawn_local(async move { app.action_open().await; });
+            }));
             action
         });
     }
@@ -134,25 +142,25 @@ impl PSApplication {
         about(win.as_ref());
     }
 
-    fn action_preferences(&self) {
+    async fn action_preferences(&self) {
         let win = self.activate_main_window();
         let private = PSApplicationInner::from_instance(self);
         let config = private.config.borrow().clone();
-        if let Some(new_config) = preferences(&win.clone().upcast(), &config) {
+        if let Some(new_config) = preferences(&win.clone().upcast(), &config).await {
             *private.config.borrow_mut() = new_config;
         }
     }
 
-    fn action_new(&self) {
+    async fn action_new(&self) {
         if let Some(win) = self.active_main_window() {
-            win.new_file();
+            win.new_file().await;
         } else {
             self.new_window();
         }
     }
 
-    fn action_open(&self) {
+    async fn action_open(&self) {
         let win = self.activate_main_window();
-        win.open_file();
+        win.open_file().await;
     }
 }

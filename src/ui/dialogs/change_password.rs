@@ -2,7 +2,7 @@ use crate::ui::edit_object::edit_object;
 use crate::ui::forms::entry::Password;
 use crate::ui::forms::form::{Form, ValidationResult};
 
-pub fn change_password(parent_window: &gtk::Window) -> Option<String> {
+pub async fn change_password(parent_window: &gtk::Window) -> Option<String> {
     let mut form = Form::new();
     form.add("Password", Box::new(Password::new()), true);
     form.add("Confirm password", Box::new(Password::new()), true);
@@ -19,6 +19,7 @@ pub fn change_password(parent_window: &gtk::Window) -> Option<String> {
         parent_window,
         "Change password",
         "password-storage",
-    );
+    )
+    .await;
     result.map(|values| values[0].clone())
 }

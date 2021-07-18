@@ -1,6 +1,6 @@
 use super::base::*;
 use crate::password::generate_password;
-use crate::ui::dialogs::ask::ask;
+use crate::ui::dialogs::ask::confirm_unlikely;
 use crate::utils::string::non_empty;
 use gtk::{glib, prelude::*};
 
@@ -108,11 +108,19 @@ pub struct OpenPassword {
     entry: gtk::Entry,
 }
 
-fn confirm_password_overwrite<P: WidgetExt>(widget: &P) -> bool {
+async fn confirm_password_overwrite<P: WidgetExt>(widget: &P) -> bool {
     if let Some(window) = widget.toplevel().and_then(|w| w.downcast().ok()) {
-        ask(&window, "Do you want to overwrite current password?")
+        confirm_unlikely(&window, "Do you want to overwrite current password?").await
     } else {
         false
+    }
+}
+
+async fn generate_password_clicked(entry: gtk::Entry) {
+    let is_empty = entry.text().is_empty();
+    if is_empty || confirm_password_overwrite(&entry).await {
+        let password = generate_password();
+        entry.set_text(&password);
     }
 }
 
@@ -129,11 +137,7 @@ impl OpenPassword {
 
         entry.connect_icon_release(|e, pos, _button| {
             if pos == gtk::EntryIconPosition::Secondary {
-                let is_empty = e.text().is_empty();
-                if is_empty || confirm_password_overwrite(e) {
-                    let password = generate_password();
-                    e.set_text(&password);
-                }
+                glib::MainContext::default().spawn_local(generate_password_clicked(e.clone()));
             }
         });
 

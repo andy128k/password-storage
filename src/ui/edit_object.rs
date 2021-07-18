@@ -1,11 +1,12 @@
 use super::forms::base::FormWidget;
+use crate::utils::promise::Promise;
 use gtk::{
     gdk,
     glib::{self, clone},
     prelude::*,
 };
 
-pub fn edit_object<T, W: FormWidget<T>>(
+pub async fn edit_object<T: 'static, W: FormWidget<T> + 'static>(
     object: Option<&T>,
     mut widget: W,
     parent_window: &gtk::Window,
@@ -41,14 +42,16 @@ pub fn edit_object<T, W: FormWidget<T>>(
 
     widget.set_value(object);
 
-    let ok = dlg.run() == gtk::ResponseType::Ok;
-
-    if ok {
-        let new_object = widget.get_value();
+    let (promise, future) = Promise::<Option<T>>::new();
+    dlg.connect_response(move |dlg, answer| {
         dlg.close();
-        new_object
-    } else {
-        dlg.close();
-        None
-    }
+        if answer == gtk::ResponseType::Ok {
+            let new_object = widget.get_value();
+            promise.fulfill(new_object);
+        } else {
+            promise.fulfill(None);
+        }
+    });
+    dlg.show_all();
+    future.await.unwrap_or(None)
 }

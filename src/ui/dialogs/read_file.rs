@@ -1,14 +1,19 @@
 use crate::error::*;
 use crate::ui::error_label::create_error_label;
+use crate::utils::promise::Promise;
 use gtk::{
     gdk,
     glib::{self, clone},
     prelude::*,
 };
 
-pub fn read_file<T, R>(parent_window: &gtk::Window, read_file_callback: R) -> Option<(T, String)>
+pub async fn read_file<T, R>(
+    parent_window: &gtk::Window,
+    read_file_callback: R,
+) -> Option<(T, String)>
 where
-    R: Fn(&str) -> Result<T>,
+    T: 'static,
+    R: Fn(&str) -> Result<T> + 'static,
 {
     let dlg = gtk::Dialog::new();
     dlg.set_border_width(8);
@@ -60,28 +65,25 @@ where
 
     dlg.show_all();
 
-    let mut result = None;
-    loop {
-        let button = dlg.run();
-
+    let (promise, future) = Promise::<Option<(T, String)>>::new();
+    dlg.connect_response(move |dlg, button| {
         if button != gtk::ResponseType::Accept {
-            break;
+            dlg.close();
+            promise.fulfill(None);
         }
 
         let password = entry.text();
         match read_file_callback(&password) {
             Ok(document) => {
-                result = Some((document, password.into()));
-                break;
+                dlg.close();
+                promise.fulfill(Some((document, password.into())));
             }
             Err(e) => {
                 error_label.set_visible(true);
                 error_label.set_label(&format!("Can't open this file.\n{}", e));
             }
         }
-    }
-
-    dlg.close();
-
-    result
+    });
+    dlg.show_all();
+    future.await.unwrap_or(None)
 }

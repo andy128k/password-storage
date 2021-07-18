@@ -66,7 +66,7 @@ impl FormWidget<Config> for ConfigForm {
     }
 }
 
-pub fn preferences(parent_window: &gtk::Window, config: &Config) -> Option<Config> {
+pub async fn preferences(parent_window: &gtk::Window, config: &Config) -> Option<Config> {
     let form = ConfigForm::new();
     edit_object(
         Some(config),
@@ -75,4 +75,5 @@ pub fn preferences(parent_window: &gtk::Window, config: &Config) -> Option<Confi
         "Preferences",
         "password-storage",
     )
+    .await
 }

@@ -9,7 +9,7 @@ use crate::model::tree::RecordTree;
 use crate::store::PSStore;
 use crate::ui;
 use crate::ui::dashboard::PSDashboard;
-use crate::ui::dialogs::ask::ask;
+use crate::ui::dialogs::ask::{confirm_likely, confirm_unlikely};
 use crate::ui::dialogs::ask_save::{ask_save, AskSave};
 use crate::ui::dialogs::change_password::change_password;
 use crate::ui::dialogs::open_file::open_file;
@@ -30,10 +30,12 @@ use gtk::{
     prelude::*,
     subclass::prelude::*,
 };
+use guard::guard;
 use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::convert::Into;
+use std::future::Future;
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -70,6 +72,7 @@ struct PSMainWindowPrivate {
 pub struct PSMainWindowInner {
     private: OnceCell<PSMainWindowPrivate>,
     statusbar: OnceCell<gtk::Statusbar>,
+    delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
 }
 
 #[glib::object_subclass]
@@ -155,16 +158,15 @@ impl ObjectImpl for PSMainWindowInner {
             .ok()
             .expect("statusbar is set only once");
 
-        win.connect_delete_event(
+        let delete_handler = win.connect_delete_event(
             clone!(@weak win => @default-return Inhibit(false), move |_win, _event| {
-                if win.ensure_data_is_saved() {
-                    get_clipboard().clear();
-                    gtk::Inhibit(false)
-                } else {
-                    gtk::Inhibit(true)
-                }
+                glib::MainContext::default().spawn_local(async move {
+                    win.on_close().await;
+                });
+                gtk::Inhibit(true)
             }),
         );
+        *self.delete_handler.borrow_mut() = Some(delete_handler);
 
         {
             create_toggle_action(
@@ -173,29 +175,29 @@ impl ObjectImpl for PSMainWindowInner {
                 Box::new(|win1, toggled| win1.set_merge_mode(toggled)),
             );
 
-            create_action(
+            create_action_async(
                 &win,
                 PSAction::ViewMode(ViewModeAction::MergeFile),
-                Box::new(|w| w.cb_merge_file()),
+                |w| async move { w.cb_merge_file().await },
             );
-            create_action(
+            create_action_async(
                 &win,
                 PSAction::ViewMode(ViewModeAction::Save),
-                Box::new(|w| {
-                    w.cb_save();
-                }),
+                |w| async move {
+                    w.cb_save().await;
+                },
             );
-            create_action(
+            create_action_async(
                 &win,
                 PSAction::ViewMode(ViewModeAction::SaveAs),
-                Box::new(|w| {
-                    w.cb_save_as();
-                }),
+                |w| async move {
+                    w.cb_save_as().await;
+                },
             );
-            create_action(
+            create_action_async(
                 &win,
                 PSAction::ViewMode(ViewModeAction::Close),
-                Box::new(|w| w.cb_close()),
+                |w| async move { w.cb_close().await },
             );
             create_action(
                 &win,
@@ -204,17 +206,17 @@ impl ObjectImpl for PSMainWindowInner {
                     win.private().search_entry.grab_focus();
                 }),
             );
-            create_action(
+            create_action_async(
                 &win,
                 PSAction::ViewMode(ViewModeAction::ChangePassword),
-                Box::new(|w| w.cb_change_password()),
+                |w| async move { w.cb_change_password().await },
             );
 
             for record_type in RECORD_TYPES.iter() {
-                create_action(
+                create_action_async(
                     &win,
                     PSAction::ViewMode(ViewModeAction::Add(record_type.name.to_string())),
-                    Box::new(move |win1| win1.cb_add_record(record_type)),
+                    move |win1| async move { win1.cb_add_record(record_type).await },
                 );
             }
 
@@ -223,10 +225,10 @@ impl ObjectImpl for PSMainWindowInner {
                 PSAction::MergeMode(MergeModeAction::UncheckAll),
                 Box::new(|w| w.cb_uncheck_all()),
             );
-            create_action(
+            create_action_async(
                 &win,
                 PSAction::MergeMode(MergeModeAction::Merge),
-                Box::new(|w| w.cb_merge()),
+                |w| async move { w.cb_merge().await },
             );
 
             create_action(
@@ -239,15 +241,15 @@ impl ObjectImpl for PSMainWindowInner {
                 PSAction::Record(RecordAction::CopyPassword),
                 Box::new(|w| w.cb_copy_password()),
             );
-            create_action(
+            create_action_async(
                 &win,
                 PSAction::Record(RecordAction::Edit),
-                Box::new(|win| win.cb_edit_record()),
+                |win| async move { win.cb_edit_record().await },
             );
-            create_action(
+            create_action_async(
                 &win,
                 PSAction::Record(RecordAction::Delete),
-                Box::new(|w| w.cb_delele_record()),
+                |w| async move { w.cb_delele_record().await },
             );
 
             for record_type in RECORD_TYPES.iter() {
@@ -278,7 +280,10 @@ impl ObjectImpl for PSMainWindowInner {
         win.private()
             .dashboard
             .connect_activate(clone!(@weak win => move |filename| {
-                win.do_open_file(filename);
+                let filename = filename.to_owned();
+                glib::MainContext::default().spawn_local(async move {
+                    win.do_open_file(&filename).await;
+                });
             }));
 
         win.private()
@@ -330,16 +335,9 @@ impl ObjectImpl for PSMainWindowInner {
         win.private()
             .view
             .connect_row_activated(clone!(@weak win => move |selection| {
-                if let Some((iter, path)) = selection {
-                    let record_opt = win.private().data.borrow().get(&iter);
-                    if let Some(record) = record_opt {
-                        if record.record_type.is_group {
-                            win.private().view.toggle_group(&path);
-                        } else {
-                            win.cb_edit_record();
-                        }
-                    }
-                }
+                glib::MainContext::default().spawn_local(async move {
+                    win.on_row_activated(selection).await;
+                });
             }));
 
         let popup = ui::menu::create_tree_popup();
@@ -376,7 +374,7 @@ impl PSMainWindow {
         }
     }
 
-    fn ensure_data_is_saved(&self) -> bool {
+    async fn ensure_data_is_saved(&self) -> bool {
         if !self.private().changed.get() {
             return true;
         }
@@ -384,8 +382,10 @@ impl PSMainWindow {
         match ask_save(
             &window,
             "Save changes before closing? If you don't save, changes will be permanently lost.",
-        ) {
-            AskSave::Save => self.cb_save(),
+        )
+        .await
+        {
+            AskSave::Save => self.cb_save().await,
             AskSave::Discard => true,
             AskSave::Cancel => false,
         }
@@ -472,14 +472,16 @@ impl PSMainWindow {
         vec
     }
 
-    fn cb_add_record(&self, record_type: &'static RecordType) {
+    async fn cb_add_record(&self, record_type: &'static RecordType) {
         let empty_record = record_type.new_record();
         if let Some(new_record) = edit_record(
             &empty_record,
             &self.clone().upcast(),
             "Add",
             &self.get_usernames(),
-        ) {
+        )
+        .await
+        {
             let group_iter = self.get_selected_group_iter();
             let iter = self
                 .private()
@@ -493,7 +495,7 @@ impl PSMainWindow {
         }
     }
 
-    fn cb_edit_record(&self) {
+    async fn cb_edit_record(&self) {
         let selection = self.private().view.get_selected_iter();
         if let Some((iter, _path)) = selection {
             let record_opt = self.private().data.borrow().get(&iter);
@@ -503,7 +505,9 @@ impl PSMainWindow {
                     &self.clone().upcast(),
                     "Edit",
                     &self.get_usernames(),
-                ) {
+                )
+                .await
+                {
                     self.private().data.borrow().update(&iter, &new_record);
                     self.refilter();
                     self.listview_cursor_changed(Some(new_record));
@@ -535,18 +539,18 @@ impl PSMainWindow {
         }
     }
 
-    fn cb_delele_record(&self) {
-        let selection = self.private().view.get_selected_iter();
-        if let Some((iter, _path)) = selection {
-            if ask(
-                &self.clone().upcast(),
-                "Do you really want to delete selected entry?",
-            ) {
-                self.private().data.borrow().delete(&iter);
-                self.listview_cursor_changed(None);
-                self.set_status("Entry was deleted");
-                self.private().changed.set(true);
-            }
+    async fn cb_delele_record(&self) {
+        guard!(let Some(selection) = self.private().view.get_selected_iter() else { return });
+        let confirmed = confirm_unlikely(
+            &self.clone().upcast(),
+            "Do you really want to delete selected entry?",
+        )
+        .await;
+        if confirmed {
+            self.private().data.borrow().delete(&selection.0);
+            self.listview_cursor_changed(None);
+            self.set_status("Entry was deleted");
+            self.private().changed.set(true);
         }
     }
 
@@ -555,7 +559,7 @@ impl PSMainWindow {
         self.set_status("Unchecked all items");
     }
 
-    fn cb_merge(&self) {
+    async fn cb_merge(&self) {
         let checked = {
             fn collect_checked(
                 model: &PSStore,
@@ -586,7 +590,8 @@ impl PSMainWindow {
             say_info(
                 &self.clone().upcast(),
                 "Nothing to merge. Select few items and try again.",
-            );
+            )
+            .await;
             return;
         }
 
@@ -608,7 +613,7 @@ impl PSMainWindow {
                 message.push_str(&record.name());
             }
 
-            if !ask(&self.clone().upcast(), &message) {
+            if !confirm_likely(&self.clone().upcast(), &message).await {
                 return;
             }
         }
@@ -627,15 +632,15 @@ impl PSMainWindow {
         self.private().changed.set(true);
     }
 
-    fn ensure_password_is_set(&self) -> Option<String> {
+    async fn ensure_password_is_set(&self) -> Option<String> {
         if self.private().password.borrow().is_none() {
-            *self.private().password.borrow_mut() = new_password(&self.clone().upcast());
+            *self.private().password.borrow_mut() = new_password(&self.clone().upcast()).await;
         }
         self.private().password.borrow().clone()
     }
 
-    fn save_data(&self, filename: &Path) -> Result<()> {
-        if let Some(password) = self.ensure_password_is_set() {
+    async fn save_data(&self, filename: &Path) -> Result<()> {
+        if let Some(password) = self.ensure_password_is_set().await {
             let tree = self.private().data.borrow().to_tree();
 
             format::save_file(filename, &password, &tree)?;
@@ -660,8 +665,8 @@ impl PSMainWindow {
         }
     }
 
-    pub fn new_file(&self) {
-        if self.ensure_data_is_saved() {
+    pub async fn new_file(&self) {
+        if self.ensure_data_is_saved().await {
             self.private().changed.set(false);
 
             let data = PSStore::new();
@@ -677,8 +682,10 @@ impl PSMainWindow {
         }
     }
 
-    pub fn do_open_file(&self, filename: &Path) {
-        if let Some((entries, password)) = load_data(filename, &self.clone().upcast()) {
+    pub async fn do_open_file(&self, filename: &Path) {
+        if let Some((entries, password)) =
+            load_data(filename.to_owned(), &self.clone().upcast()).await
+        {
             self.private().cache.get().unwrap().add_file(filename);
             self.private().search_entry.set_text("");
 
@@ -697,20 +704,20 @@ impl PSMainWindow {
         }
     }
 
-    pub fn open_file(&self) {
-        if self.ensure_data_is_saved() {
-            if let Some(filename) = open_file(&self.clone().upcast()) {
-                self.do_open_file(&filename);
+    pub async fn open_file(&self) {
+        if self.ensure_data_is_saved().await {
+            if let Some(filename) = open_file(&self.clone().upcast()).await {
+                self.do_open_file(&filename).await;
             }
         }
     }
 
-    fn cb_merge_file(&self) {
+    async fn cb_merge_file(&self) {
         self.private().search_entry.set_text("");
 
         let window = self.clone().upcast();
-        if let Some(filename) = open_file(&window) {
-            if let Some((extra_records, _password)) = load_data(&filename, &window) {
+        if let Some(filename) = open_file(&window).await {
+            if let Some((extra_records, _password)) = load_data(filename, &window).await {
                 let mut records_tree = self.private().data.borrow().to_tree();
                 crate::model::merge_trees::merge_trees(&mut records_tree, &extra_records);
 
@@ -723,34 +730,34 @@ impl PSMainWindow {
         }
     }
 
-    fn cb_save_as(&self) -> bool {
+    async fn cb_save_as(&self) -> bool {
         let window = self.clone().upcast();
-        if let Some(ref filename) = save_file(&window) {
+        if let Some(ref filename) = save_file(&window).await {
             self.set_filename(Some(filename));
-            if let Err(error) = self.save_data(filename) {
-                say_error(&window, &error.to_string());
+            if let Err(error) = self.save_data(filename).await {
+                say_error(&window, &error.to_string()).await;
                 return false;
             }
         }
         true
     }
 
-    fn cb_save(&self) -> bool {
+    async fn cb_save(&self) -> bool {
         let filename = self.private().filename.borrow().clone();
         if let Some(ref filename) = filename {
-            if let Err(error) = self.save_data(filename) {
+            if let Err(error) = self.save_data(filename).await {
                 let window = self.clone().upcast();
-                say_error(&window, &error.to_string());
+                say_error(&window, &error.to_string()).await;
                 return false;
             }
             true
         } else {
-            self.cb_save_as()
+            self.cb_save_as().await
         }
     }
 
-    fn cb_close(&self) {
-        if self.ensure_data_is_saved() {
+    async fn cb_close(&self) {
+        if self.ensure_data_is_saved().await {
             self.private().changed.set(false);
             self.private().search_entry.set_text("");
 
@@ -766,8 +773,8 @@ impl PSMainWindow {
         }
     }
 
-    fn cb_change_password(&self) {
-        if let Some(new_password) = change_password(&self.clone().upcast()) {
+    async fn cb_change_password(&self) {
+        if let Some(new_password) = change_password(&self.clone().upcast()).await {
             *self.private().password.borrow_mut() = Some(new_password);
             self.private().changed.set(true);
             self.set_status("File password was changed");
@@ -791,6 +798,19 @@ impl PSMainWindow {
                 if let Some(password) = record.password() {
                     get_clipboard().set_text(&password);
                     self.set_status("Secret (password) was copied to clipboard");
+                }
+            }
+        }
+    }
+
+    async fn on_row_activated(&self, selection: Option<(gtk::TreeIter, gtk::TreePath)>) {
+        if let Some((iter, path)) = selection {
+            let record_opt = self.private().data.borrow().get(&iter);
+            if let Some(record) = record_opt {
+                if record.record_type.is_group {
+                    self.private().view.toggle_group(&path);
+                } else {
+                    self.cb_edit_record().await;
                 }
             }
         }
@@ -879,6 +899,18 @@ impl PSMainWindow {
         });
     }
 
+    async fn on_close(&self) {
+        if self.ensure_data_is_saved().await {
+            get_clipboard().clear();
+
+            let private = PSMainWindowInner::from_instance(self);
+            if let Some(handler) = private.delete_handler.take() {
+                self.disconnect(handler);
+            }
+            self.close();
+        }
+    }
+
     pub fn new(app: &gtk::Application, config: &Rc<RefCell<Config>>, cache: &Cache) -> Self {
         let win = glib::Object::new(&[("application", app)]).expect("MainWindow is created");
 
@@ -922,6 +954,23 @@ fn create_action(
         .insert(ps_action_name, action);
 }
 
+fn create_action_async<C, F>(win: &PSMainWindow, ps_action_name: actions::PSAction, callback: C)
+where
+    C: Fn(PSMainWindow) -> F + 'static,
+    F: Future<Output = ()> + 'static,
+{
+    let (_action_group_name, action_name) = ps_action_name.name();
+    let action = gio::SimpleAction::new(&action_name, None);
+    let win1 = win.clone();
+    action.connect_activate(move |_, _| {
+        glib::MainContext::default().spawn_local(callback(win1.clone()));
+    });
+    win.private()
+        .actions
+        .borrow_mut()
+        .insert(ps_action_name, action);
+}
+
 fn create_toggle_action(
     win: &PSMainWindow,
     ps_action_name: actions::PSAction,
@@ -945,13 +994,14 @@ fn create_toggle_action(
         .insert(ps_action_name, action);
 }
 
-fn load_data(filename: &Path, parent_window: &gtk::Window) -> Option<(RecordTree, String)> {
-    read_file(parent_window, |password| {
-        format::load_file(filename, password)
+async fn load_data(filename: PathBuf, parent_window: &gtk::Window) -> Option<(RecordTree, String)> {
+    read_file(parent_window, move |password| {
+        format::load_file(&filename, password)
     })
+    .await
 }
 
-fn new_password(parent_window: &gtk::Window) -> Option<String> {
+async fn new_password(parent_window: &gtk::Window) -> Option<String> {
     // TODO: ADD confirmation
     let mut form = ui::forms::form::Form::new();
     form.add(
@@ -965,6 +1015,7 @@ fn new_password(parent_window: &gtk::Window) -> Option<String> {
         parent_window,
         "Enter password",
         "password-storage",
-    );
+    )
+    .await;
     result.map(|mut values| values.remove(0))
 }

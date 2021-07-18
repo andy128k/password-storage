@@ -1,3 +1,4 @@
+use crate::utils::promise::Promise;
 use gtk::prelude::*;
 
 pub enum AskSave {
@@ -6,8 +7,9 @@ pub enum AskSave {
     Save,
 }
 
-pub fn ask_save(parent_window: &gtk::Window, message: &str) -> AskSave {
+pub async fn ask_save(parent_window: &gtk::Window, message: &str) -> AskSave {
     let dlg = gtk::MessageDialog::builder()
+        .modal(true)
         .transient_for(parent_window)
         .window_position(gtk::WindowPosition::CenterOnParent)
         .title("Password Storage")
@@ -21,12 +23,15 @@ pub fn ask_save(parent_window: &gtk::Window, message: &str) -> AskSave {
     dlg.add_button("_Save", gtk::ResponseType::Ok);
     dlg.set_default_response(gtk::ResponseType::Ok);
 
-    let answer = dlg.run();
-    dlg.close();
-
-    match answer {
-        gtk::ResponseType::Reject => AskSave::Discard,
-        gtk::ResponseType::Ok => AskSave::Save,
-        _ => AskSave::Cancel,
-    }
+    let (promise, future) = Promise::<AskSave>::new();
+    dlg.connect_response(move |dlg, answer| {
+        dlg.close();
+        promise.fulfill(match answer {
+            gtk::ResponseType::Reject => AskSave::Discard,
+            gtk::ResponseType::Ok => AskSave::Save,
+            _ => AskSave::Cancel,
+        });
+    });
+    dlg.show_all();
+    future.await.unwrap_or(AskSave::Cancel)
 }
