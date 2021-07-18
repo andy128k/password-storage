@@ -1,5 +1,5 @@
 use super::base::*;
-use crate::utils::string::non_empty;
+use crate::utils::string::StringExt;
 use gtk::prelude::*;
 
 pub struct MultiLine {
@@ -41,7 +41,7 @@ fn buffer_get_text(buffer: &gtk::TextBuffer) -> Option<String> {
     let (start, end) = buffer.bounds();
     buffer
         .text(&start, &end, true)
-        .and_then(non_empty)
+        .and_then(|gs| gs.non_empty())
         .map(|gs| gs.to_string())
 }
 

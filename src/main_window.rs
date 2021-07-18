@@ -22,7 +22,7 @@ use crate::ui::preview_panel::PSPreviewPanel;
 use crate::ui::search::create_search_entry;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
-use crate::utils::string::non_empty;
+use crate::utils::string::StringExt;
 use crate::utils::ui::*;
 use gtk::{
     gio,
@@ -289,7 +289,7 @@ impl ObjectImpl for PSMainWindowInner {
         win.private()
             .search_entry
             .connect_changed(clone!(@weak win => move |search_entry| {
-                if let Some(search_text) = non_empty(search_entry.text()) {
+                if let Some(search_text) = search_entry.text().non_empty() {
                     let look_at_secrets = win.private().config.get().unwrap().borrow().search_in_secrets;
                     win.set_status("View is filtered.");
                     let model = create_model_filter(

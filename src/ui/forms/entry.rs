@@ -1,7 +1,7 @@
 use super::base::*;
 use crate::password::generate_password;
 use crate::ui::dialogs::ask::confirm_unlikely;
-use crate::utils::string::non_empty;
+use crate::utils::string::StringExt;
 use gtk::{glib, prelude::*};
 
 // Common part
@@ -11,7 +11,7 @@ pub trait EntryBasedWidget {
 }
 
 fn get_value(entry: &gtk::Entry) -> Option<String> {
-    non_empty(entry.text()).map(|gs| gs.to_string())
+    entry.text().non_empty().map(|gs| gs.to_string())
 }
 
 impl<T> FormWidget<String> for T
