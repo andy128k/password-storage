@@ -1,4 +1,4 @@
-use gtk::glib;
+use crate::gtk_prelude::*;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 

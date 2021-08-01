@@ -1,8 +1,8 @@
 use super::base::*;
+use crate::gtk_prelude::*;
 use crate::password::generate_password;
 use crate::ui::dialogs::ask::confirm_unlikely;
 use crate::utils::string::StringExt;
-use gtk::{glib, prelude::*};
 
 // Common part
 

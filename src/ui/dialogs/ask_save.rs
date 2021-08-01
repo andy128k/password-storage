@@ -1,5 +1,5 @@
+use crate::gtk_prelude::*;
 use crate::utils::promise::Promise;
-use gtk::prelude::*;
 
 pub enum AskSave {
     Discard,

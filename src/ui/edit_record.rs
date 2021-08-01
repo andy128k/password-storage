@@ -3,6 +3,7 @@ use super::forms::base::*;
 use super::forms::entry::*;
 use super::forms::form::*;
 use super::forms::multiline::*;
+use crate::gtk_prelude::*;
 use crate::model::record::{FieldType, Record, RecordType};
 
 fn record_to_vec(record_type: &'static RecordType, record: &Record) -> Vec<String> {

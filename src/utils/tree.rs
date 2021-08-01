@@ -1,4 +1,4 @@
-use gtk::prelude::*;
+use crate::gtk_prelude::*;
 
 pub struct TreeChildrenIter {
     model: gtk::TreeModel,

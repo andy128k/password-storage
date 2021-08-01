@@ -1,7 +1,7 @@
 use crate::entropy::*;
+use crate::gtk_prelude::*;
 use crate::model::record::Record;
 use crate::model::tree::{RecordNode, RecordTree};
-use gtk::{glib, prelude::*};
 
 #[derive(Clone)]
 pub struct PSStore {

@@ -1,6 +1,6 @@
 use super::base::*;
+use crate::gtk_prelude::*;
 use crate::ui::error_label::create_error_label;
-use gtk::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 

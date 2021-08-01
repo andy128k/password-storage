@@ -1,5 +1,5 @@
 use crate::error::*;
-use gtk::glib;
+use crate::gtk_prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};

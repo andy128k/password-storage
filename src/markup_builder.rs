@@ -1,4 +1,4 @@
-use gtk::glib;
+use crate::gtk_prelude::*;
 
 pub fn big(value: &str) -> String {
     format!("<big><b>{}</b></big>", glib::markup_escape_text(value))

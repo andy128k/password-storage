@@ -1,4 +1,4 @@
-use gtk::{gio, prelude::*};
+use crate::gtk_prelude::*;
 
 pub struct ToolbarBuilder {
     toolbar: gtk::Box,

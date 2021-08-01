@@ -1,4 +1,4 @@
-use gtk::{gio, glib};
+use crate::gtk_prelude::*;
 
 const ICONS_RESOURCE: &[u8] = include_bytes!(concat!(
     env!("OUT_DIR"),

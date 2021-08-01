@@ -1,15 +1,10 @@
 use crate::cache::Cache;
 use crate::config::Config;
+use crate::gtk_prelude::*;
 use crate::main_window::PSMainWindow;
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
 use crate::ui::menu::create_menu_bar;
-use gtk::{
-    gio,
-    glib::{self, clone},
-    prelude::*,
-    subclass::prelude::*,
-};
 use std::cell::RefCell;
 use std::rc::Rc;
 

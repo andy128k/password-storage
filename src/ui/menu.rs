@@ -1,7 +1,7 @@
 use crate::actions::*;
+use crate::gtk_prelude::*;
 use crate::model::record::RECORD_TYPES;
 use crate::utils::menu_builder::*;
-use gtk::{gio, glib::prelude::*};
 
 pub fn create_add_entity_menu() -> gio::Menu {
     gio::Menu::from_items(RECORD_TYPES.iter().map(|record_type| {

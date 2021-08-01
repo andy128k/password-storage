@@ -1,5 +1,5 @@
+use crate::gtk_prelude::*;
 use crate::version::VERSION;
-use gtk::prelude::*;
 
 pub fn about(parent: Option<&gtk::Window>) {
     let dlg = gtk::AboutDialog::builder()

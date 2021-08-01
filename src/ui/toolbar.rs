@@ -1,5 +1,6 @@
 use super::menu::create_add_entity_menu;
 use crate::actions::*;
+use crate::gtk_prelude::*;
 use crate::utils::toolbar_builder::*;
 
 pub fn create_tool_bar(search_entry: &gtk::Widget) -> gtk::Widget {

@@ -1,3 +1,5 @@
+use crate::gtk_prelude::*;
+
 pub trait FormWidget<T> {
     fn get_widget(&self) -> gtk::Widget;
     fn get_value(&self) -> Option<T>;

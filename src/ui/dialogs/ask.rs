@@ -1,5 +1,5 @@
+use crate::gtk_prelude::*;
 use crate::utils::promise::Promise;
-use gtk::prelude::*;
 
 async fn confirm(parent_window: &gtk::Window, message: &str, default: gtk::ResponseType) -> bool {
     let dlg = gtk::MessageDialog::builder()

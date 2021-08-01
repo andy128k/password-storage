@@ -4,6 +4,7 @@ use crate::cache::Cache;
 use crate::config::Config;
 use crate::error::*;
 use crate::format;
+use crate::gtk_prelude::*;
 use crate::model::record::{Record, RecordType, FIELD_NAME, RECORD_TYPES};
 use crate::model::tree::RecordTree;
 use crate::store::PSStore;
@@ -24,12 +25,6 @@ use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
 use crate::utils::string::StringExt;
 use crate::utils::ui::*;
-use gtk::{
-    gio,
-    glib::{self, clone},
-    prelude::*,
-    subclass::prelude::*,
-};
 use guard::guard;
 use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};

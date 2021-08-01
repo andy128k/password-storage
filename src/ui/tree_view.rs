@@ -1,9 +1,5 @@
+use crate::gtk_prelude::*;
 use crate::store::TreeStoreColumn;
-use gtk::{
-    gdk, gio,
-    glib::{self, clone},
-    prelude::*,
-};
 
 const GDK_BUTTON_SECONDARY: u32 = 3;
 

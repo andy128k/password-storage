@@ -1,6 +1,6 @@
+use crate::gtk_prelude::*;
 use crate::model::record::Record;
 use crate::store::PSStore;
-use gtk::prelude::*;
 
 fn record_satisfies(
     store: &PSStore,

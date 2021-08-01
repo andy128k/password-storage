@@ -7,6 +7,7 @@ mod config;
 mod entropy;
 mod error;
 mod format;
+mod gtk_prelude;
 mod icons;
 mod main_window;
 mod markup_builder;
@@ -18,7 +19,7 @@ mod ui;
 mod utils;
 mod version;
 
-use gtk::prelude::*;
+use crate::gtk_prelude::*;
 
 fn main() {
     let app = application::PSApplication::new();

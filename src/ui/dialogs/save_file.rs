@@ -1,5 +1,5 @@
+use crate::gtk_prelude::*;
 use crate::utils::promise::Promise;
-use gtk::prelude::*;
 use std::path::PathBuf;
 
 pub async fn save_file(parent_window: &gtk::Window) -> Option<PathBuf> {

@@ -1,5 +1,5 @@
+use crate::gtk_prelude::*;
 use crate::utils::promise::Promise;
-use gtk::prelude::*;
 
 async fn say(parent_window: &gtk::Window, message_type: gtk::MessageType, message: &str) {
     let dlg = gtk::MessageDialog::builder()

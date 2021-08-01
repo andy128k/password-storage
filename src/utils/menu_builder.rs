@@ -1,4 +1,4 @@
-use gtk::{gio, glib::prelude::*};
+use crate::gtk_prelude::*;
 
 pub trait MenuItemBuilderExt {
     fn create() -> Self;

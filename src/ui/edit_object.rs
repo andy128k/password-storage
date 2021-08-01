@@ -1,10 +1,6 @@
 use super::forms::base::FormWidget;
+use crate::gtk_prelude::*;
 use crate::utils::promise::Promise;
-use gtk::{
-    gdk,
-    glib::{self, clone},
-    prelude::*,
-};
 
 pub async fn edit_object<T: 'static, W: FormWidget<T> + 'static>(
     object: Option<&T>,

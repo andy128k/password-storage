@@ -1,4 +1,4 @@
-use gtk::prelude::*;
+use crate::gtk_prelude::*;
 
 // pub trait PSWidgetExt {
 //     fn halign(self, align: gtk::Align) -> Self;

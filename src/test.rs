@@ -1,5 +1,7 @@
 #![cfg(test)]
 
+use crate::gtk_prelude::*;
+
 pub fn test_gtk_init() {
     use std::sync::Once;
 

@@ -1,4 +1,4 @@
-use gtk::prelude::*;
+use crate::gtk_prelude::*;
 
 pub fn create_search_entry() -> gtk::Entry {
     let entry = gtk::Entry::builder()

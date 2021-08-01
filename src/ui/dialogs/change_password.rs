@@ -1,3 +1,4 @@
+use crate::gtk_prelude::*;
 use crate::ui::edit_object::edit_object;
 use crate::ui::forms::entry::Password;
 use crate::ui::forms::form::{Form, ValidationResult};

@@ -1,6 +1,6 @@
+use crate::gtk_prelude::*;
 use crate::markup_builder::*;
 use crate::model::record::Record;
-use gtk::{glib, prelude::*};
 
 pub struct PSPreviewPanel {
     grid: gtk::Grid,

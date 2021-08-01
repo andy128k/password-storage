@@ -1,11 +1,7 @@
 use crate::error::*;
+use crate::gtk_prelude::*;
 use crate::ui::error_label::create_error_label;
 use crate::utils::promise::Promise;
-use gtk::{
-    gdk,
-    glib::{self, clone},
-    prelude::*,
-};
 
 pub async fn read_file<T, R>(
     parent_window: &gtk::Window,

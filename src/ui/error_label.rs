@@ -1,4 +1,4 @@
-use gtk::prelude::*;
+use crate::gtk_prelude::*;
 
 fn create_style_provider() -> gtk::CssProvider {
     let provider = gtk::CssProvider::new();

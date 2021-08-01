@@ -1,5 +1,5 @@
-use gtk::{gdk::Atom, Clipboard};
+use crate::gtk_prelude::*;
 
-pub fn get_clipboard() -> Clipboard {
-    Clipboard::get(&Atom::intern("CLIPBOARD"))
+pub fn get_clipboard() -> gtk::Clipboard {
+    gtk::Clipboard::get(&gdk::Atom::intern("CLIPBOARD"))
 }

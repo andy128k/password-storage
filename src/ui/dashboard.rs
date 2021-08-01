@@ -1,8 +1,5 @@
 use crate::cache::Cache;
-use gtk::{
-    glib::{self, clone},
-    prelude::*,
-};
+use crate::gtk_prelude::*;
 use std::path::Path;
 
 #[derive(Clone)]
@@ -29,9 +26,8 @@ fn framed<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
 }
 
 mod filerow {
+    use crate::gtk_prelude::*;
     use crate::markup_builder::bold;
-    use gtk::glib::{self, clone};
-    use gtk::prelude::*;
     use std::path::{Path, PathBuf};
 
     thread_local! {
