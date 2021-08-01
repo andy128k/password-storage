@@ -25,15 +25,17 @@ pub async fn edit_object<T: 'static, W: FormWidget<T> + 'static>(
         .skip_pager_hint(true)
         .title(title)
         .icon_name(icon)
-        .border_width(8)
         .build();
     dlg.add_button("_Cancel", gtk::ResponseType::Cancel);
     dlg.add_button("_Ok", gtk::ResponseType::Ok);
     dlg.set_default_response(gtk::ResponseType::Ok);
 
+    dlg.content_area().set_margin_start(8);
+    dlg.content_area().set_margin_end(8);
+    dlg.content_area().set_margin_top(8);
+    dlg.content_area().set_margin_bottom(8);
     dlg.content_area()
-        .pack_start(&widget.get_widget(), true, true, 8);
-    dlg.show_all();
+        .pack_start(&widget.get_widget(), true, true, 0);
 
     dlg.set_response_sensitive(gtk::ResponseType::Ok, widget.get_value().is_some());
     widget.connect_changed(Box::new(clone!(@weak dlg => move |value| {

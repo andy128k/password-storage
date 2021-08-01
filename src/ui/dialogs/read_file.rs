@@ -15,19 +15,18 @@ where
     T: 'static,
     R: Fn(&str) -> Result<T> + 'static,
 {
-    let dlg = gtk::Dialog::new();
-    dlg.set_border_width(8);
-    dlg.set_modal(true);
-    dlg.set_resizable(false);
-    dlg.set_transient_for(Some(parent_window));
-    dlg.set_title("Enter password");
-
-    dlg.set_type_hint(gdk::WindowTypeHint::Dialog);
-    dlg.set_gravity(gdk::Gravity::Center);
-    dlg.set_skip_taskbar_hint(true);
-    dlg.set_skip_pager_hint(true);
-
-    dlg.set_icon_name(Some("password-storage"));
+    let dlg = gtk::Dialog::builder()
+        .modal(true)
+        .transient_for(parent_window)
+        .use_header_bar(1)
+        .title("Enter password")
+        .icon_name("password-storage")
+        .resizable(false)
+        .type_hint(gdk::WindowTypeHint::Dialog)
+        .gravity(gdk::Gravity::Center)
+        .skip_taskbar_hint(true)
+        .skip_pager_hint(true)
+        .build();
 
     dlg.add_button("_Cancel", gtk::ResponseType::Cancel);
     dlg.add_button("_Open", gtk::ResponseType::Accept);
@@ -35,18 +34,27 @@ where
 
     let error_label = create_error_label();
 
-    let label = gtk::Label::new(Some("Password"));
-    label.set_xalign(0f32);
-    label.set_yalign(0.5f32);
+    let label = gtk::Label::builder()
+        .label("Password")
+        .xalign(0f32)
+        .yalign(0.5f32)
+        .build();
 
-    let entry = gtk::Entry::new();
-    entry.set_can_focus(true);
-    entry.set_activates_default(true);
-    entry.set_visibility(false);
+    let entry = gtk::Entry::builder()
+        .can_focus(true)
+        .activates_default(true)
+        .visibility(false)
+        .hexpand(true)
+        .build();
 
-    let grid = gtk::Grid::new();
-    grid.set_column_spacing(8);
-    grid.set_row_spacing(8);
+    let grid = gtk::Grid::builder()
+        .margin_start(8)
+        .margin_end(8)
+        .margin_top(8)
+        .margin_bottom(8)
+        .column_spacing(8)
+        .row_spacing(8)
+        .build();
     grid.attach(&error_label, 0, 0, 2, 1);
     grid.attach(&label, 0, 1, 1, 1);
     grid.attach(&entry, 1, 1, 1, 1);
@@ -62,8 +70,6 @@ where
     }));
 
     dlg.set_response_sensitive(gtk::ResponseType::Accept, false);
-
-    dlg.show_all();
 
     let (promise, future) = Promise::<Option<(T, String)>>::new();
     dlg.connect_response(move |dlg, button| {
