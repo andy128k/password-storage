@@ -11,9 +11,13 @@ pub struct PSPreviewPanel {
 
 impl PSPreviewPanel {
     pub fn new() -> Self {
-        let grid = gtk::Grid::new();
-        grid.set_width_request(300);
-        grid.set_margin(16);
+        let grid = gtk::Grid::builder()
+            .width_request(300)
+            .margin_start(16)
+            .margin_end(16)
+            .margin_top(16)
+            .margin_bottom(16)
+            .build();
 
         let icon = gtk::Image::builder()
             .margin_end(8)

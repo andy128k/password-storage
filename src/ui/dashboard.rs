@@ -52,8 +52,12 @@ mod filerow {
     ) -> Option<gtk::ListBoxRow> {
         let basename = filename.file_name()?;
 
-        let grid = gtk::Grid::new();
-        grid.set_margin(10);
+        let grid = gtk::Grid::builder()
+            .margin_start(10)
+            .margin_end(10)
+            .margin_top(10)
+            .margin_bottom(10)
+            .build();
 
         let label1 = gtk::Label::builder()
             .use_markup(true)

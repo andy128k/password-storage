@@ -33,7 +33,7 @@ where
     dlg.add_button("_Open", gtk::ResponseType::Accept);
     dlg.set_default_response(gtk::ResponseType::Accept);
 
-    let error_label = create_error_label().expect("Error label is created.");
+    let error_label = create_error_label();
 
     let label = gtk::Label::new(Some("Password"));
     label.set_xalign(0f32);

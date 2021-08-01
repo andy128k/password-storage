@@ -148,7 +148,7 @@ impl Form {
         let mut private = self.0.borrow_mut();
 
         let index = private.entries.len();
-        let error_label = create_error_label().expect("Error label is created.");
+        let error_label = create_error_label();
         private.grid.attach(&error_label, 0, index as i32, 2, 1);
 
         (*private).validation = Some(FormValidation {
