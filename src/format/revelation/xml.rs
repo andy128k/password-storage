@@ -110,7 +110,7 @@ fn read_record_node<R: BufRead>(
                     let field_name = mapping
                         .fields
                         .iter()
-                        .filter_map(|(ref field_name, ref xml_id)| {
+                        .filter_map(|(field_name, xml_id)| {
                             if *xml_id == id {
                                 Some(field_name)
                             } else {
@@ -256,8 +256,8 @@ fn write_record_node<W: Write>(writer: &mut Writer<W>, record_node: &RecordNode)
 
     write_field(writer, b"name", record.get_field(&FIELD_NAME))?;
     write_field(writer, b"description", record.get_field(&FIELD_DESCRIPTION))?;
-    for &(ref field, ref id) in mapping.fields {
-        let value: &str = record.values.get(*field).map_or("", |v| &**v);
+    for &(field, id) in mapping.fields {
+        let value: &str = record.values.get(field).map_or("", |v| &**v);
         write_generic_field(writer, id, value)?;
     }
 

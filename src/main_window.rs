@@ -165,84 +165,84 @@ impl ObjectImpl for PSMainWindowInner {
 
         {
             create_toggle_action(
-                &win,
+                win,
                 PSAction::Doc(DocAction::MergeMode),
                 Box::new(|win1, toggled| win1.set_merge_mode(toggled)),
             );
 
             create_action_async(
-                &win,
+                win,
                 PSAction::ViewMode(ViewModeAction::MergeFile),
                 |w| async move { w.cb_merge_file().await },
             );
             create_action_async(
-                &win,
+                win,
                 PSAction::ViewMode(ViewModeAction::Save),
                 |w| async move {
                     w.cb_save().await;
                 },
             );
             create_action_async(
-                &win,
+                win,
                 PSAction::ViewMode(ViewModeAction::SaveAs),
                 |w| async move {
                     w.cb_save_as().await;
                 },
             );
             create_action_async(
-                &win,
+                win,
                 PSAction::ViewMode(ViewModeAction::Close),
                 |w| async move { w.cb_close().await },
             );
             create_action(
-                &win,
+                win,
                 PSAction::ViewMode(ViewModeAction::Find),
                 Box::new(|win| {
                     win.private().search_entry.grab_focus();
                 }),
             );
             create_action_async(
-                &win,
+                win,
                 PSAction::ViewMode(ViewModeAction::ChangePassword),
                 |w| async move { w.cb_change_password().await },
             );
 
             for record_type in RECORD_TYPES.iter() {
                 create_action_async(
-                    &win,
+                    win,
                     PSAction::ViewMode(ViewModeAction::Add(record_type.name.to_string())),
                     move |win1| async move { win1.cb_add_record(record_type).await },
                 );
             }
 
             create_action(
-                &win,
+                win,
                 PSAction::MergeMode(MergeModeAction::UncheckAll),
                 Box::new(|w| w.cb_uncheck_all()),
             );
             create_action_async(
-                &win,
+                win,
                 PSAction::MergeMode(MergeModeAction::Merge),
                 |w| async move { w.cb_merge().await },
             );
 
             create_action(
-                &win,
+                win,
                 PSAction::Record(RecordAction::CopyName),
                 Box::new(|w| w.cb_copy_name()),
             );
             create_action(
-                &win,
+                win,
                 PSAction::Record(RecordAction::CopyPassword),
                 Box::new(|w| w.cb_copy_password()),
             );
             create_action_async(
-                &win,
+                win,
                 PSAction::Record(RecordAction::Edit),
                 |win| async move { win.cb_edit_record().await },
             );
             create_action_async(
-                &win,
+                win,
                 PSAction::Record(RecordAction::Delete),
                 |w| async move { w.cb_delele_record().await },
             );
@@ -250,7 +250,7 @@ impl ObjectImpl for PSMainWindowInner {
             for record_type in RECORD_TYPES.iter() {
                 if !record_type.is_group {
                     create_action(
-                        &win,
+                        win,
                         PSAction::Record(RecordAction::ConvertTo(record_type.name.to_string())),
                         Box::new(move |w| w.cb_convert_record(record_type)),
                     );
@@ -521,7 +521,7 @@ impl PSMainWindow {
                 let new_record = {
                     let mut new_record = dest_record_type.new_record();
                     let name = record.get_field(&FIELD_NAME);
-                    new_record.set_field(&FIELD_NAME, &name);
+                    new_record.set_field(&FIELD_NAME, name);
                     new_record.join(&record);
                     new_record
                 };
@@ -780,7 +780,7 @@ impl PSMainWindow {
         if let Some((iter, _path)) = self.private().view.get_selected_iter() {
             if let Some(record) = self.private().data.borrow().get(&iter) {
                 if let Some(username) = record.username() {
-                    get_clipboard().set_text(&username);
+                    get_clipboard().set_text(username);
                     self.set_status("Name was copied to clipboard");
                 }
             }
@@ -791,7 +791,7 @@ impl PSMainWindow {
         if let Some((iter, _path)) = self.private().view.get_selected_iter() {
             if let Some(record) = self.private().data.borrow().get(&iter) {
                 if let Some(password) = record.password() {
-                    get_clipboard().set_text(&password);
+                    get_clipboard().set_text(password);
                     self.set_status("Secret (password) was copied to clipboard");
                 }
             }

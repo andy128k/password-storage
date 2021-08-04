@@ -330,7 +330,7 @@ impl Record {
 
     pub fn rename<F: Fn(&str) -> String>(&mut self, update_name: F) {
         let old_name = self.get_field(&FIELD_NAME);
-        let new_name = update_name(&old_name);
+        let new_name = update_name(old_name);
         self.set_field(&FIELD_NAME, &new_name);
     }
 
@@ -362,7 +362,7 @@ impl Record {
                     {
                         let dst_value = self.get_field(dst_field);
                         if dst_value.is_empty() {
-                            self.set_field(dst_field, &value);
+                            self.set_field(dst_field, value);
                         } else if dst_value != value {
                             unmapped.push(src_field);
                         }
@@ -382,19 +382,19 @@ impl Record {
 
         if !unmapped.is_empty() {
             let mut desc = String::new();
-            desc.push_str(&self.get_field(&FIELD_DESCRIPTION));
+            desc.push_str(self.get_field(&FIELD_DESCRIPTION));
 
             if !desc.is_empty() {
                 desc.push_str("\n\n");
             }
-            desc.push_str(&record.get_field(&FIELD_NAME));
+            desc.push_str(record.get_field(&FIELD_NAME));
             desc.push('\n');
             desc.push_str("----------");
             desc.push('\n');
             for field in unmapped {
                 desc.push_str(field.title);
                 desc.push_str(": ");
-                desc.push_str(&record.get_field(field));
+                desc.push_str(record.get_field(field));
                 desc.push('\n');
             }
 

@@ -15,10 +15,10 @@ impl<T> Promise<T> {
     }
 
     pub fn fulfill(&self, value: T) {
-        self.0.take().map(|sender| {
+        if let Some(sender) = self.0.take() {
             if sender.send(value).is_err() {
                 eprintln!("WARNING: no receiver");
             }
-        });
+        }
     }
 }

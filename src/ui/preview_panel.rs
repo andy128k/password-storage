@@ -80,7 +80,7 @@ fn record_to_markup(record: &Record, show_secrets: bool) -> String {
                             buf.push('\n');
                             buf.push('\n');
                         }
-                        buf.push_str(&glib::markup_escape_text(&value));
+                        buf.push_str(&glib::markup_escape_text(value));
                     }
                 }
                 "url" => {
@@ -89,7 +89,7 @@ fn record_to_markup(record: &Record, show_secrets: bool) -> String {
                     }
                     buf.push_str(&bold(field.title));
                     buf.push(' ');
-                    buf.push_str(&url(&value));
+                    buf.push_str(&url(value));
                 }
                 _ => {
                     if !buf.is_empty() {
@@ -97,7 +97,7 @@ fn record_to_markup(record: &Record, show_secrets: bool) -> String {
                     }
                     buf.push_str(&bold(field.title));
                     buf.push(' ');
-                    buf.push_str(&glib::markup_escape_text(&value));
+                    buf.push_str(&glib::markup_escape_text(value));
                 }
             }
         }
