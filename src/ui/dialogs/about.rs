@@ -1,7 +1,8 @@
 use crate::gtk_prelude::*;
+use crate::utils::promise::Promise;
 use crate::version::VERSION;
 
-pub fn about(parent: Option<&gtk::Window>) {
+pub async fn about(parent: Option<&gtk::Window>) {
     let dlg = gtk::AboutDialog::builder()
         .window_position(gtk::WindowPosition::CenterOnParent)
         .modal(true)
@@ -15,5 +16,11 @@ pub fn about(parent: Option<&gtk::Window>) {
         .website("http://andy128k.github.com/password-storage")
         .build();
     dlg.set_transient_for(parent);
+    let (promise, future) = Promise::new();
+    dlg.connect_response(move |dlg, _answer| {
+        dlg.close();
+        promise.fulfill(());
+    });
     dlg.show_all();
+    future.await.unwrap_or(());
 }

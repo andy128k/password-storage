@@ -57,7 +57,9 @@ impl ObjectImpl for PSApplicationInner {
         });
         app.add_action(&{
             let action = gio::SimpleAction::new("about", None);
-            action.connect_activate(clone!(@weak app => move |_, _| app.action_about()));
+            action.connect_activate(clone!(@weak app => move |_, _| {
+                glib::MainContext::default().spawn_local(async move { app.action_about().await; });
+            }));
             action
         });
         app.add_action(&{
@@ -132,9 +134,9 @@ impl PSApplication {
         }
     }
 
-    fn action_about(&self) {
+    async fn action_about(&self) {
         let win = self.active_window();
-        about(win.as_ref());
+        about(win.as_ref()).await;
     }
 
     async fn action_preferences(&self) {
