@@ -28,7 +28,7 @@ use crate::utils::ui::*;
 use guard::guard;
 use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::convert::Into;
 use std::future::Future;
 use std::iter::Iterator;
@@ -51,7 +51,10 @@ struct PSMainWindowPrivate {
     view: PSTreeView,
     preview: PSPreviewPanel,
 
-    actions: RefCell<HashMap<PSAction, gio::SimpleAction>>,
+    doc_actions: gio::SimpleActionGroup,
+    file_actions: gio::SimpleActionGroup,
+    merge_actions: gio::SimpleActionGroup,
+    entry_actions: gio::SimpleActionGroup,
 
     search_entry: gtk::Entry,
 
@@ -124,6 +127,11 @@ impl ObjectImpl for PSMainWindowInner {
 
         view.set_model(&data.as_model());
 
+        let doc_actions = gio::SimpleActionGroup::new();
+        let file_actions = gio::SimpleActionGroup::new();
+        let merge_actions = gio::SimpleActionGroup::new();
+        let entry_actions = gio::SimpleActionGroup::new();
+
         let private = PSMainWindowPrivate {
             mode: Cell::new(AppMode::Initial),
             stack,
@@ -133,7 +141,10 @@ impl ObjectImpl for PSMainWindowInner {
             search_entry,
             preview,
 
-            actions: RefCell::new(HashMap::new()),
+            doc_actions: doc_actions.clone(),
+            file_actions: file_actions.clone(),
+            merge_actions: merge_actions.clone(),
+            entry_actions: entry_actions.clone(),
 
             filename: RefCell::new(None),
             password: RefCell::new(None),
@@ -258,19 +269,10 @@ impl ObjectImpl for PSMainWindowInner {
             }
         }
 
-        {
-            let mut groups = HashMap::new();
-            for (name, action) in win.private().actions.borrow().iter() {
-                groups
-                    .entry(name.group())
-                    .or_insert_with(gio::SimpleActionGroup::new)
-                    .add_action(action);
-            }
-
-            for (group_name, group) in &groups {
-                win.insert_action_group(group_name.name(), Some(group));
-            }
-        }
+        win.insert_action_group("doc", Some(&doc_actions));
+        win.insert_action_group("file", Some(&file_actions));
+        win.insert_action_group("merge", Some(&merge_actions));
+        win.insert_action_group("entry", Some(&entry_actions));
 
         win.private()
             .dashboard
@@ -408,26 +410,34 @@ impl PSMainWindow {
     }
 
     fn listview_cursor_changed(&self, record: Option<Record>) {
-        for (action_name, action) in self.private().actions.borrow().iter() {
-            if let PSAction::Record(ref record_action_name) = *action_name {
-                let enabled = match *record_action_name {
-                    RecordAction::CopyName => record.is_some(),
-                    RecordAction::CopyPassword => {
-                        record.as_ref().and_then(|e| e.password()).is_some()
-                    }
-                    RecordAction::Edit => record.is_some(),
-                    RecordAction::Delete => record.is_some(),
-                    RecordAction::ConvertTo(ref to) => {
-                        if let Some(ref e) = record {
-                            !e.record_type.is_group && e.record_type.name != to
-                        } else {
-                            false
-                        }
-                    }
-                };
-                action.set_enabled(enabled);
-            }
-        }
+        let entry_actions = &self.private().entry_actions;
+        let is_selected_record = record.is_some();
+
+        entry_actions
+            .simple_action("copy-name")
+            .set_enabled(is_selected_record);
+        entry_actions
+            .simple_action("copy-password")
+            .set_enabled(record.as_ref().and_then(|e| e.password()).is_some());
+        entry_actions
+            .simple_action("edit")
+            .set_enabled(is_selected_record);
+        entry_actions
+            .simple_action("delete")
+            .set_enabled(is_selected_record);
+
+        entry_actions
+            .simple_actions()
+            .iter()
+            .filter(|action| action.name().starts_with("convert-to-"))
+            .for_each(|action| {
+                action.set_enabled(if let Some(ref record) = record {
+                    !record.record_type.is_group
+                        && format!("convert-to-{}", record.record_type.name) != action.name()
+                } else {
+                    false
+                });
+            });
 
         let show_secrets_on_preview = self
             .private()
@@ -812,25 +822,19 @@ impl PSMainWindow {
     }
 
     fn set_mode(&self, mode: AppMode) {
+        let private = self.private();
         match mode {
             AppMode::Initial => {
-                for (action_name, action) in self.private().actions.borrow().iter() {
-                    let enabled = match action_name.group() {
-                        PSActionGroup::Doc => false,
-                        PSActionGroup::ViewMode => false,
-                        PSActionGroup::MergeMode => false,
-                        PSActionGroup::Record => false,
-                    };
-                    action.set_enabled(enabled);
-                }
-                if let Some(action) = self
-                    .private()
-                    .actions
-                    .borrow()
-                    .get(&PSAction::Doc(DocAction::MergeMode))
-                {
-                    action.set_state(&false.to_variant());
-                }
+                private.doc_actions.set_enabled(false);
+                private.file_actions.set_enabled(false);
+                private.merge_actions.set_enabled(false);
+                private.entry_actions.set_enabled(false);
+
+                private
+                    .doc_actions
+                    .simple_action("merge-mode")
+                    .set_state(&false.to_variant());
+
                 self.private().search_entry.set_sensitive(false);
                 self.private().view.set_selection_mode(false);
                 self.private().stack.set_visible_child_name("dashboard");
@@ -839,45 +843,31 @@ impl PSMainWindow {
                 }
             }
             AppMode::FileOpened => {
-                for (action_name, action) in self.private().actions.borrow().iter() {
-                    let enabled = match action_name.group() {
-                        PSActionGroup::Doc => true,
-                        PSActionGroup::ViewMode => true,
-                        PSActionGroup::MergeMode => false,
-                        PSActionGroup::Record => true,
-                    };
-                    action.set_enabled(enabled);
-                }
-                if let Some(action) = self
-                    .private()
-                    .actions
-                    .borrow()
-                    .get(&PSAction::Doc(DocAction::MergeMode))
-                {
-                    action.set_state(&false.to_variant());
-                }
+                private.doc_actions.set_enabled(true);
+                private.file_actions.set_enabled(true);
+                private.merge_actions.set_enabled(false);
+                private.entry_actions.set_enabled(true);
+
+                private
+                    .doc_actions
+                    .simple_action("merge-mode")
+                    .set_state(&false.to_variant());
+
                 self.private().search_entry.set_sensitive(true);
                 self.private().view.set_selection_mode(false);
                 self.private().stack.set_visible_child_name("file");
             }
             AppMode::MergeMode => {
-                for (action_name, action) in self.private().actions.borrow().iter() {
-                    let enabled = match action_name.group() {
-                        PSActionGroup::Doc => true,
-                        PSActionGroup::ViewMode => false,
-                        PSActionGroup::MergeMode => true,
-                        PSActionGroup::Record => false,
-                    };
-                    action.set_enabled(enabled);
-                }
-                if let Some(action) = self
-                    .private()
-                    .actions
-                    .borrow()
-                    .get(&PSAction::Doc(DocAction::MergeMode))
-                {
-                    action.set_state(&true.to_variant());
-                }
+                private.doc_actions.set_enabled(true);
+                private.file_actions.set_enabled(false);
+                private.merge_actions.set_enabled(true);
+                private.entry_actions.set_enabled(false);
+
+                private
+                    .doc_actions
+                    .simple_action("merge-mode")
+                    .set_state(&true.to_variant());
+
                 self.private().search_entry.set_sensitive(true);
                 self.private().view.set_selection_mode(true);
                 self.private().stack.set_visible_child_name("file");
@@ -934,19 +924,26 @@ impl PSMainWindow {
     }
 }
 
+fn group_by_name<'w>(win: &'w PSMainWindow, group_name: &str) -> &'w gio::SimpleActionGroup {
+    match group_name {
+        "doc" => &win.private().doc_actions,
+        "file" => &win.private().file_actions,
+        "merge" => &win.private().merge_actions,
+        "entry" => &win.private().entry_actions,
+        _ => panic!("unknown group name {}", group_name),
+    }
+}
+
 fn create_action(
     win: &PSMainWindow,
     ps_action_name: actions::PSAction,
     cb: Box<dyn Fn(&PSMainWindow)>,
 ) {
-    let (_action_group_name, action_name) = ps_action_name.name();
+    let (action_group_name, action_name) = ps_action_name.name();
     let action = gio::SimpleAction::new(&action_name, None);
     let win1 = win.clone();
     action.connect_activate(move |_, _| cb(&win1));
-    win.private()
-        .actions
-        .borrow_mut()
-        .insert(ps_action_name, action);
+    group_by_name(win, &action_group_name).add_action(&action);
 }
 
 fn create_action_async<C, F>(win: &PSMainWindow, ps_action_name: actions::PSAction, callback: C)
@@ -954,16 +951,13 @@ where
     C: Fn(PSMainWindow) -> F + 'static,
     F: Future<Output = ()> + 'static,
 {
-    let (_action_group_name, action_name) = ps_action_name.name();
+    let (action_group_name, action_name) = ps_action_name.name();
     let action = gio::SimpleAction::new(&action_name, None);
     let win1 = win.clone();
     action.connect_activate(move |_, _| {
         glib::MainContext::default().spawn_local(callback(win1.clone()));
     });
-    win.private()
-        .actions
-        .borrow_mut()
-        .insert(ps_action_name, action);
+    group_by_name(win, &action_group_name).add_action(&action);
 }
 
 fn create_toggle_action(
@@ -971,7 +965,7 @@ fn create_toggle_action(
     ps_action_name: actions::PSAction,
     cb: Box<dyn Fn(&PSMainWindow, bool)>,
 ) {
-    let (_action_group_name, action_name) = ps_action_name.name();
+    let (action_group_name, action_name) = ps_action_name.name();
     let action = gio::SimpleAction::new_stateful(&action_name, None, &false.to_variant());
     let win1 = win.clone();
     action.connect_activate(move |action, _| {
@@ -983,10 +977,7 @@ fn create_toggle_action(
         action.set_state(&new_state.to_variant());
         cb(&win1, new_state);
     });
-    win.private()
-        .actions
-        .borrow_mut()
-        .insert(ps_action_name, action);
+    group_by_name(win, &action_group_name).add_action(&action);
 }
 
 async fn load_data(filename: PathBuf, parent_window: &gtk::Window) -> Option<(RecordTree, String)> {

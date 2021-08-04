@@ -49,3 +49,30 @@ impl PSStackExt for gtk::Stack {
         self
     }
 }
+
+pub trait PSSimpleActionGroupExt {
+    fn simple_actions(&self) -> Vec<gio::SimpleAction>;
+    fn simple_action(&self, name: &str) -> gio::SimpleAction;
+    fn set_enabled(&self, enabled: bool) {
+        for action in self.simple_actions() {
+            action.set_enabled(enabled);
+        }
+    }
+}
+
+impl PSSimpleActionGroupExt for gio::SimpleActionGroup {
+    fn simple_actions(&self) -> Vec<gio::SimpleAction> {
+        self.list_actions()
+            .iter()
+            .filter_map(|name| self.lookup_action(name))
+            .filter_map(|action| action.downcast::<gio::SimpleAction>().ok())
+            .collect()
+    }
+
+    fn simple_action(&self, name: &str) -> gio::SimpleAction {
+        self.lookup_action(name)
+            .expect(&format!("Action {} should exist.", name))
+            .downcast::<gio::SimpleAction>()
+            .expect(&format!("Action {} should be a simple action.", name))
+    }
+}
