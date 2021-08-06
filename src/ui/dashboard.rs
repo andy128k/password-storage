@@ -1,6 +1,5 @@
 use crate::cache::Cache;
 use crate::gtk_prelude::*;
-use std::path::Path;
 
 #[derive(Clone)]
 pub struct PSDashboard {
@@ -28,11 +27,10 @@ fn framed<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
 mod filerow {
     use crate::gtk_prelude::*;
     use crate::markup_builder::bold;
+    use os_str_bytes::OsStrBytes;
     use std::path::{Path, PathBuf};
 
     thread_local! {
-        static FILENAME_DATA_KEY: glib::Quark = glib::Quark::from_string("filename");
-
         static CSS_PROVIDER: gtk::CssProvider = {
             let provider = gtk::CssProvider::new();
             provider
@@ -90,24 +88,16 @@ mod filerow {
         let row = gtk::ListBoxRow::new();
         row.add(&grid);
 
-        unsafe {
-            row.set_qdata(FILENAME_DATA_KEY.with(Clone::clone), filename);
-        }
+        row.set_action_name(Some("app.open-file"));
+        row.set_action_target_value(Some(&glib::Variant::from_bytes::<Vec<u8>>(
+            &glib::Bytes::from(filename.to_raw_bytes().as_ref()),
+        )));
 
         remove_button.connect_clicked(clone!(@weak row => move |_| {
-            if let Some(filename) = get_filename(&row) {
-                on_remove(&row, filename);
-            }
+            on_remove(&row, &filename);
         }));
 
         Some(row)
-    }
-
-    pub fn get_filename(row: &gtk::ListBoxRow) -> Option<&PathBuf> {
-        unsafe {
-            row.qdata::<PathBuf>(FILENAME_DATA_KEY.with(Clone::clone))
-                .map(|p| p.as_ref())
-        }
     }
 }
 
@@ -162,13 +152,5 @@ impl PSDashboard {
 
     pub fn get_widget(&self) -> gtk::Widget {
         self.container.clone().upcast()
-    }
-
-    pub fn connect_activate<F: Fn(&Path) + 'static>(&self, callback: F) {
-        self.listbox
-            .connect_row_activated(move |_, row| match filerow::get_filename(row) {
-                Some(filename) => callback(filename),
-                None => eprintln!("Cannot get filename."),
-            });
     }
 }

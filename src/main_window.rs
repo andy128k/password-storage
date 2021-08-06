@@ -184,15 +184,6 @@ impl ObjectImpl for PSMainWindowInner {
         win.insert_action_group("entry", Some(&entry_actions));
 
         win.private()
-            .dashboard
-            .connect_activate(clone!(@weak win => move |filename| {
-                let filename = filename.to_owned();
-                glib::MainContext::default().spawn_local(async move {
-                    win.do_open_file(&filename).await;
-                });
-            }));
-
-        win.private()
             .search_entry
             .connect_changed(clone!(@weak win => move |search_entry| {
                 if let Some(search_text) = search_entry.text().non_empty() {

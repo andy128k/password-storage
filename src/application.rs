@@ -5,7 +5,9 @@ use crate::main_window::PSMainWindow;
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
 use crate::ui::menu::create_menu_bar;
+use os_str_bytes::OsStringBytes;
 use std::cell::RefCell;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 #[derive(Default)]
@@ -129,5 +131,16 @@ impl PSApplication {
     async fn open_file(&self) {
         let win = self.activate_main_window();
         win.open_file().await;
+    }
+
+    #[action(name = "open-file")]
+    async fn open_file_by_name(&self, buffer: Vec<u8>) {
+        match PathBuf::from_raw_vec(buffer) {
+            Ok(filename) => {
+                let win = self.activate_main_window();
+                win.do_open_file(&filename).await;
+            }
+            Err(error) => eprintln!("open-file: {}", error),
+        }
     }
 }
