@@ -1,11 +1,9 @@
-use crate::actions;
-use crate::actions::*;
 use crate::cache::Cache;
 use crate::config::Config;
 use crate::error::*;
 use crate::format;
 use crate::gtk_prelude::*;
-use crate::model::record::{Record, RecordType, FIELD_NAME, RECORD_TYPES};
+use crate::model::record::{Record, RecordType, FIELD_NAME, RECORD_TYPE_GENERIC};
 use crate::model::tree::RecordTree;
 use crate::store::PSStore;
 use crate::ui;
@@ -30,7 +28,6 @@ use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::convert::Into;
-use std::future::Future;
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -128,9 +125,16 @@ impl ObjectImpl for PSMainWindowInner {
         view.set_model(&data.as_model());
 
         let doc_actions = gio::SimpleActionGroup::new();
+        win.register_doc_actions(&doc_actions);
+
         let file_actions = gio::SimpleActionGroup::new();
+        win.register_file_actions(&file_actions);
+
         let merge_actions = gio::SimpleActionGroup::new();
+        win.register_merge_actions(&merge_actions);
+
         let entry_actions = gio::SimpleActionGroup::new();
+        win.register_entry_actions(&entry_actions);
 
         let private = PSMainWindowPrivate {
             mode: Cell::new(AppMode::Initial),
@@ -173,101 +177,6 @@ impl ObjectImpl for PSMainWindowInner {
             }),
         );
         *self.delete_handler.borrow_mut() = Some(delete_handler);
-
-        {
-            create_toggle_action(
-                win,
-                PSAction::Doc(DocAction::MergeMode),
-                Box::new(|win1, toggled| win1.set_merge_mode(toggled)),
-            );
-
-            create_action_async(
-                win,
-                PSAction::ViewMode(ViewModeAction::MergeFile),
-                |w| async move { w.cb_merge_file().await },
-            );
-            create_action_async(
-                win,
-                PSAction::ViewMode(ViewModeAction::Save),
-                |w| async move {
-                    w.cb_save().await;
-                },
-            );
-            create_action_async(
-                win,
-                PSAction::ViewMode(ViewModeAction::SaveAs),
-                |w| async move {
-                    w.cb_save_as().await;
-                },
-            );
-            create_action_async(
-                win,
-                PSAction::ViewMode(ViewModeAction::Close),
-                |w| async move { w.cb_close().await },
-            );
-            create_action(
-                win,
-                PSAction::ViewMode(ViewModeAction::Find),
-                Box::new(|win| {
-                    win.private().search_entry.grab_focus();
-                }),
-            );
-            create_action_async(
-                win,
-                PSAction::ViewMode(ViewModeAction::ChangePassword),
-                |w| async move { w.cb_change_password().await },
-            );
-
-            for record_type in RECORD_TYPES.iter() {
-                create_action_async(
-                    win,
-                    PSAction::ViewMode(ViewModeAction::Add(record_type.name.to_string())),
-                    move |win1| async move { win1.cb_add_record(record_type).await },
-                );
-            }
-
-            create_action(
-                win,
-                PSAction::MergeMode(MergeModeAction::UncheckAll),
-                Box::new(|w| w.cb_uncheck_all()),
-            );
-            create_action_async(
-                win,
-                PSAction::MergeMode(MergeModeAction::Merge),
-                |w| async move { w.cb_merge().await },
-            );
-
-            create_action(
-                win,
-                PSAction::Record(RecordAction::CopyName),
-                Box::new(|w| w.cb_copy_name()),
-            );
-            create_action(
-                win,
-                PSAction::Record(RecordAction::CopyPassword),
-                Box::new(|w| w.cb_copy_password()),
-            );
-            create_action_async(
-                win,
-                PSAction::Record(RecordAction::Edit),
-                |win| async move { win.cb_edit_record().await },
-            );
-            create_action_async(
-                win,
-                PSAction::Record(RecordAction::Delete),
-                |w| async move { w.cb_delele_record().await },
-            );
-
-            for record_type in RECORD_TYPES.iter() {
-                if !record_type.is_group {
-                    create_action(
-                        win,
-                        PSAction::Record(RecordAction::ConvertTo(record_type.name.to_string())),
-                        Box::new(move |w| w.cb_convert_record(record_type)),
-                    );
-                }
-            }
-        }
 
         win.insert_action_group("doc", Some(&doc_actions));
         win.insert_action_group("file", Some(&file_actions));
@@ -350,7 +259,7 @@ impl ApplicationWindowImpl for PSMainWindowInner {}
 
 glib::wrapper! {
     pub struct PSMainWindow(ObjectSubclass<PSMainWindowInner>)
-        @extends gtk::ApplicationWindow, gtk::Window, gtk::Bin, gtk::Container, gtk::Widget;
+        @extends gtk::ApplicationWindow, gtk::Window, gtk::Bin, gtk::Container, gtk::Widget, @implements gio::ActionMap;
 }
 
 impl PSMainWindow {
@@ -477,166 +386,6 @@ impl PSMainWindow {
         vec
     }
 
-    async fn cb_add_record(&self, record_type: &'static RecordType) {
-        let empty_record = record_type.new_record();
-        if let Some(new_record) = edit_record(
-            &empty_record,
-            &self.clone().upcast(),
-            "Add",
-            &self.get_usernames(),
-        )
-        .await
-        {
-            let group_iter = self.get_selected_group_iter();
-            let iter = self
-                .private()
-                .data
-                .borrow()
-                .append(group_iter.as_ref(), &new_record);
-            self.refilter();
-            self.private().view.select_iter(&iter);
-            self.set_status("New entry was added");
-            self.private().changed.set(true);
-        }
-    }
-
-    async fn cb_edit_record(&self) {
-        let selection = self.private().view.get_selected_iter();
-        if let Some((iter, _path)) = selection {
-            let record_opt = self.private().data.borrow().get(&iter);
-            if let Some(record) = record_opt {
-                if let Some(new_record) = edit_record(
-                    &record,
-                    &self.clone().upcast(),
-                    "Edit",
-                    &self.get_usernames(),
-                )
-                .await
-                {
-                    self.private().data.borrow().update(&iter, &new_record);
-                    self.refilter();
-                    self.listview_cursor_changed(Some(new_record));
-                    self.set_status("Entry was changed");
-                    self.private().changed.set(true);
-                }
-            }
-        }
-    }
-
-    fn cb_convert_record(&self, dest_record_type: &'static RecordType) {
-        let selection = self.private().view.get_selected_iter();
-        if let Some((iter, _path)) = selection {
-            let record_opt = self.private().data.borrow().get(&iter);
-            if let Some(record) = record_opt {
-                let new_record = {
-                    let mut new_record = dest_record_type.new_record();
-                    let name = record.get_field(&FIELD_NAME);
-                    new_record.set_field(&FIELD_NAME, name);
-                    new_record.join(&record);
-                    new_record
-                };
-                self.private().data.borrow().update(&iter, &new_record);
-                self.refilter();
-                self.set_status("Entry has changed type");
-                self.private().changed.set(true);
-                self.listview_cursor_changed(Some(new_record));
-            }
-        }
-    }
-
-    async fn cb_delele_record(&self) {
-        guard!(let Some(selection) = self.private().view.get_selected_iter() else { return });
-        let confirmed = confirm_unlikely(
-            &self.clone().upcast(),
-            "Do you really want to delete selected entry?",
-        )
-        .await;
-        if confirmed {
-            self.private().data.borrow().delete(&selection.0);
-            self.listview_cursor_changed(None);
-            self.set_status("Entry was deleted");
-            self.private().changed.set(true);
-        }
-    }
-
-    fn cb_uncheck_all(&self) {
-        self.private().data.borrow().uncheck_all();
-        self.set_status("Unchecked all items");
-    }
-
-    async fn cb_merge(&self) {
-        let checked = {
-            fn collect_checked(
-                model: &PSStore,
-                parent: Option<&gtk::TreeIter>,
-                path: &[String],
-                result: &mut Vec<(Record, Vec<String>)>,
-            ) {
-                for (i, record) in model.children(parent) {
-                    if model.is_selected(&i) {
-                        result.push((record.clone(), path.to_vec()));
-                    }
-                    let mut p = path.to_vec();
-                    p.push(record.name().to_string());
-                    collect_checked(model, Some(&i), &p, result);
-                }
-            }
-            let mut checked = Vec::new();
-            collect_checked(
-                &self.private().data.borrow(),
-                None,
-                &Vec::new(),
-                &mut checked,
-            );
-            checked
-        };
-
-        if checked.len() < 2 {
-            say_info(
-                &self.clone().upcast(),
-                "Nothing to merge. Select few items and try again.",
-            )
-            .await;
-            return;
-        }
-
-        // rename
-        let records = {
-            let mut renamed_records: Vec<Record> = Vec::new();
-            for &(ref record, ref path) in &checked {
-                let mut renamed = record.clone();
-                renamed.rename(move |old_name| format!("{}/{}", path.join("/"), old_name));
-                renamed_records.push(renamed);
-            }
-            renamed_records
-        };
-
-        {
-            let mut message = String::from("Do you want to merge following items?\n");
-            for record in &records {
-                message.push('\n');
-                message.push_str(&record.name());
-            }
-
-            if !confirm_likely(&self.clone().upcast(), &message).await {
-                return;
-            }
-        }
-
-        // delete entries
-        self.private().data.borrow().delete_checked();
-
-        // create new entry
-        let result = Record::join_entries(&records);
-
-        // TODO: detect common path
-        let iter = self.private().data.borrow().append(None, &result);
-        self.refilter();
-        self.private().view.select_iter(&iter);
-        self.set_status("New entry was created by merging");
-        self.private().changed.set(true);
-    }
-
     async fn ensure_password_is_set(&self) -> Option<String> {
         if self.private().password.borrow().is_none() {
             *self.private().password.borrow_mut() = new_password(&self.clone().upcast()).await;
@@ -717,24 +466,6 @@ impl PSMainWindow {
         }
     }
 
-    async fn cb_merge_file(&self) {
-        self.private().search_entry.set_text("");
-
-        let window = self.clone().upcast();
-        if let Some(filename) = open_file(&window).await {
-            if let Some((extra_records, _password)) = load_data(filename, &window).await {
-                let mut records_tree = self.private().data.borrow().to_tree();
-                crate::model::merge_trees::merge_trees(&mut records_tree, &extra_records);
-
-                let data = PSStore::from_tree(&records_tree);
-                *self.private().data.borrow_mut() = data.clone();
-                self.private().view.set_model(&data.as_model());
-
-                self.private().changed.set(true);
-            }
-        }
-    }
-
     async fn cb_save_as(&self) -> bool {
         let window = self.clone().upcast();
         if let Some(ref filename) = save_file(&window).await {
@@ -761,53 +492,6 @@ impl PSMainWindow {
         }
     }
 
-    async fn cb_close(&self) {
-        if self.ensure_data_is_saved().await {
-            self.private().changed.set(false);
-            self.private().search_entry.set_text("");
-
-            let data = PSStore::new();
-            *self.private().data.borrow_mut() = data.clone();
-            self.private().view.set_model(&data.as_model());
-
-            self.set_filename(None);
-            *self.private().password.borrow_mut() = None;
-            self.listview_cursor_changed(None);
-            self.set_mode(AppMode::Initial);
-            self.set_status("");
-        }
-    }
-
-    async fn cb_change_password(&self) {
-        if let Some(new_password) = change_password(&self.clone().upcast()).await {
-            *self.private().password.borrow_mut() = Some(new_password);
-            self.private().changed.set(true);
-            self.set_status("File password was changed");
-        }
-    }
-
-    fn cb_copy_name(&self) {
-        if let Some((iter, _path)) = self.private().view.get_selected_iter() {
-            if let Some(record) = self.private().data.borrow().get(&iter) {
-                if let Some(username) = record.username() {
-                    get_clipboard().set_text(username);
-                    self.set_status("Name was copied to clipboard");
-                }
-            }
-        }
-    }
-
-    fn cb_copy_password(&self) {
-        if let Some((iter, _path)) = self.private().view.get_selected_iter() {
-            if let Some(record) = self.private().data.borrow().get(&iter) {
-                if let Some(password) = record.password() {
-                    get_clipboard().set_text(password);
-                    self.set_status("Secret (password) was copied to clipboard");
-                }
-            }
-        }
-    }
-
     async fn on_row_activated(&self, selection: Option<(gtk::TreeIter, gtk::TreePath)>) {
         if let Some((iter, path)) = selection {
             let record_opt = self.private().data.borrow().get(&iter);
@@ -815,7 +499,7 @@ impl PSMainWindow {
                 if record.record_type.is_group {
                     self.private().view.toggle_group(&path);
                 } else {
-                    self.cb_edit_record().await;
+                    self.action_edit().await;
                 }
             }
         }
@@ -924,60 +608,279 @@ impl PSMainWindow {
     }
 }
 
-fn group_by_name<'w>(win: &'w PSMainWindow, group_name: &str) -> &'w gio::SimpleActionGroup {
-    match group_name {
-        "doc" => &win.private().doc_actions,
-        "file" => &win.private().file_actions,
-        "merge" => &win.private().merge_actions,
-        "entry" => &win.private().entry_actions,
-        _ => panic!("unknown group name {}", group_name),
+#[awesome_glib::actions(register_fn = "register_doc_actions")]
+impl PSMainWindow {
+    #[action(stateful, name = "merge-mode")]
+    fn action_merge_mode(&self, toggled: bool) -> Option<bool> {
+        self.set_merge_mode(!toggled);
+        Some(!toggled)
     }
 }
 
-fn create_action(
-    win: &PSMainWindow,
-    ps_action_name: actions::PSAction,
-    cb: Box<dyn Fn(&PSMainWindow)>,
-) {
-    let (action_group_name, action_name) = ps_action_name.name();
-    let action = gio::SimpleAction::new(&action_name, None);
-    let win1 = win.clone();
-    action.connect_activate(move |_, _| cb(&win1));
-    group_by_name(win, &action_group_name).add_action(&action);
+#[awesome_glib::actions(register_fn = "register_file_actions")]
+impl PSMainWindow {
+    #[action(name = "close")]
+    async fn action_close_file(&self) {
+        if self.ensure_data_is_saved().await {
+            self.private().changed.set(false);
+            self.private().search_entry.set_text("");
+
+            let data = PSStore::new();
+            *self.private().data.borrow_mut() = data.clone();
+            self.private().view.set_model(&data.as_model());
+
+            self.set_filename(None);
+            *self.private().password.borrow_mut() = None;
+            self.listview_cursor_changed(None);
+            self.set_mode(AppMode::Initial);
+            self.set_status("");
+        }
+    }
+
+    #[action(name = "save")]
+    async fn action_save(&self) {
+        let _saved = self.cb_save().await;
+    }
+
+    #[action(name = "save-as")]
+    async fn action_save_as(&self) {
+        let _saved = self.cb_save_as().await;
+    }
+
+    #[action(name = "merge-file")]
+    async fn action_merge_file(&self) {
+        self.private().search_entry.set_text("");
+
+        let window = self.clone().upcast();
+        if let Some(filename) = open_file(&window).await {
+            if let Some((extra_records, _password)) = load_data(filename, &window).await {
+                let mut records_tree = self.private().data.borrow().to_tree();
+                crate::model::merge_trees::merge_trees(&mut records_tree, &extra_records);
+
+                let data = PSStore::from_tree(&records_tree);
+                *self.private().data.borrow_mut() = data.clone();
+                self.private().view.set_model(&data.as_model());
+
+                self.private().changed.set(true);
+            }
+        }
+    }
+
+    #[action(name = "change-password")]
+    async fn action_change_password(&self) {
+        if let Some(new_password) = change_password(&self.clone().upcast()).await {
+            *self.private().password.borrow_mut() = Some(new_password);
+            self.private().changed.set(true);
+            self.set_status("File password was changed");
+        }
+    }
+
+    #[action(name = "find")]
+    fn action_find(&self) {
+        self.private().search_entry.grab_focus();
+    }
+
+    #[action(name = "add")]
+    async fn action_add_record(&self, record_type_name: String) {
+        let record_type = RecordType::find(&record_type_name).unwrap_or(&*RECORD_TYPE_GENERIC);
+
+        let empty_record = record_type.new_record();
+        if let Some(new_record) = edit_record(
+            &empty_record,
+            &self.clone().upcast(),
+            "Add",
+            &self.get_usernames(),
+        )
+        .await
+        {
+            let group_iter = self.get_selected_group_iter();
+            let iter = self
+                .private()
+                .data
+                .borrow()
+                .append(group_iter.as_ref(), &new_record);
+            self.refilter();
+            self.private().view.select_iter(&iter);
+            self.set_status("New entry was added");
+            self.private().changed.set(true);
+        }
+    }
 }
 
-fn create_action_async<C, F>(win: &PSMainWindow, ps_action_name: actions::PSAction, callback: C)
-where
-    C: Fn(PSMainWindow) -> F + 'static,
-    F: Future<Output = ()> + 'static,
-{
-    let (action_group_name, action_name) = ps_action_name.name();
-    let action = gio::SimpleAction::new(&action_name, None);
-    let win1 = win.clone();
-    action.connect_activate(move |_, _| {
-        glib::MainContext::default().spawn_local(callback(win1.clone()));
-    });
-    group_by_name(win, &action_group_name).add_action(&action);
+#[awesome_glib::actions(register_fn = "register_merge_actions")]
+impl PSMainWindow {
+    #[action(name = "uncheck-all")]
+    fn action_uncheck_all(&self) {
+        self.private().data.borrow().uncheck_all();
+        self.set_status("Unchecked all items");
+    }
+
+    #[action(name = "merge")]
+    async fn action_merge(&self) {
+        let checked = {
+            fn collect_checked(
+                model: &PSStore,
+                parent: Option<&gtk::TreeIter>,
+                path: &[String],
+                result: &mut Vec<(Record, Vec<String>)>,
+            ) {
+                for (i, record) in model.children(parent) {
+                    if model.is_selected(&i) {
+                        result.push((record.clone(), path.to_vec()));
+                    }
+                    let mut p = path.to_vec();
+                    p.push(record.name().to_string());
+                    collect_checked(model, Some(&i), &p, result);
+                }
+            }
+            let mut checked = Vec::new();
+            collect_checked(
+                &self.private().data.borrow(),
+                None,
+                &Vec::new(),
+                &mut checked,
+            );
+            checked
+        };
+
+        if checked.len() < 2 {
+            say_info(
+                &self.clone().upcast(),
+                "Nothing to merge. Select few items and try again.",
+            )
+            .await;
+            return;
+        }
+
+        // rename
+        let records = {
+            let mut renamed_records: Vec<Record> = Vec::new();
+            for &(ref record, ref path) in &checked {
+                let mut renamed = record.clone();
+                renamed.rename(move |old_name| format!("{}/{}", path.join("/"), old_name));
+                renamed_records.push(renamed);
+            }
+            renamed_records
+        };
+
+        {
+            let mut message = String::from("Do you want to merge following items?\n");
+            for record in &records {
+                message.push('\n');
+                message.push_str(&record.name());
+            }
+
+            if !confirm_likely(&self.clone().upcast(), &message).await {
+                return;
+            }
+        }
+
+        // delete entries
+        self.private().data.borrow().delete_checked();
+
+        // create new entry
+        let result = Record::join_entries(&records);
+
+        // TODO: detect common path
+        let iter = self.private().data.borrow().append(None, &result);
+        self.refilter();
+        self.private().view.select_iter(&iter);
+        self.set_status("New entry was created by merging");
+        self.private().changed.set(true);
+    }
 }
 
-fn create_toggle_action(
-    win: &PSMainWindow,
-    ps_action_name: actions::PSAction,
-    cb: Box<dyn Fn(&PSMainWindow, bool)>,
-) {
-    let (action_group_name, action_name) = ps_action_name.name();
-    let action = gio::SimpleAction::new_stateful(&action_name, None, &false.to_variant());
-    let win1 = win.clone();
-    action.connect_activate(move |action, _| {
-        let prev_state: bool = action
-            .state()
-            .and_then(|state| state.get())
-            .unwrap_or(false);
-        let new_state: bool = !prev_state;
-        action.set_state(&new_state.to_variant());
-        cb(&win1, new_state);
-    });
-    group_by_name(win, &action_group_name).add_action(&action);
+#[awesome_glib::actions(register_fn = "register_entry_actions")]
+impl PSMainWindow {
+    #[action(name = "copy-name")]
+    fn action_copy_name(&self) {
+        if let Some((iter, _path)) = self.private().view.get_selected_iter() {
+            if let Some(record) = self.private().data.borrow().get(&iter) {
+                if let Some(username) = record.username() {
+                    get_clipboard().set_text(username);
+                    self.set_status("Name was copied to clipboard");
+                }
+            }
+        }
+    }
+
+    #[action(name = "copy-password")]
+    fn action_copy_password(&self) {
+        if let Some((iter, _path)) = self.private().view.get_selected_iter() {
+            if let Some(record) = self.private().data.borrow().get(&iter) {
+                if let Some(password) = record.password() {
+                    get_clipboard().set_text(password);
+                    self.set_status("Secret (password) was copied to clipboard");
+                }
+            }
+        }
+    }
+
+    #[action(name = "edit")]
+    async fn action_edit(&self) {
+        let selection = self.private().view.get_selected_iter();
+        if let Some((iter, _path)) = selection {
+            let record_opt = self.private().data.borrow().get(&iter);
+            if let Some(record) = record_opt {
+                if let Some(new_record) = edit_record(
+                    &record,
+                    &self.clone().upcast(),
+                    "Edit",
+                    &self.get_usernames(),
+                )
+                .await
+                {
+                    self.private().data.borrow().update(&iter, &new_record);
+                    self.refilter();
+                    self.listview_cursor_changed(Some(new_record));
+                    self.set_status("Entry was changed");
+                    self.private().changed.set(true);
+                }
+            }
+        }
+    }
+
+    #[action(name = "delete")]
+    async fn action_delele(&self) {
+        guard!(let Some(selection) = self.private().view.get_selected_iter() else { return });
+        let confirmed = confirm_unlikely(
+            &self.clone().upcast(),
+            "Do you really want to delete selected entry?",
+        )
+        .await;
+        if confirmed {
+            self.private().data.borrow().delete(&selection.0);
+            self.listview_cursor_changed(None);
+            self.set_status("Entry was deleted");
+            self.private().changed.set(true);
+        }
+    }
+
+    #[action(name = "convert-to")]
+    fn action_convert(&self, dest_record_type_name: String) {
+        guard!(let Some(selection) = self.private().view.get_selected_iter() else { return; });
+        let selection_iter = selection.0;
+        guard!(let Some(record) = self.private().data.borrow().get(&selection_iter) else { return; });
+
+        guard!(let Some(dest_record_type) = RecordType::find(&dest_record_type_name)
+            .filter(|rt| !rt.is_group && !rt.ref_eq(record.record_type)) else { return; });
+
+        let new_record = {
+            let mut new_record = dest_record_type.new_record();
+            let name = record.get_field(&FIELD_NAME);
+            new_record.set_field(&FIELD_NAME, name);
+            new_record.join(&record);
+            new_record
+        };
+        self.private()
+            .data
+            .borrow()
+            .update(&selection_iter, &new_record);
+        self.refilter();
+        self.set_status("Entry has changed type");
+        self.private().changed.set(true);
+        self.listview_cursor_changed(Some(new_record));
+    }
 }
 
 async fn load_data(filename: PathBuf, parent_window: &gtk::Window) -> Option<(RecordTree, String)> {

@@ -1,4 +1,3 @@
-use crate::actions::*;
 use crate::gtk_prelude::*;
 use crate::model::record::RECORD_TYPES;
 use crate::utils::menu_builder::*;
@@ -6,7 +5,7 @@ use crate::utils::menu_builder::*;
 pub fn create_add_entity_menu() -> gio::Menu {
     gio::Menu::from_items(RECORD_TYPES.iter().map(|record_type| {
         gio::MenuItem::create()
-            .action(&format!("file.add-{}", record_type.name))
+            .action(&format!("file.add::{}", record_type.name))
             .label(&format!("Add {}", record_type.name))
             .icon(record_type.icon)
     }))
@@ -19,7 +18,7 @@ pub fn create_convert_entity_menu() -> gio::Menu {
             .filter(|rt| !rt.is_group)
             .map(|record_type| {
                 gio::MenuItem::create()
-                    .action(&format!("entry.convert-to-{}", record_type.name))
+                    .action(&format!("entry.convert-to::{}", record_type.name))
                     .label(&format!("Convert to {}", record_type.name))
                     .icon(record_type.icon)
             }),
@@ -46,20 +45,20 @@ pub fn create_menu_bar() -> gio::MenuModel {
                         )
                         .item(
                             gio::MenuItem::create()
-                                .action(&PSAction::ViewMode(ViewModeAction::Save).full_name())
+                                .action("file.save")
                                 .label("_Save")
                                 .accel("<Primary>s"),
                         )
                         .item(
                             gio::MenuItem::create()
-                                .action(&PSAction::ViewMode(ViewModeAction::SaveAs).full_name())
+                                .action("file.save-as")
                                 .label("Save _As..."),
                         ),
                 )
                 .section(
                     gio::Menu::new().item(
                         gio::MenuItem::create()
-                            .action(&PSAction::ViewMode(ViewModeAction::MergeFile).full_name())
+                            .action("file.merge-file")
                             .label("_Merge file"),
                     ),
                 )
@@ -67,7 +66,7 @@ pub fn create_menu_bar() -> gio::MenuModel {
                     gio::Menu::new()
                         .item(
                             gio::MenuItem::create()
-                                .action(&PSAction::ViewMode(ViewModeAction::Close).full_name())
+                                .action("file.close")
                                 .label("_Close")
                                 .accel("<Primary>w"),
                         )
@@ -84,7 +83,7 @@ pub fn create_menu_bar() -> gio::MenuModel {
                 .section(
                     gio::Menu::new().item(
                         gio::MenuItem::create()
-                            .action(&PSAction::ViewMode(ViewModeAction::Find).full_name())
+                            .action("file.find")
                             .label("_Find")
                             .accel("<Primary>f"),
                     ),
@@ -93,13 +92,13 @@ pub fn create_menu_bar() -> gio::MenuModel {
                     gio::Menu::new()
                         .item(
                             gio::MenuItem::create()
-                                .action(&PSAction::Record(RecordAction::CopyName).full_name())
+                                .action("entry.copy-name")
                                 .label("Copy _name")
                                 .accel("<Primary>c"),
                         )
                         .item(
                             gio::MenuItem::create()
-                                .action(&PSAction::Record(RecordAction::CopyPassword).full_name())
+                                .action("entry.copy-password")
                                 .label("Copy pass_word")
                                 .accel("<Primary><Shift>c"),
                         ),
@@ -107,7 +106,7 @@ pub fn create_menu_bar() -> gio::MenuModel {
                 .section(
                     gio::Menu::new().item(
                         gio::MenuItem::create()
-                            .action(&PSAction::ViewMode(ViewModeAction::ChangePassword).full_name())
+                            .action("file.change-password")
                             .label("Change file _password"),
                     ),
                 )
@@ -115,14 +114,12 @@ pub fn create_menu_bar() -> gio::MenuModel {
                     gio::Menu::new()
                         .item(
                             gio::MenuItem::create()
-                                .action(&PSAction::Doc(DocAction::MergeMode).full_name())
+                                .action("doc.merge-mode")
                                 .label("_Merge mode"),
                         )
                         .item(
                             gio::MenuItem::create()
-                                .action(
-                                    &PSAction::MergeMode(MergeModeAction::UncheckAll).full_name(),
-                                )
+                                .action("merge.uncheck-all")
                                 .label("Uncheck all"),
                         ),
                 )
@@ -137,20 +134,16 @@ pub fn create_menu_bar() -> gio::MenuModel {
         .submenu("_Entry", {
             gio::Menu::new()
                 .submenu("_Add", create_add_entity_menu())
-                .item(
-                    gio::MenuItem::create()
-                        .action(&PSAction::Record(RecordAction::Edit).full_name())
-                        .label("_Edit"),
-                )
+                .item(gio::MenuItem::create().action("entry.edit").label("_Edit"))
                 .submenu("_Convert", create_convert_entity_menu())
                 .item(
                     gio::MenuItem::create()
-                        .action(&PSAction::Record(RecordAction::Delete).full_name())
+                        .action("entry.delete")
                         .label("_Delete"),
                 )
                 .item(
                     gio::MenuItem::create()
-                        .action(&PSAction::MergeMode(MergeModeAction::Merge).full_name())
+                        .action("merge.merge")
                         .label("_Merge"),
                 )
         })
@@ -170,13 +163,13 @@ pub fn create_tree_popup() -> gio::MenuModel {
             gio::Menu::new()
                 .item(
                     gio::MenuItem::create()
-                        .action(&PSAction::Record(RecordAction::CopyName).full_name())
+                        .action("entry.copy-name")
                         .label("Copy _name")
                         .accel("<Primary>c"),
                 )
                 .item(
                     gio::MenuItem::create()
-                        .action(&PSAction::Record(RecordAction::CopyPassword).full_name())
+                        .action("entry.copy-passwors")
                         .label("Copy pass_word")
                         .accel("<Primary><Shift>c"),
                 ),
@@ -184,15 +177,11 @@ pub fn create_tree_popup() -> gio::MenuModel {
         .section(create_add_entity_menu())
         .section(
             gio::Menu::new()
-                .item(
-                    gio::MenuItem::create()
-                        .action(&PSAction::Record(RecordAction::Edit).full_name())
-                        .label("_Edit"),
-                )
+                .item(gio::MenuItem::create().action("entry.edit").label("_Edit"))
                 .submenu("_Convert", create_convert_entity_menu())
                 .item(
                     gio::MenuItem::create()
-                        .action(&PSAction::Record(RecordAction::Delete).full_name())
+                        .action("entry.delete")
                         .label("_Delete"),
                 ),
         )

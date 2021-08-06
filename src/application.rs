@@ -50,39 +50,7 @@ impl ObjectImpl for PSApplicationInner {
             }
         }));
 
-        app.add_action(&{
-            let action = gio::SimpleAction::new("quit", None);
-            action.connect_activate(clone!(@weak app => move |_, _| app.action_quit()));
-            action
-        });
-        app.add_action(&{
-            let action = gio::SimpleAction::new("about", None);
-            action.connect_activate(clone!(@weak app => move |_, _| {
-                glib::MainContext::default().spawn_local(async move { app.action_about().await; });
-            }));
-            action
-        });
-        app.add_action(&{
-            let action = gio::SimpleAction::new("preferences", None);
-            action.connect_activate(clone!(@weak app => move |_, _| {
-                glib::MainContext::default().spawn_local(async move { app.action_preferences().await; });
-            }));
-            action
-        });
-        app.add_action(&{
-            let action = gio::SimpleAction::new("new", None);
-            action.connect_activate(clone!(@weak app => move |_, _| {
-                glib::MainContext::default().spawn_local(async move { app.action_new().await; });
-            }));
-            action
-        });
-        app.add_action(&{
-            let action = gio::SimpleAction::new("open", None);
-            action.connect_activate(clone!(@weak app => move |_, _| {
-                glib::MainContext::default().spawn_local(async move { app.action_open().await; });
-            }));
-            action
-        });
+        app.register_actions(app);
     }
 }
 
@@ -124,9 +92,9 @@ impl PSApplication {
     }
 }
 
-// actions
+#[awesome_glib::actions]
 impl PSApplication {
-    fn action_quit(&self) {
+    fn quit(&self) {
         for window in self.windows() {
             if let Some(win) = PSMainWindow::from_window(&window) {
                 win.close();
@@ -134,12 +102,12 @@ impl PSApplication {
         }
     }
 
-    async fn action_about(&self) {
+    async fn about(&self) {
         let win = self.active_window();
         about(win.as_ref()).await;
     }
 
-    async fn action_preferences(&self) {
+    async fn preferences(&self) {
         let win = self.activate_main_window();
         let private = PSApplicationInner::from_instance(self);
         let config = private.config.borrow().clone();
@@ -148,7 +116,8 @@ impl PSApplication {
         }
     }
 
-    async fn action_new(&self) {
+    #[action(name = "new")]
+    async fn new_file(&self) {
         if let Some(win) = self.active_main_window() {
             win.new_file().await;
         } else {
@@ -156,7 +125,8 @@ impl PSApplication {
         }
     }
 
-    async fn action_open(&self) {
+    #[action(name = "open")]
+    async fn open_file(&self) {
         let win = self.activate_main_window();
         win.open_file().await;
     }

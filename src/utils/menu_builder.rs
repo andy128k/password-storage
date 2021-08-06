@@ -14,7 +14,7 @@ impl MenuItemBuilderExt for gio::MenuItem {
     }
 
     fn action(self, action: &str) -> Self {
-        self.set_action_and_target_value(Some(action), None);
+        self.set_detailed_action(action);
         self
     }
 

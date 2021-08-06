@@ -1,6 +1,5 @@
 #![windows_subsystem = "windows"]
 
-mod actions;
 mod application;
 mod cache;
 mod config;
