@@ -1,10 +1,12 @@
 use crate::cache::Cache;
 use crate::gtk_prelude::*;
+use crate::markup_builder::bold;
+use os_str_bytes::OsStrBytes;
+use std::path::{Path, PathBuf};
 
 #[derive(Clone)]
 pub struct PSDashboard {
     container: gtk::Widget,
-    content: gtk::Widget,
     listbox: gtk::ListBox,
 }
 
@@ -17,120 +19,203 @@ fn centered<W: IsA<gtk::Widget> + WidgetExt>(widget: &W) -> gtk::Widget {
     grid.upcast()
 }
 
-fn framed<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
-    let frame = gtk::Frame::new(None);
-    frame.set_shadow_type(gtk::ShadowType::EtchedIn);
-    frame.add(widget);
-    frame.upcast()
+thread_local! {
+    static CSS_PROVIDER: gtk::CssProvider = {
+        let provider = gtk::CssProvider::new();
+        provider
+            .load_from_data(br##"
+                label.error {
+                    color: #FF3333;
+                }
+            "##)
+            .expect("CSS is loaded");
+        provider
+    };
 }
 
-mod filerow {
-    use crate::gtk_prelude::*;
-    use crate::markup_builder::bold;
-    use os_str_bytes::OsStrBytes;
-    use std::path::{Path, PathBuf};
+fn accel_label(accel: &str) -> Option<glib::GString> {
+    let (key, mode) = gtk::accelerator_parse(accel);
+    gtk::accelerator_get_label(key, mode)
+}
 
-    thread_local! {
-        static CSS_PROVIDER: gtk::CssProvider = {
-            let provider = gtk::CssProvider::new();
-            provider
-                .load_from_data(br##"label.error { color: #FF3333; }"##)
-                .expect("CSS is loaded");
-            provider
-        };
-    }
+pub fn action_row(action: &str, label: &str, icon: &str, accel: Option<&str>) -> gtk::ListBoxRow {
+    let grid = gtk::Grid::builder()
+        .margin_start(10)
+        .margin_end(10)
+        .margin_top(10)
+        .margin_bottom(10)
+        .column_spacing(10)
+        .build();
 
-    pub fn create(
-        filename: PathBuf,
-        on_remove: impl Fn(&gtk::ListBoxRow, &Path) + 'static,
-    ) -> Option<gtk::ListBoxRow> {
-        let basename = filename.file_name()?;
+    let image = gtk::Image::from_icon_name(Some(icon), gtk::IconSize::LargeToolbar);
+    grid.attach(&image, 0, 0, 1, 2);
 
-        let grid = gtk::Grid::builder()
-            .margin_start(10)
-            .margin_end(10)
-            .margin_top(10)
-            .margin_bottom(10)
-            .build();
+    let label1 = gtk::Label::builder()
+        .use_markup(true)
+        .label(label)
+        .margin_bottom(5)
+        .halign(gtk::Align::Start)
+        .hexpand(true)
+        .build();
+    grid.attach(&label1, 1, 0, 1, 1);
 
-        let label1 = gtk::Label::builder()
-            .use_markup(true)
-            .label(&bold(basename.to_string_lossy().as_ref()))
-            .margin_bottom(5)
-            .halign(gtk::Align::Start)
-            .hexpand(true)
-            .build();
-        grid.attach(&label1, 0, 0, 1, 1);
-
-        let remove_button =
-            gtk::Button::from_icon_name(Some("window-close"), gtk::IconSize::SmallToolbar);
-        remove_button.set_tooltip_text(Some("Forget this file."));
-        remove_button.set_relief(gtk::ReliefStyle::None);
-        remove_button.set_vexpand(false);
-        remove_button.set_hexpand(false);
-        grid.attach(&remove_button, 1, 0, 1, 1);
-
-        let label2 = gtk::Label::builder()
-            .label(filename.to_string_lossy().as_ref())
+    if let Some(accel) = accel.and_then(accel_label) {
+        let accel_label = gtk::Label::builder()
+            .label(&accel)
             .halign(gtk::Align::Start)
             .build();
-        if !filename.is_file() {
-            label2.set_tooltip_text(Some("File does not exist."));
-            let context = label2.style_context();
-            context.add_provider(
-                &CSS_PROVIDER.with(Clone::clone),
-                gtk::STYLE_PROVIDER_PRIORITY_FALLBACK,
-            );
-            context.add_class(&gtk::STYLE_CLASS_ERROR);
-        }
-        grid.attach(&label2, 0, 1, 2, 1);
-
-        let row = gtk::ListBoxRow::new();
-        row.add(&grid);
-
-        row.set_action_name(Some("app.open-file"));
-        row.set_action_target_value(Some(&glib::Variant::from_bytes::<Vec<u8>>(
-            &glib::Bytes::from(filename.to_raw_bytes().as_ref()),
-        )));
-
-        remove_button.connect_clicked(clone!(@weak row => move |_| {
-            on_remove(&row, &filename);
-        }));
-
-        Some(row)
+        grid.attach(&accel_label, 1, 1, 2, 1);
     }
+
+    let row = gtk::ListBoxRow::builder().action_name(action).build();
+    row.add(&grid);
+
+    let context = row.style_context();
+    context.add_provider(
+        &CSS_PROVIDER.with(Clone::clone),
+        gtk::STYLE_PROVIDER_PRIORITY_FALLBACK,
+    );
+    context.add_class("frame");
+
+    row
+}
+
+pub fn file_row(
+    filename: PathBuf,
+    on_remove: impl Fn(&gtk::ListBoxRow, &Path) + 'static,
+) -> Option<gtk::ListBoxRow> {
+    let basename = filename.file_name()?;
+
+    let grid = gtk::Grid::builder()
+        .margin_start(10)
+        .margin_end(10)
+        .margin_top(10)
+        .margin_bottom(10)
+        .build();
+
+    let label1 = gtk::Label::builder()
+        .use_markup(true)
+        .label(&bold(basename.to_string_lossy().as_ref()))
+        .margin_bottom(5)
+        .halign(gtk::Align::Start)
+        .hexpand(true)
+        .build();
+    grid.attach(&label1, 0, 0, 1, 1);
+
+    let remove_button =
+        gtk::Button::from_icon_name(Some("window-close"), gtk::IconSize::SmallToolbar);
+    remove_button.set_tooltip_text(Some("Forget this file."));
+    remove_button.set_relief(gtk::ReliefStyle::None);
+    remove_button.set_vexpand(false);
+    remove_button.set_hexpand(false);
+    grid.attach(&remove_button, 1, 0, 1, 1);
+
+    let label2 = gtk::Label::builder()
+        .label(filename.to_string_lossy().as_ref())
+        .halign(gtk::Align::Start)
+        .build();
+    if !filename.is_file() {
+        label2.set_tooltip_text(Some("File does not exist."));
+        let context = label2.style_context();
+        context.add_provider(
+            &CSS_PROVIDER.with(Clone::clone),
+            gtk::STYLE_PROVIDER_PRIORITY_FALLBACK,
+        );
+        context.add_class(&gtk::STYLE_CLASS_ERROR);
+    }
+    grid.attach(&label2, 0, 1, 2, 1);
+
+    let row = gtk::ListBoxRow::builder().build();
+    row.add(&grid);
+
+    row.set_action_name(Some("app.open-file"));
+    row.set_action_target_value(Some(&glib::Variant::from_bytes::<Vec<u8>>(
+        &glib::Bytes::from(filename.to_raw_bytes().as_ref()),
+    )));
+
+    remove_button.connect_clicked(clone!(@weak row => move |_| {
+        on_remove(&row, &filename);
+    }));
+
+    let context = row.style_context();
+    context.add_provider(
+        &CSS_PROVIDER.with(Clone::clone),
+        gtk::STYLE_PROVIDER_PRIORITY_FALLBACK,
+    );
+    context.add_class("frame");
+
+    Some(row)
+}
+
+fn set_header(row: &gtk::ListBoxRow, header: &str) {
+    unsafe {
+        row.set_data("header", header.to_string());
+    }
+}
+
+fn get_header(row: &gtk::ListBoxRow) -> Option<String> {
+    unsafe { row.data::<String>("header").map(|h| h.as_ref().clone()) }
+}
+
+fn header(label: &str) -> gtk::Widget {
+    let label = gtk::Label::builder()
+        .use_markup(false)
+        .label(label)
+        .margin_start(10)
+        .margin_end(10)
+        .margin_top(20)
+        .margin_bottom(5)
+        .halign(gtk::Align::Start)
+        .build();
+
+    let grid = gtk::Grid::new();
+    let context = grid.style_context();
+    context.add_class("background");
+
+    grid.attach(&label, 0, 0, 1, 1);
+
+    grid.show_all();
+    grid.upcast()
 }
 
 impl PSDashboard {
     pub fn new() -> Self {
-        let title = gtk::Label::builder()
-            .label("Recent files")
-            .halign(gtk::Align::Start)
-            .margin_top(20)
-            .margin_bottom(5)
+        let listbox = gtk::ListBox::builder()
+            .width_request(400)
+            .hexpand(true)
             .build();
 
-        let listbox = gtk::ListBox::builder().hexpand(true).build();
-
-        let grid = gtk::Grid::builder().width_request(400).build();
-        grid.attach(&title, 0, 0, 1, 1);
-        grid.attach(&framed(&listbox), 0, 1, 1, 1);
+        listbox.set_header_func(Some(Box::new(|row, _row_before| {
+            if let Some(header_text) = get_header(row) {
+                row.set_header(Some(&header(&header_text)));
+            }
+        })));
 
         Self {
-            container: centered(&grid),
-            content: grid.upcast(),
+            container: centered(&listbox),
             listbox,
         }
     }
 
     pub fn update(&self, cache: &Cache) {
-        self.content.hide();
+        self.listbox.hide();
         for row in self.listbox.children() {
             self.listbox.remove(&row);
         }
+
+        let new = action_row("app.new", "New file", "document-new", Some("<Primary>n"));
+        set_header(&new, "Start");
+        self.listbox.add(&new);
+        self.listbox.add(&action_row(
+            "app.open",
+            "Open...",
+            "document-open",
+            Some("<Primary>o"),
+        ));
+
         let mut first_row = None;
         for filename in cache.recent_files() {
-            if let Some(row) = filerow::create(
+            if let Some(row) = file_row(
                 filename,
                 clone!(@weak self.listbox as listbox, @strong cache => move |row, filename| {
                     cache.remove_file(filename);
@@ -139,12 +224,13 @@ impl PSDashboard {
             ) {
                 self.listbox.add(&row);
                 if first_row.is_none() {
+                    set_header(&row, "Recent files");
                     first_row = Some(row);
                 }
             }
         }
+        self.listbox.show_all();
         if let Some(row) = first_row {
-            self.content.show_all();
             self.listbox.select_row(Some(&row));
             row.grab_focus();
         }
