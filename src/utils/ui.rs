@@ -1,22 +1,5 @@
 use crate::gtk_prelude::*;
 
-// pub trait PSWidgetExt {
-//     fn halign(self, align: gtk::Align) -> Self;
-//     fn valign(self, align: gtk::Align) -> Self;
-// }
-
-// impl PSWidgetExt for gtk::Widget {
-//     fn halign(self, align: gtk::Align) -> Self {
-//         self.set_halign(align);
-//         self
-//     }
-
-//     fn valign(self, align: gtk::Align) -> Self {
-//         self.set_valign(align);
-//         self
-//     }
-// }
-
 pub fn scrolled<P: IsA<gtk::Widget>>(widget: &P) -> gtk::ScrolledWindow {
     let sw = gtk::ScrolledWindow::builder()
         .can_focus(true)

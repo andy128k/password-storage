@@ -10,7 +10,7 @@ fn create_style_provider() -> gtk::CssProvider {
 
 pub fn create_error_label() -> gtk::Label {
     let label = gtk::Label::new(None);
-    label.set_xalign(0.5);
+    label.set_xalign(0.0);
     label.set_yalign(0.5);
     label.set_no_show_all(true);
 

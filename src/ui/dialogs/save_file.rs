@@ -18,11 +18,12 @@ pub async fn save_file(parent_window: &gtk::Window) -> Option<PathBuf> {
     let (promise, future) = Promise::new();
     dlg.connect_response(move |dlg, answer| {
         dlg.hide();
-        if answer == gtk::ResponseType::Ok {
-            promise.fulfill(dlg.filename());
+        let result = if answer == gtk::ResponseType::Ok {
+            dlg.filename()
         } else {
-            promise.fulfill(None);
-        }
+            None
+        };
+        promise.fulfill(result);
     });
     dlg.show_all();
     future.await.unwrap_or(None)

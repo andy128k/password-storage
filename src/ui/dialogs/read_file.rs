@@ -23,9 +23,8 @@ where
         .skip_taskbar_hint(true)
         .skip_pager_hint(true)
         .build();
-
     dlg.add_button("_Cancel", gtk::ResponseType::Cancel);
-    dlg.add_button("_Open", gtk::ResponseType::Accept);
+    dlg.add_button("_Open file", gtk::ResponseType::Accept);
     dlg.set_default_response(gtk::ResponseType::Accept);
 
     let error_label = create_error_label();

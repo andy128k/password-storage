@@ -169,7 +169,7 @@ impl ObjectImpl for PSMainWindowInner {
             .expect("statusbar is set only once");
 
         let delete_handler = win.connect_delete_event(
-            clone!(@weak win => @default-return Inhibit(false), move |_win, _event| {
+            clone!(@weak win => @default-return gtk::Inhibit(false), move |_win, _event| {
                 glib::MainContext::default().spawn_local(async move {
                     win.on_close().await;
                 });
