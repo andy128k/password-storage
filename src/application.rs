@@ -104,9 +104,9 @@ impl PSApplication {
         }
     }
 
-    async fn about(&self) {
+    fn about(&self) {
         let win = self.active_window();
-        about(win.as_ref()).await;
+        about(win.as_ref());
     }
 
     async fn preferences(&self) {
