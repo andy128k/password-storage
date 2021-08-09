@@ -150,6 +150,7 @@ impl Form {
         let index = private.entries.len();
         let error_label = create_error_label();
         private.grid.attach(&error_label, 0, index as i32, 2, 1);
+        error_label.hide();
 
         (*private).validation = Some(FormValidation {
             label: error_label,

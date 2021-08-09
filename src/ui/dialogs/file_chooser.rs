@@ -18,7 +18,7 @@ async fn choose_file(
     dlg.connect_response(move |dlg, answer| {
         dlg.hide();
         let result = if answer == gtk::ResponseType::Accept {
-            dlg.filename()
+            dlg.file().and_then(|f| f.path())
         } else {
             None
         };

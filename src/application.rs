@@ -89,7 +89,7 @@ impl PSApplication {
     fn new_window(&self) -> PSMainWindow {
         let private = PSApplicationInner::from_instance(self);
         let window = PSMainWindow::new(&self.clone().upcast(), &private.config, &private.cache);
-        window.show_all();
+        window.show();
         window
     }
 }
@@ -104,9 +104,9 @@ impl PSApplication {
         }
     }
 
-    async fn about(&self) {
+    fn about(&self) {
         let win = self.active_window();
-        about(win.as_ref()).await;
+        about(win.as_ref());
     }
 
     async fn preferences(&self) {

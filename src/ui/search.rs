@@ -6,7 +6,7 @@ pub fn create_search_entry() -> gtk::Entry {
         .secondary_icon_name("edit-clear")
         .build();
 
-    entry.connect_icon_release(move |entry, pos, _button| {
+    entry.connect_icon_release(move |entry, pos| {
         if pos == gtk::EntryIconPosition::Secondary {
             entry.set_text("");
         }

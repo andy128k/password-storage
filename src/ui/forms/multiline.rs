@@ -22,13 +22,13 @@ impl MultiLine {
             .can_focus(true)
             .hscrollbar_policy(gtk::PolicyType::Automatic)
             .vscrollbar_policy(gtk::PolicyType::Automatic)
-            .shadow_type(gtk::ShadowType::In)
+            .has_frame(true)
             .hexpand(true)
             .vexpand(true)
             .width_request(300)
             .height_request(200)
+            .child(&text_view)
             .build();
-        scrolled_window.add(&text_view);
 
         Self {
             scrolled_window,
@@ -41,7 +41,7 @@ fn buffer_get_text(buffer: &gtk::TextBuffer) -> Option<String> {
     let (start, end) = buffer.bounds();
     buffer
         .text(&start, &end, true)
-        .and_then(|gs| gs.non_empty())
+        .non_empty()
         .map(|gs| gs.to_string())
 }
 
@@ -51,23 +51,19 @@ impl FormWidget<String> for MultiLine {
     }
 
     fn get_value(&self) -> Option<String> {
-        self.text_view
-            .buffer()
-            .and_then(|buffer| buffer_get_text(&buffer))
+        buffer_get_text(&self.text_view.buffer())
     }
 
     fn set_value(&self, value: Option<&String>) {
-        if let Some(buffer) = self.text_view.buffer() {
-            buffer.set_text(value.map(String::as_str).unwrap_or_default());
-        }
+        self.text_view
+            .buffer()
+            .set_text(value.map(String::as_str).unwrap_or_default());
     }
 
     fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&String>)>) {
-        if let Some(buffer) = self.text_view.buffer() {
-            buffer.connect_changed(move |buffer| {
-                callback(buffer_get_text(buffer).as_ref());
-            });
-        }
+        self.text_view.buffer().connect_changed(move |buffer| {
+            callback(buffer_get_text(buffer).as_ref());
+        });
     }
 }
 

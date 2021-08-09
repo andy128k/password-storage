@@ -19,7 +19,7 @@ use crate::ui::filter::create_model_filter;
 use crate::ui::preview_panel::PSPreviewPanel;
 use crate::ui::search::create_search_entry;
 use crate::ui::tree_view::PSTreeView;
-use crate::utils::clipboard::get_clipboard;
+
 use crate::utils::string::StringExt;
 use crate::utils::ui::*;
 use guard::guard;
@@ -80,9 +80,9 @@ impl ObjectImpl for PSMainWindowInner {
     fn constructed(&self, win: &Self::Type) {
         self.parent_constructed(win);
 
-        win.set_title(WINDOW_TITLE);
+        win.set_title(Some(WINDOW_TITLE));
         win.set_icon_name(Some("password-storage"));
-        win.set_window_position(gtk::WindowPosition::Center);
+
         win.set_default_width(1000);
         win.set_default_height(800);
 
@@ -119,7 +119,7 @@ impl ObjectImpl for PSMainWindowInner {
             grid
         };
 
-        win.add(&grid);
+        win.set_child(Some(&grid));
 
         view.set_model(&data.as_model());
 
@@ -167,14 +167,14 @@ impl ObjectImpl for PSMainWindowInner {
             .ok()
             .expect("statusbar is set only once");
 
-        let delete_handler = win.connect_delete_event(
-            clone!(@weak win => @default-return gtk::Inhibit(false), move |_win, _event| {
-                glib::MainContext::default().spawn_local(async move {
-                    win.on_close().await;
-                });
-                gtk::Inhibit(true)
-            }),
-        );
+        let delete_handler = win.connect_close_request(move |win| {
+            let win = win.clone();
+            glib::MainContext::default().spawn_local(async move {
+                win.on_close().await;
+            });
+            glib::signal::Inhibit(true)
+        });
+
         *self.delete_handler.borrow_mut() = Some(delete_handler);
 
         win.insert_action_group("doc", Some(&doc_actions));
@@ -242,14 +242,12 @@ impl ObjectImpl for PSMainWindowInner {
 }
 
 impl WidgetImpl for PSMainWindowInner {}
-impl ContainerImpl for PSMainWindowInner {}
-impl BinImpl for PSMainWindowInner {}
 impl WindowImpl for PSMainWindowInner {}
 impl ApplicationWindowImpl for PSMainWindowInner {}
 
 glib::wrapper! {
     pub struct PSMainWindow(ObjectSubclass<PSMainWindowInner>)
-        @extends gtk::ApplicationWindow, gtk::Window, gtk::Bin, gtk::Container, gtk::Widget, @implements gio::ActionMap;
+        @extends gtk::ApplicationWindow, gtk::Window, gtk::Widget, @implements gio::ActionMap;
 }
 
 impl PSMainWindow {
@@ -400,11 +398,11 @@ impl PSMainWindow {
         match filename {
             Some(filename) => {
                 *self.private().filename.borrow_mut() = Some(filename.to_owned());
-                self.set_title(&format!("{} - {}", WINDOW_TITLE, &filename.display()));
+                self.set_title(Some(&format!("{} - {}", WINDOW_TITLE, &filename.display())));
             }
             None => {
                 *self.private().filename.borrow_mut() = None;
-                self.set_title(WINDOW_TITLE);
+                self.set_title(Some(WINDOW_TITLE));
             }
         }
     }
@@ -560,7 +558,7 @@ impl PSMainWindow {
 
     async fn on_close(&self) {
         if self.ensure_data_is_saved().await {
-            get_clipboard().clear();
+            self.clipboard().set_text("");
 
             let private = PSMainWindowInner::from_instance(self);
             if let Some(handler) = private.delete_handler.take() {
@@ -787,7 +785,7 @@ impl PSMainWindow {
         if let Some((iter, _path)) = self.private().view.get_selected_iter() {
             if let Some(record) = self.private().data.borrow().get(&iter) {
                 if let Some(username) = record.username() {
-                    get_clipboard().set_text(username);
+                    self.clipboard().set_text(username);
                     self.set_status("Name was copied to clipboard");
                 }
             }
@@ -799,7 +797,7 @@ impl PSMainWindow {
         if let Some((iter, _path)) = self.private().view.get_selected_iter() {
             if let Some(record) = self.private().data.borrow().get(&iter) {
                 if let Some(password) = record.password() {
-                    get_clipboard().set_text(password);
+                    self.clipboard().set_text(password);
                     self.set_status("Secret (password) was copied to clipboard");
                 }
             }

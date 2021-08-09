@@ -109,7 +109,7 @@ pub struct OpenPassword {
 }
 
 async fn confirm_password_overwrite<P: WidgetExt>(widget: &P) -> bool {
-    if let Some(window) = widget.toplevel().and_then(|w| w.downcast().ok()) {
+    if let Some(window) = widget.root().and_then(|w| w.downcast().ok()) {
         confirm_unlikely(&window, "Do you want to overwrite current password?").await
     } else {
         false
@@ -135,7 +135,7 @@ impl OpenPassword {
             .secondary_icon_tooltip_text("Generate password")
             .build();
 
-        entry.connect_icon_release(|e, pos, _button| {
+        entry.connect_icon_release(|e, pos| {
             if pos == gtk::EntryIconPosition::Secondary {
                 glib::MainContext::default().spawn_local(generate_password_clicked(e.clone()));
             }

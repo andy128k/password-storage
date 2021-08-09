@@ -19,18 +19,18 @@ impl ToolbarBuilder {
     }
 
     pub fn add<P: IsA<gtk::Widget>>(self, child: &P) -> Self {
-        self.toolbar.pack_start(child, false, false, 0);
+        self.toolbar.append(child);
         self
     }
 
     pub fn button(self, label: &str, icon: &str, action: &str) -> Self {
         self.add(&{
             gtk::Button::builder()
-                .image(&tool_icon(icon))
+                .icon_name(icon)
                 .action_name(action)
                 .has_tooltip(true)
                 .tooltip_text(label)
-                .relief(gtk::ReliefStyle::None)
+                .has_frame(false)
                 .build()
         })
     }
@@ -38,11 +38,11 @@ impl ToolbarBuilder {
     pub fn toggle_button(self, label: &str, icon: &str, action: &str) -> Self {
         self.add(&{
             gtk::ToggleButton::builder()
-                .image(&tool_icon(icon))
+                .icon_name(icon)
                 .action_name(action)
                 .has_tooltip(true)
                 .tooltip_text(label)
-                .relief(gtk::ReliefStyle::None)
+                .has_frame(false)
                 .build()
         })
     }
@@ -50,12 +50,11 @@ impl ToolbarBuilder {
     pub fn menu_button(self, label: &str, icon: &str, menu: &gio::Menu) -> Self {
         self.add(&{
             gtk::MenuButton::builder()
-                .image(&tool_icon(icon))
+                .icon_name(icon)
                 .has_tooltip(true)
                 .tooltip_text(label)
                 .menu_model(menu)
-                .use_popover(false)
-                .relief(gtk::ReliefStyle::None)
+                .has_frame(false)
                 .build()
         })
     }
@@ -81,8 +80,4 @@ impl ToolbarBuilder {
     pub fn build(self) -> gtk::Widget {
         self.toolbar.upcast()
     }
-}
-
-fn tool_icon(icon: &str) -> gtk::Image {
-    gtk::Image::from_icon_name(Some(icon), gtk::IconSize::SmallToolbar)
 }

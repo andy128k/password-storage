@@ -44,7 +44,7 @@ impl From<TreeStoreColumn> for i32 {
 
 fn is_selected(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> bool {
     model
-        .value(iter, TreeStoreColumn::Selection.into())
+        .get(iter, TreeStoreColumn::Selection.into())
         .get()
         .unwrap_or(false)
 }
@@ -202,7 +202,7 @@ impl PSStore {
 
     pub fn get(&self, iter: &gtk::TreeIter) -> Option<Record> {
         self.model
-            .value(iter, TreeStoreColumn::Record.into())
+            .get(iter, TreeStoreColumn::Record.into())
             .get::<&Record>()
             .ok()
             .cloned()
