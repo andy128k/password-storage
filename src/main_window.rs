@@ -324,19 +324,9 @@ impl PSMainWindow {
         entry_actions
             .simple_action("delete")
             .set_enabled(is_selected_record);
-
         entry_actions
-            .simple_actions()
-            .iter()
-            .filter(|action| action.name().starts_with("convert-to-"))
-            .for_each(|action| {
-                action.set_enabled(if let Some(ref record) = record {
-                    !record.record_type.is_group
-                        && format!("convert-to-{}", record.record_type.name) != action.name()
-                } else {
-                    false
-                });
-            });
+            .simple_action("convert-to")
+            .set_enabled(record.as_ref().map_or(false, |r| !r.record_type.is_group));
 
         let show_secrets_on_preview = self
             .private()
@@ -851,6 +841,9 @@ impl PSMainWindow {
         guard!(let Some(selection) = self.private().view.get_selected_iter() else { return; });
         let selection_iter = selection.0;
         guard!(let Some(record) = self.private().data.borrow().get(&selection_iter) else { return; });
+        if record.record_type.is_group {
+            return;
+        }
 
         guard!(let Some(dest_record_type) = RecordType::find(&dest_record_type_name)
             .filter(|rt| !rt.is_group && !rt.ref_eq(record.record_type)) else { return; });
