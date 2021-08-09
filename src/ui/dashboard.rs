@@ -199,9 +199,7 @@ impl PSDashboard {
 
     pub fn update(&self, cache: &Cache) {
         self.listbox.hide();
-        for row in self.listbox.children() {
-            self.listbox.remove(&row);
-        }
+        self.remove_all();
 
         let new = action_row("app.new", "New file", "document-new", Some("<Primary>n"));
         set_header(&new, "Start");
@@ -233,6 +231,12 @@ impl PSDashboard {
         if let Some(row) = first_row {
             self.listbox.select_row(Some(&row));
             row.grab_focus();
+        }
+    }
+
+    fn remove_all(&self) {
+        for row in self.listbox.children() {
+            self.listbox.remove(&row);
         }
     }
 
