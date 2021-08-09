@@ -210,10 +210,9 @@ impl ObjectImpl for PSMainWindowInner {
         win.private()
             .view
             .connect_cursor_changed(clone!(@weak win => move |selection| {
-                let mut record = None;
-                if let Some((iter, _path)) = selection {
-                    record = win.private().data.borrow().get(&iter);
-                }
+                let record = selection.and_then(|(iter, _path)| {
+                    win.private().data.borrow().get(&iter)
+                });
                 win.listview_cursor_changed(record);
             }));
 
@@ -221,11 +220,7 @@ impl ObjectImpl for PSMainWindowInner {
             .view
             .connect_drop(clone!(@weak win => @default-return false, move |iter| {
                 let record_opt = win.private().data.borrow().get(&iter);
-                if let Some(record) = record_opt {
-                    record.record_type.is_group
-                } else {
-                    false
-                }
+                record_opt.map_or(false, |record| record.record_type.is_group)
             }));
 
         win.private()
@@ -296,13 +291,11 @@ impl PSMainWindow {
     }
 
     fn get_selected_group_iter(&self) -> Option<gtk::TreeIter> {
+        let (iter, _path) = self.private().view.get_selected_iter()?;
         let model = &self.private().data.borrow();
-        let selection = self.private().view.get_selected_iter();
-        if let Some((iter, _path)) = selection {
-            for (i, record) in model.parents(&iter) {
-                if record.record_type.is_group {
-                    return Some(i);
-                }
+        for (i, record) in model.parents(&iter) {
+            if record.record_type.is_group {
+                return Some(i);
             }
         }
         None
