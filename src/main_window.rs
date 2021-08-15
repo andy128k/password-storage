@@ -87,6 +87,12 @@ impl ObjectImpl for PSMainWindowInner {
         win.set_default_width(1000);
         win.set_default_height(800);
 
+        let headerbar = gtk::HeaderBarBuilder::new()
+            .show_close_button(true)
+            .title(WINDOW_TITLE)
+            .build();
+        win.set_titlebar(Some(&headerbar));
+
         let data = PSStore::new();
         let view = PSTreeView::new();
         let preview = PSPreviewPanel::new();

@@ -7,6 +7,7 @@ use crate::ui::dialogs::preferences::preferences;
 use crate::ui::menu::create_menu_bar;
 use os_str_bytes::OsStringBytes;
 use std::cell::RefCell;
+use std::error::Error;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -31,6 +32,10 @@ impl ObjectImpl for PSApplicationInner {
         self.cache.load();
 
         app.connect_startup(move |app| {
+            if let Err(error) = configure() {
+                eprintln!("Failed to configure global settings: {}.", error);
+            }
+
             crate::icons::load_icons().unwrap();
             app.set_menubar(Some(&create_menu_bar()));
         });
@@ -141,4 +146,19 @@ impl PSApplication {
             Err(error) => eprintln!("open-file: {}", error),
         }
     }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn configure() -> Result<(), Box<dyn Error>> {
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn configure() -> Result<(), Box<dyn Error>> {
+    let settings = gtk::Settings::default().ok_or("No default settings found.")?;
+    settings.set_property(
+        "gtk-decoration-layout",
+        "close,minimize,maximize".to_value(),
+    )?;
+    Ok(())
 }
