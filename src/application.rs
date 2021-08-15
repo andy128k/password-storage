@@ -146,7 +146,61 @@ impl PSApplication {
             Err(error) => eprintln!("open-file: {}", error),
         }
     }
+
+    #[action(name = "shortcuts")]
+    fn action_shortcuts(&self) {
+        let window = gtk::ShortcutsWindow::builder().modal(true).build();
+        window.set_transient_for(self.active_window().as_ref());
+        let section = gtk::ShortcutsSection::builder().visible(true).build();
+        for (group_title, actions) in SHORTCUTS {
+            let group = gtk::ShortcutsGroup::builder().title(group_title).build();
+            for (action, title, accel) in actions.iter() {
+                let s = gtk::ShortcutsShortcut::builder()
+                    .shortcut_type(gtk::ShortcutType::Accelerator)
+                    .action_name(action)
+                    .accelerator(accel)
+                    .title(title)
+                    .build();
+                group.add(&s);
+            }
+            section.add(&group);
+        }
+        window.add(&section);
+        window.show_all();
+    }
 }
+
+type SCAction<'a> = (&'a str, &'a str, &'a str);
+type SCGroup<'a> = (&'a str, &'a [SCAction<'a>]);
+
+const SHORTCUTS: &[SCGroup<'static>] = &[
+    (
+        "General",
+        &[
+            ("app.new", "New file", "<Primary>n"),
+            ("app.open", "Open file", "<Primary>o"),
+            ("file.save", "Save file", "<Primary>s"),
+            ("file.close", "Close file", "<Primary>w"),
+            ("app.quit", "Quit", "<Primary>q"),
+        ],
+    ),
+    (
+        "Document",
+        &[
+            ("file.find", "Find", "<Primary>f"),
+            ("entry.copy-name", "Copy name", "<Primary>c"),
+            ("entry.copy-password", "Copy password", "<Primary><Shift>c"),
+        ],
+    ),
+    (
+        "Miscellaneous",
+        &[(
+            "app.shortcuts",
+            "Keyboard shortcuts memo",
+            "<Primary>question",
+        )],
+    ),
+];
 
 #[cfg(not(target_os = "macos"))]
 fn configure() -> Result<(), Box<dyn Error>> {

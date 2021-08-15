@@ -148,11 +148,18 @@ pub fn create_menu_bar() -> gio::MenuModel {
                 )
         })
         .submenu("_Help", {
-            gio::Menu::new().item(
-                gio::MenuItem::create()
-                    .action("app.about")
-                    .label("_About..."),
-            )
+            gio::Menu::new()
+                .item(
+                    gio::MenuItem::create()
+                        .action("app.shortcuts")
+                        .label("_Keyboard shortcuts...")
+                        .accel("<Primary>question"),
+                )
+                .item(
+                    gio::MenuItem::create()
+                        .action("app.about")
+                        .label("_About..."),
+                )
         })
         .upcast()
 }
