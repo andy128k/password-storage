@@ -53,6 +53,7 @@ struct PSMainWindowPrivate {
     entry_actions: gio::SimpleActionGroup,
 
     search_entry: gtk::Entry,
+    merge_mode_bar: gtk::InfoBar,
 
     filename: RefCell<Option<PathBuf>>,
     password: RefCell<Option<String>>,
@@ -96,6 +97,32 @@ impl ObjectImpl for PSMainWindowInner {
         let toolbar = ui::toolbar::create_tool_bar(&search_entry.clone().upcast());
         let statusbar = gtk::Statusbar::new();
 
+        let merge_mode_bar = gtk::InfoBar::new();
+        merge_mode_bar.content_area().pack_start(
+            &gtk::Label::builder().label("Merge mode").build(),
+            false,
+            false,
+            0,
+        );
+        merge_mode_bar.action_area().unwrap().pack_end(
+            &gtk::Button::builder()
+                .label("Merge selected entries")
+                .action_name("merge.merge")
+                .build(),
+            false,
+            false,
+            0,
+        );
+        merge_mode_bar.action_area().unwrap().pack_end(
+            &gtk::Button::builder()
+                .label("Back to normal mode")
+                .action_name("doc.merge-mode")
+                .build(),
+            false,
+            false,
+            0,
+        );
+
         let stack = gtk::Stack::new()
             .named("dashboard", &dashboard.get_widget())
             .named(
@@ -110,11 +137,12 @@ impl ObjectImpl for PSMainWindowInner {
             toolbar.set_valign(gtk::Align::Start);
             grid.attach(&toolbar, 0, 0, 1, 1);
 
-            grid.attach(&stack, 0, 1, 1, 1);
+            grid.attach(&merge_mode_bar, 0, 1, 1, 1);
+            grid.attach(&stack, 0, 2, 1, 1);
 
             statusbar.set_halign(gtk::Align::Fill);
             statusbar.set_valign(gtk::Align::End);
-            grid.attach(&statusbar, 0, 2, 1, 1);
+            grid.attach(&statusbar, 0, 3, 1, 1);
 
             grid
         };
@@ -143,6 +171,7 @@ impl ObjectImpl for PSMainWindowInner {
             view,
             search_entry,
             preview,
+            merge_mode_bar,
 
             doc_actions: doc_actions.clone(),
             file_actions: file_actions.clone(),
@@ -492,9 +521,10 @@ impl PSMainWindow {
                     .simple_action("merge-mode")
                     .set_state(&false.to_variant());
 
-                self.private().search_entry.set_sensitive(false);
-                self.private().view.set_selection_mode(false);
-                self.private().stack.set_visible_child_name("dashboard");
+                private.merge_mode_bar.hide();
+                private.search_entry.set_sensitive(false);
+                private.view.set_selection_mode(false);
+                private.stack.set_visible_child_name("dashboard");
                 if let Some(cache) = self.private().cache.get() {
                     self.private().dashboard.update(cache);
                 }
@@ -510,9 +540,10 @@ impl PSMainWindow {
                     .simple_action("merge-mode")
                     .set_state(&false.to_variant());
 
-                self.private().search_entry.set_sensitive(true);
-                self.private().view.set_selection_mode(false);
-                self.private().stack.set_visible_child_name("file");
+                private.merge_mode_bar.hide();
+                private.search_entry.set_sensitive(true);
+                private.view.set_selection_mode(false);
+                private.stack.set_visible_child_name("file");
             }
             AppMode::MergeMode => {
                 private.doc_actions.set_enabled(true);
@@ -525,9 +556,10 @@ impl PSMainWindow {
                     .simple_action("merge-mode")
                     .set_state(&true.to_variant());
 
-                self.private().search_entry.set_sensitive(true);
-                self.private().view.set_selection_mode(true);
-                self.private().stack.set_visible_child_name("file");
+                private.merge_mode_bar.show();
+                private.search_entry.set_sensitive(true);
+                private.view.set_selection_mode(true);
+                private.stack.set_visible_child_name("file");
             }
         }
         self.private().mode.set(mode);
@@ -575,8 +607,8 @@ impl PSMainWindow {
             .unwrap();
         private.private.get().unwrap().dashboard.update(cache);
 
+        win.show_all();
         win.set_mode(AppMode::Initial);
-
         win
     }
 }

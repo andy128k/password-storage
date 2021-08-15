@@ -88,9 +88,7 @@ impl PSApplication {
 
     fn new_window(&self) -> PSMainWindow {
         let private = PSApplicationInner::from_instance(self);
-        let window = PSMainWindow::new(&self.clone().upcast(), &private.config, &private.cache);
-        window.show_all();
-        window
+        PSMainWindow::new(&self.clone().upcast(), &private.config, &private.cache)
     }
 }
 
