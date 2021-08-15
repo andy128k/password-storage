@@ -55,7 +55,8 @@ impl PSPreviewPanel {
 
     pub fn update(&self, record_opt: Option<Record>, show_secrets: bool) {
         if let Some(record) = record_opt {
-            self.icon.set_icon_name(Some(record.record_type.icon));
+            self.icon
+                .set_from_icon_name(Some(record.record_type.icon), gtk::IconSize::Dialog);
             self.title.set_markup(&big(&record.name()));
             self.view
                 .set_markup(&record_to_markup(&record, show_secrets));

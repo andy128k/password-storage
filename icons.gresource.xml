@@ -9,16 +9,16 @@
     <file alias="48x48/actions/merge-mode.png">icons/actions/48x48/merge-mode.png</file>
     <file alias="24x24/actions/merge-mode.png">icons/actions/24x24/merge-mode.png</file>
 
-    <file alias="entry-generic.png">icons/entries/generic.png</file>
-    <file alias="entry-creditcard.png">icons/entries/creditcard.png</file>
-    <file alias="entry-database.png">icons/entries/database.png</file>
-    <file alias="entry-door.png">icons/entries/door.png</file>
-    <file alias="entry-email.png">icons/entries/email.png</file>
-    <file alias="entry-ftp.png">icons/entries/ftp.png</file>
-    <file alias="entry-keyring.png">icons/entries/keyring.png</file>
-    <file alias="entry-phone.png">icons/entries/phone.png</file>
-    <file alias="entry-shell.png">icons/entries/shell.png</file>
-    <file alias="entry-website.png">icons/entries/website.png</file>
+    <file alias="entry-generic.svg">icons/entries/generic.svg</file>
+    <file alias="entry-creditcard.svg">icons/entries/creditcard.svg</file>
+    <file alias="entry-database.svg">icons/entries/database.svg</file>
+    <file alias="entry-door.svg">icons/entries/door.svg</file>
+    <file alias="entry-email.svg">icons/entries/email.svg</file>
+    <file alias="entry-ftp.svg">icons/entries/ftp.svg</file>
+    <file alias="entry-keyring.svg">icons/entries/keyring.svg</file>
+    <file alias="entry-phone.svg">icons/entries/phone.svg</file>
+    <file alias="entry-shell.svg">icons/entries/shell.svg</file>
+    <file alias="entry-website.svg">icons/entries/website.svg</file>
 
     <file alias="strength-very-weak.png">icons/strength/very-weak.png</file>
     <file alias="strength-weak.png">icons/strength/weak.png</file>

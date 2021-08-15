@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="256"
+   height="256"
+   viewBox="0 0 67.733332 67.733335"
+   version="1.1"
+   id="svg8"
+   inkscape:version="1.0.2 (e86c870879, 2021-01-15)"
+   sodipodi:docname="door.svg">
+  <defs
+     id="defs2">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient1229">
+      <stop
+         style="stop-color:#dddddd;stop-opacity:1"
+         offset="0"
+         id="stop1227" />
+      <stop
+         style="stop-color:#000000;stop-opacity:1;"
+         offset="1"
+         id="stop1225" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient1219">
+      <stop
+         style="stop-color:#00a900;stop-opacity:1"
+         offset="0"
+         id="stop1215" />
+      <stop
+         style="stop-color:#000000;stop-opacity:1"
+         offset="1"
+         id="stop1217" />
+    </linearGradient>
+    <inkscape:path-effect
+       effect="fillet_chamfer"
+       id="path-effect1385"
+       is_visible="true"
+       lpeversion="1"
+       satellites_param="F,0,0,1,0,2.6458333,0,1 @ F,0,0,1,0,2.6458333,0,1 @ F,0,0,1,0,2.6458333,0,1 @ F,0,0,1,0,2.6458333,0,1"
+       unit="px"
+       method="auto"
+       mode="F"
+       radius="10"
+       chamfer_steps="1"
+       flexible="false"
+       use_knot_distance="true"
+       apply_no_radius="true"
+       apply_with_radius="true"
+       only_selected="false"
+       hide_knots="false" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1219"
+       id="linearGradient1221"
+       x1="36.777084"
+       y1="58.340626"
+       x2="36.777084"
+       y2="11.509374"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.94346392,0,0,1.1164739,1.4778451,1.6680254)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1229"
+       id="linearGradient1231"
+       x1="-55.297927"
+       y1="18.999691"
+       x2="10.708894"
+       y2="18.999691"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.91158245,0,0,0.68237111,63.095774,20.992561)" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1"
+     inkscape:cx="82.175115"
+     inkscape:cy="330.87744"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     units="px"
+     inkscape:window-width="2560"
+     inkscape:window-height="1376"
+     inkscape:window-x="2560"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Слой 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g1237">
+      <rect
+         style="fill:url(#linearGradient1221);fill-opacity:1;stroke:#000000;stroke-width:0.27155;stroke-opacity:1"
+         id="rect1213"
+         width="42.061783"
+         height="65.874283"
+         x="12.835775"
+         y="0.92952502" />
+      <path
+         style="fill:url(#linearGradient1231);fill-opacity:1;stroke:#000000;stroke-width:0.208676px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         d="M 12.815303,66.852863 49.649459,42.522434 V 0.95217665 H 12.807765 Z"
+         id="path1223"
+         sodipodi:nodetypes="ccccc" />
+    </g>
+    <circle
+       style="fill:#f9f931;fill-opacity:1;stroke:#000000;stroke-width:0.264583;stroke-opacity:1"
+       id="path1239"
+       cx="43.661934"
+       cy="15.092835"
+       r="2.0112033" />
+  </g>
+</svg>
