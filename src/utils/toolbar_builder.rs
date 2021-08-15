@@ -68,16 +68,6 @@ impl ToolbarBuilder {
         })
     }
 
-    pub fn expander(self) -> Self {
-        self.add(&{
-            gtk::Separator::builder()
-                .orientation(gtk::Orientation::Vertical)
-                .hexpand(true)
-                .opacity(0.0)
-                .build()
-        })
-    }
-
     pub fn build(self) -> gtk::Widget {
         self.toolbar.upcast()
     }

@@ -100,7 +100,9 @@ impl ObjectImpl for PSMainWindowInner {
         let dashboard = PSDashboard::new();
 
         let search_entry = create_search_entry();
-        let toolbar = ui::toolbar::create_tool_bar(&search_entry.clone().upcast());
+        headerbar.pack_end(&search_entry);
+
+        let toolbar = ui::toolbar::create_tool_bar();
         let statusbar = gtk::Statusbar::new();
 
         let merge_mode_bar = gtk::InfoBar::new();
@@ -528,7 +530,7 @@ impl PSMainWindow {
                     .set_state(&false.to_variant());
 
                 private.merge_mode_bar.hide();
-                private.search_entry.set_sensitive(false);
+                private.search_entry.hide();
                 private.view.set_selection_mode(false);
                 private.stack.set_visible_child_name("dashboard");
                 if let Some(cache) = self.private().cache.get() {
@@ -547,6 +549,7 @@ impl PSMainWindow {
                     .set_state(&false.to_variant());
 
                 private.merge_mode_bar.hide();
+                private.search_entry.show();
                 private.search_entry.set_sensitive(true);
                 private.view.set_selection_mode(false);
                 private.stack.set_visible_child_name("file");
@@ -563,6 +566,7 @@ impl PSMainWindow {
                     .set_state(&true.to_variant());
 
                 private.merge_mode_bar.show();
+                private.search_entry.show();
                 private.search_entry.set_sensitive(true);
                 private.view.set_selection_mode(true);
                 private.stack.set_visible_child_name("file");

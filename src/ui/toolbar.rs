@@ -2,7 +2,7 @@ use super::menu::create_add_entity_menu;
 use crate::gtk_prelude::*;
 use crate::utils::toolbar_builder::*;
 
-pub fn create_tool_bar(search_entry: &gtk::Widget) -> gtk::Widget {
+pub fn create_tool_bar() -> gtk::Widget {
     ToolbarBuilder::new()
         .button("New file", "document-new", "app.new")
         .button("Open file", "document-open", "app.open")
@@ -12,7 +12,5 @@ pub fn create_tool_bar(search_entry: &gtk::Widget) -> gtk::Widget {
         .separator()
         .toggle_button("Toggle merge mode", "merge-mode", "doc.merge-mode")
         .button("Merge entries", "merge", "merge.merge")
-        .expander()
-        .add(search_entry)
         .build()
 }
