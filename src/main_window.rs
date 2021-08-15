@@ -16,6 +16,7 @@ use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
 use crate::ui::filter::create_model_filter;
+use crate::ui::merge_bar::create_merge_bar;
 use crate::ui::preview_panel::PSPreviewPanel;
 use crate::ui::search::create_search_entry;
 use crate::ui::tree_view::PSTreeView;
@@ -53,7 +54,7 @@ struct PSMainWindowPrivate {
     entry_actions: gio::SimpleActionGroup,
 
     search_entry: gtk::Entry,
-    merge_mode_bar: gtk::InfoBar,
+    merge_bar: gtk::InfoBar,
 
     filename: RefCell<Option<PathBuf>>,
     password: RefCell<Option<String>>,
@@ -103,32 +104,7 @@ impl ObjectImpl for PSMainWindowInner {
         headerbar.pack_end(&search_entry);
 
         let statusbar = gtk::Statusbar::new();
-
-        let merge_mode_bar = gtk::InfoBar::new();
-        merge_mode_bar.content_area().pack_start(
-            &gtk::Label::builder().label("Merge mode").build(),
-            false,
-            false,
-            0,
-        );
-        merge_mode_bar.action_area().unwrap().pack_end(
-            &gtk::Button::builder()
-                .label("Merge selected entries")
-                .action_name("merge.merge")
-                .build(),
-            false,
-            false,
-            0,
-        );
-        merge_mode_bar.action_area().unwrap().pack_end(
-            &gtk::Button::builder()
-                .label("Back to normal mode")
-                .action_name("doc.merge-mode")
-                .build(),
-            false,
-            false,
-            0,
-        );
+        let merge_bar = create_merge_bar();
 
         let stack = gtk::Stack::new()
             .named("dashboard", &dashboard.get_widget())
@@ -140,7 +116,7 @@ impl ObjectImpl for PSMainWindowInner {
         let grid = {
             let grid = gtk::Grid::new();
 
-            grid.attach(&merge_mode_bar, 0, 1, 1, 1);
+            grid.attach(&merge_bar, 0, 1, 1, 1);
             grid.attach(&stack, 0, 2, 1, 1);
 
             statusbar.set_halign(gtk::Align::Fill);
@@ -174,7 +150,7 @@ impl ObjectImpl for PSMainWindowInner {
             view,
             search_entry,
             preview,
-            merge_mode_bar,
+            merge_bar,
 
             doc_actions: doc_actions.clone(),
             file_actions: file_actions.clone(),
@@ -524,7 +500,7 @@ impl PSMainWindow {
                     .simple_action("merge-mode")
                     .set_state(&false.to_variant());
 
-                private.merge_mode_bar.hide();
+                private.merge_bar.hide();
                 private.search_entry.hide();
                 private.view.set_selection_mode(false);
                 private.stack.set_visible_child_name("dashboard");
@@ -543,7 +519,7 @@ impl PSMainWindow {
                     .simple_action("merge-mode")
                     .set_state(&false.to_variant());
 
-                private.merge_mode_bar.hide();
+                private.merge_bar.hide();
                 private.search_entry.show();
                 private.search_entry.set_sensitive(true);
                 private.view.set_selection_mode(false);
@@ -560,7 +536,7 @@ impl PSMainWindow {
                     .simple_action("merge-mode")
                     .set_state(&true.to_variant());
 
-                private.merge_mode_bar.show();
+                private.merge_bar.show();
                 private.search_entry.show();
                 private.search_entry.set_sensitive(true);
                 private.view.set_selection_mode(true);
