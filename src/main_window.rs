@@ -102,7 +102,6 @@ impl ObjectImpl for PSMainWindowInner {
         let search_entry = create_search_entry();
         headerbar.pack_end(&search_entry);
 
-        let toolbar = ui::toolbar::create_tool_bar();
         let statusbar = gtk::Statusbar::new();
 
         let merge_mode_bar = gtk::InfoBar::new();
@@ -140,10 +139,6 @@ impl ObjectImpl for PSMainWindowInner {
 
         let grid = {
             let grid = gtk::Grid::new();
-
-            toolbar.set_halign(gtk::Align::Fill);
-            toolbar.set_valign(gtk::Align::Start);
-            grid.attach(&toolbar, 0, 0, 1, 1);
 
             grid.attach(&merge_mode_bar, 0, 1, 1, 1);
             grid.attach(&stack, 0, 2, 1, 1);
