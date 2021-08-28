@@ -88,7 +88,7 @@ impl ObjectImpl for PSMainWindowInner {
         win.set_default_width(1000);
         win.set_default_height(800);
 
-        let headerbar = gtk::HeaderBarBuilder::new()
+        let headerbar = gtk::HeaderBar::builder()
             .show_close_button(true)
             .title(WINDOW_TITLE)
             .build();
@@ -103,8 +103,10 @@ impl ObjectImpl for PSMainWindowInner {
         let search_entry = create_search_entry();
         headerbar.pack_end(&search_entry);
 
-        let statusbar = gtk::Statusbar::new();
+        let grid = gtk::Grid::new();
+
         let merge_bar = create_merge_bar();
+        grid.attach(&merge_bar, 0, 1, 1, 1);
 
         let stack = gtk::Stack::new()
             .named("dashboard", &dashboard.get_widget())
@@ -112,19 +114,13 @@ impl ObjectImpl for PSMainWindowInner {
                 "file",
                 &paned(&scrolled(&view.get_widget()), &preview.get_widget()),
             );
+        grid.attach(&stack, 0, 2, 1, 1);
 
-        let grid = {
-            let grid = gtk::Grid::new();
-
-            grid.attach(&merge_bar, 0, 1, 1, 1);
-            grid.attach(&stack, 0, 2, 1, 1);
-
-            statusbar.set_halign(gtk::Align::Fill);
-            statusbar.set_valign(gtk::Align::End);
-            grid.attach(&statusbar, 0, 3, 1, 1);
-
-            grid
-        };
+        let statusbar = gtk::Statusbar::builder()
+            .halign(gtk::Align::Fill)
+            .valign(gtk::Align::End)
+            .build();
+        grid.attach(&statusbar, 0, 3, 1, 1);
 
         win.add(&grid);
 
