@@ -16,6 +16,7 @@ use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
 use crate::ui::filter::create_model_filter;
+use crate::ui::menu::create_add_entity_menu;
 use crate::ui::merge_bar::create_merge_bar;
 use crate::ui::preview_panel::PSPreviewPanel;
 use crate::ui::search::create_search_entry;
@@ -108,12 +109,24 @@ impl ObjectImpl for PSMainWindowInner {
         let merge_bar = create_merge_bar();
         grid.attach(&merge_bar, 0, 1, 1, 1);
 
+        let tree_container = gtk::Grid::new();
+        tree_container.attach(&scrolled(&view.get_widget()), 0, 0, 1, 1);
+        let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
+        tree_action_bar.pack_start(&action_menu_button(
+            &create_add_entity_menu(),
+            "list-add",
+            "Add new record",
+        ));
+        tree_action_bar.pack_start(&action_button(
+            "entry.delete",
+            "list-remove",
+            "Remove record",
+        ));
+        tree_container.attach(&tree_action_bar, 0, 1, 1, 1);
+
         let stack = gtk::Stack::new()
             .named("dashboard", &dashboard.get_widget())
-            .named(
-                "file",
-                &paned(&scrolled(&view.get_widget()), &preview.get_widget()),
-            );
+            .named("file", &paned(&tree_container, &preview.get_widget()));
         grid.attach(&stack, 0, 2, 1, 1);
 
         let statusbar = gtk::Statusbar::builder()

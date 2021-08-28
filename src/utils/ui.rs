@@ -6,6 +6,8 @@ pub fn scrolled<P: IsA<gtk::Widget>>(widget: &P) -> gtk::ScrolledWindow {
         .hscrollbar_policy(gtk::PolicyType::Automatic)
         .vscrollbar_policy(gtk::PolicyType::Automatic)
         .shadow_type(gtk::ShadowType::In)
+        .hexpand(true)
+        .vexpand(true)
         .build();
     sw.add(widget);
     sw
