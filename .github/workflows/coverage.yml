@@ -10,6 +10,11 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
+      - name: Install dependencies
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libgtk-3-dev
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
@@ -19,8 +24,6 @@ jobs:
         with:
           crate: cargo-tarpaulin
           use-tool-cache: true
-      - name: Install dependencies
-        run: sudo apt-get install -y --no-install-recommends libgtk-3-dev xvfb
       - name: Run coverage
         run: xvfb-run cargo tarpaulin -f -t 5 --out Xml -v -- --test-threads=1
       - name: Upload coverage to Codecov
