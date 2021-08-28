@@ -47,20 +47,28 @@ impl PSPreviewPanel {
         grid.attach(&view, 0, 2, 2, 1);
 
         let action_bar = gtk::ActionBar::builder().hexpand(true).build();
-        action_bar.pack_start(&action_button("entry.edit", "gtk-edit", "Edit"));
+        action_bar.pack_start(&action_button("entry.edit", "text-editor-symbolic", "Edit"));
         let convert_button = action_menu_button(
             &create_convert_entity_menu(),
-            "system-run",
+            "system-run-symbolic",
             "Convert to another type",
         );
         action_bar.pack_start(&convert_button);
-        action_bar.pack_start(&action_button("entry.delete", "edit-delete", "Delete"));
+        action_bar.pack_start(&action_button(
+            "entry.delete",
+            "edit-delete-symbolic",
+            "Delete",
+        ));
         action_bar.pack_end(&action_button(
             "entry.copy-password",
-            "dialog-password",
+            "dialog-password-symbolic",
             "Copy password",
         ));
-        action_bar.pack_end(&action_button("entry.copy-name", "edit-copy", "Copy name"));
+        action_bar.pack_end(&action_button(
+            "entry.copy-name",
+            "edit-copy-symbolic",
+            "Copy name",
+        ));
         grid.attach(&action_bar, 0, 3, 2, 1);
 
         Self {

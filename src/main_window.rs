@@ -115,12 +115,12 @@ impl ObjectImpl for PSMainWindowInner {
         let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
         tree_action_bar.pack_start(&action_menu_button(
             &create_add_entity_menu(),
-            "list-add",
+            "list-add-symbolic",
             "Add new record",
         ));
         tree_action_bar.pack_start(&action_button(
             "entry.delete",
-            "list-remove",
+            "list-remove-symbolic",
             "Remove record",
         ));
         tree_container.attach(&tree_action_bar, 0, 1, 1, 1);
