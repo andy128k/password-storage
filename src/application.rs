@@ -36,6 +36,12 @@ impl ObjectImpl for PSApplicationInner {
                 eprintln!("Failed to configure global settings: {}.", error);
             }
 
+            for (_group_title, actions) in SHORTCUTS {
+                for (action, _title, accel) in actions.iter() {
+                    app.set_accels_for_action(action, &[accel]);
+                }
+            }
+
             crate::icons::load_icons().unwrap();
             app.set_menubar(Some(&create_menu_bar()));
         });
