@@ -19,6 +19,7 @@ pub fn paned<P1: IsA<gtk::Widget>, P2: IsA<gtk::Widget>>(pane1: &P1, pane2: &P2)
         .build();
     paned.pack1(pane1, true, false);
     paned.pack2(pane2, false, false);
+    paned.set_focus_chain(&[pane1.clone().upcast(), pane2.clone().upcast()]);
     paned
 }
 
@@ -58,4 +59,29 @@ impl PSSimpleActionGroupExt for gio::SimpleActionGroup {
             .downcast::<gio::SimpleAction>()
             .expect(&format!("Action {} should be a simple action.", name))
     }
+}
+
+pub fn action_button(action: &str, icon: &str, title: &str) -> gtk::Button {
+    gtk::Button::builder()
+        .action_name(action)
+        .image(&tool_icon(icon))
+        .has_tooltip(true)
+        .tooltip_text(title)
+        .relief(gtk::ReliefStyle::None)
+        .build()
+}
+
+pub fn action_menu_button(menu: &gio::Menu, icon: &str, title: &str) -> gtk::MenuButton {
+    gtk::MenuButton::builder()
+        .menu_model(menu)
+        .image(&tool_icon(icon))
+        .has_tooltip(true)
+        .tooltip_text(title)
+        .use_popover(false) // TODO: popover doesn't show icons
+        .relief(gtk::ReliefStyle::None)
+        .build()
+}
+
+fn tool_icon(icon: &str) -> gtk::Image {
+    gtk::Image::from_icon_name(Some(icon), gtk::IconSize::SmallToolbar)
 }

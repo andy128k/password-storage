@@ -1,32 +1,32 @@
 use crate::gtk_prelude::*;
 use crate::markup_builder::*;
 use crate::model::record::Record;
+use crate::ui::menu::create_convert_entity_menu;
+use crate::utils::ui::{action_button, action_menu_button};
 
 pub struct PSPreviewPanel {
     grid: gtk::Grid,
     icon: gtk::Image,
     title: gtk::Label,
     view: gtk::Label,
+    convert_button: gtk::MenuButton,
 }
 
 impl PSPreviewPanel {
     pub fn new() -> Self {
-        let grid = gtk::Grid::builder()
-            .width_request(300)
-            .margin_start(16)
-            .margin_end(16)
-            .margin_top(16)
-            .margin_bottom(16)
-            .build();
+        let grid = gtk::Grid::builder().width_request(300).build();
 
         let icon = gtk::Image::builder()
+            .margin_start(16)
             .margin_end(8)
+            .margin_top(16)
             .halign(gtk::Align::Start)
             .valign(gtk::Align::Start)
             .build();
         grid.attach(&icon, 0, 0, 1, 1);
 
         let title = gtk::Label::builder()
+            .margin_top(16)
             .hexpand(true)
             .xalign(0_f32)
             .wrap(true)
@@ -34,18 +34,41 @@ impl PSPreviewPanel {
         grid.attach(&title, 1, 0, 1, 1);
 
         let view = gtk::Label::builder()
+            .margin_start(16)
+            .margin_end(16)
             .margin_top(16)
+            .margin_bottom(16)
             .hexpand(true)
+            .vexpand(true)
+            .valign(gtk::Align::Start)
             .xalign(0_f32)
             .wrap(true)
             .build();
         grid.attach(&view, 0, 2, 2, 1);
+
+        let action_bar = gtk::ActionBar::builder().hexpand(true).build();
+        action_bar.pack_start(&action_button("entry.edit", "gtk-edit", "Edit"));
+        let convert_button = action_menu_button(
+            &create_convert_entity_menu(),
+            "system-run",
+            "Convert to another type",
+        );
+        action_bar.pack_start(&convert_button);
+        action_bar.pack_start(&action_button("entry.delete", "edit-delete", "Delete"));
+        action_bar.pack_end(&action_button(
+            "entry.copy-password",
+            "dialog-password",
+            "Copy password",
+        ));
+        action_bar.pack_end(&action_button("entry.copy-name", "edit-copy", "Copy name"));
+        grid.attach(&action_bar, 0, 3, 2, 1);
 
         Self {
             grid,
             icon,
             title,
             view,
+            convert_button,
         }
     }
 
@@ -60,6 +83,8 @@ impl PSPreviewPanel {
             self.title.set_markup(&big(&record.name()));
             self.view
                 .set_markup(&record_to_markup(&record, show_secrets));
+            self.convert_button
+                .set_sensitive(!record.record_type.is_group);
         } else {
             self.icon.set_icon_name(None);
             self.title.set_markup("");
