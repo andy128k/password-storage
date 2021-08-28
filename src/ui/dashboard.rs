@@ -77,6 +77,8 @@ pub fn action_row(action: &str, label: &str, icon: &str, accel: Option<&str>) ->
     );
     context.add_class("frame");
 
+    set_group_title(&row, "Start");
+
     row
 }
 
@@ -144,17 +146,22 @@ pub fn file_row(
     );
     context.add_class("frame");
 
+    set_group_title(&row, "Recent files");
+
     Some(row)
 }
 
-fn set_header(row: &gtk::ListBoxRow, header: &str) {
+fn set_group_title(row: &gtk::ListBoxRow, title: &str) {
     unsafe {
-        row.set_data("header", header.to_string());
+        row.set_data("group_title", title.to_string());
     }
 }
 
-fn get_header(row: &gtk::ListBoxRow) -> Option<String> {
-    unsafe { row.data::<String>("header").map(|h| h.as_ref().clone()) }
+fn get_group_title(row: &gtk::ListBoxRow) -> Option<String> {
+    unsafe {
+        row.data::<String>("group_title")
+            .map(|h| h.as_ref().clone())
+    }
 }
 
 fn header(label: &str) -> gtk::Widget {
@@ -185,9 +192,13 @@ impl PSDashboard {
             .hexpand(true)
             .build();
 
-        listbox.set_header_func(Some(Box::new(|row, _row_before| {
-            if let Some(header_text) = get_header(row) {
+        listbox.set_header_func(Some(Box::new(|row, row_before| {
+            let group_before = row_before.and_then(get_group_title);
+            let group = get_group_title(row).filter(|group| Some(group) != group_before.as_ref());
+            if let Some(header_text) = group {
                 row.set_header(Some(&header(&header_text)));
+            } else {
+                row.set_header(None::<&gtk::Widget>);
             }
         })));
 
@@ -201,9 +212,12 @@ impl PSDashboard {
         self.listbox.hide();
         self.remove_all();
 
-        let new = action_row("app.new", "New file", "document-new", Some("<Primary>n"));
-        set_header(&new, "Start");
-        self.listbox.add(&new);
+        self.listbox.add(&action_row(
+            "app.new",
+            "New file",
+            "document-new",
+            Some("<Primary>n"),
+        ));
         self.listbox.add(&action_row(
             "app.open",
             "Open...",
@@ -222,7 +236,6 @@ impl PSDashboard {
             ) {
                 self.listbox.add(&row);
                 if first_row.is_none() {
-                    set_header(&row, "Recent files");
                     first_row = Some(row);
                 }
             }
