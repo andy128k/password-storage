@@ -35,6 +35,7 @@ use std::rc::Rc;
 
 const WINDOW_TITLE: &str = "Password Storage";
 
+#[derive(Clone, Copy)]
 enum AppMode {
     Initial,
     FileOpened,
@@ -43,6 +44,7 @@ enum AppMode {
 
 struct PSMainWindowPrivate {
     mode: Cell<AppMode>,
+    header_bar: gtk::HeaderBar,
     stack: gtk::Stack,
     dashboard: PSDashboard,
     data: RefCell<PSStore>,
@@ -68,7 +70,6 @@ struct PSMainWindowPrivate {
 #[derive(Default)]
 pub struct PSMainWindowInner {
     private: OnceCell<PSMainWindowPrivate>,
-    statusbar: OnceCell<gtk::Statusbar>,
     delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
 }
 
@@ -89,11 +90,11 @@ impl ObjectImpl for PSMainWindowInner {
         win.set_default_width(1000);
         win.set_default_height(800);
 
-        let headerbar = gtk::HeaderBar::builder()
+        let header_bar = gtk::HeaderBar::builder()
             .show_close_button(true)
             .title(WINDOW_TITLE)
             .build();
-        win.set_titlebar(Some(&headerbar));
+        win.set_titlebar(Some(&header_bar));
 
         let data = PSStore::new();
         let view = PSTreeView::new();
@@ -102,7 +103,7 @@ impl ObjectImpl for PSMainWindowInner {
         let dashboard = PSDashboard::new();
 
         let search_entry = create_search_entry();
-        headerbar.pack_end(&search_entry);
+        header_bar.pack_end(&search_entry);
 
         let grid = gtk::Grid::new();
 
@@ -129,12 +130,6 @@ impl ObjectImpl for PSMainWindowInner {
             .named("file", &paned(&tree_container, &preview.get_widget()));
         grid.attach(&stack, 0, 2, 1, 1);
 
-        let statusbar = gtk::Statusbar::builder()
-            .halign(gtk::Align::Fill)
-            .valign(gtk::Align::End)
-            .build();
-        grid.attach(&statusbar, 0, 3, 1, 1);
-
         win.add(&grid);
 
         view.set_model(&data.as_model());
@@ -153,6 +148,7 @@ impl ObjectImpl for PSMainWindowInner {
 
         let private = PSMainWindowPrivate {
             mode: Cell::new(AppMode::Initial),
+            header_bar,
             stack,
             dashboard,
             data: RefCell::new(data),
@@ -179,11 +175,6 @@ impl ObjectImpl for PSMainWindowInner {
             .ok()
             .expect("private is set only once");
 
-        self.statusbar
-            .set(statusbar)
-            .ok()
-            .expect("statusbar is set only once");
-
         let delete_handler = win.connect_delete_event(
             clone!(@weak win => @default-return gtk::Inhibit(false), move |_win, _event| {
                 glib::MainContext::default().spawn_local(async move {
@@ -204,7 +195,6 @@ impl ObjectImpl for PSMainWindowInner {
             .connect_changed(clone!(@weak win => move |search_entry| {
                 if let Some(search_text) = search_entry.text().non_empty() {
                     let look_at_secrets = win.private().config.get().unwrap().borrow().search_in_secrets;
-                    win.set_status("View is filtered.");
                     let model = create_model_filter(
                         &win.private().data.borrow(),
                         &search_text,
@@ -215,7 +205,6 @@ impl ObjectImpl for PSMainWindowInner {
                     win.refilter();
                     win.private().view.view.expand_all();
                 } else {
-                    win.set_status("View filter was reset.");
                     let model = win.private().data.borrow().as_model();
                     win.private().view.set_model(&model);
                     win.private().view.view.set_reorderable(true);
@@ -274,12 +263,9 @@ impl PSMainWindow {
         private.private.get().unwrap()
     }
 
-    fn set_status(&self, message: &str) {
-        let private = PSMainWindowInner::from_instance(self);
-        if let Some(statusbar) = private.statusbar.get() {
-            statusbar.pop(0);
-            statusbar.push(0, message);
-        }
+    fn set_changed(&self, changed: bool) {
+        self.private().changed.set(changed);
+        self.update_title();
     }
 
     async fn ensure_data_is_saved(&self) -> bool {
@@ -383,46 +369,58 @@ impl PSMainWindow {
         self.private().password.borrow().clone()
     }
 
+    fn update_title(&self) {
+        let private = self.private();
+        let header_bar = &private.header_bar;
+        match private.mode.get() {
+            AppMode::Initial => {
+                header_bar.set_subtitle(None);
+                header_bar.set_has_subtitle(false);
+            }
+            _ => {
+                let mut display_filename = private
+                    .filename
+                    .borrow()
+                    .as_ref()
+                    .map_or(String::from("Unnamed"), |filename| {
+                        filename.display().to_string()
+                    });
+
+                if private.changed.get() {
+                    display_filename += " \u{23FA}";
+                }
+                header_bar.set_subtitle(Some(&display_filename));
+                header_bar.set_has_subtitle(true);
+            }
+        }
+    }
+
     async fn save_data(&self, filename: &Path) -> Result<()> {
         if let Some(password) = self.ensure_password_is_set().await {
             let tree = self.private().data.borrow().to_tree();
 
             format::save_file(filename, &password, &tree)?;
 
-            self.set_status(&format!("File '{}' was saved", filename.display()));
-            self.private().changed.set(false);
+            *self.private().filename.borrow_mut() = Some(filename.to_owned());
+            self.set_changed(false);
             self.private().cache.get().unwrap().add_file(filename);
         }
         Ok(())
     }
 
-    fn set_filename(&self, filename: Option<&Path>) {
-        match filename {
-            Some(filename) => {
-                *self.private().filename.borrow_mut() = Some(filename.to_owned());
-                self.set_title(&format!("{} - {}", WINDOW_TITLE, &filename.display()));
-            }
-            None => {
-                *self.private().filename.borrow_mut() = None;
-                self.set_title(WINDOW_TITLE);
-            }
-        }
-    }
-
     pub async fn new_file(&self) {
         if self.ensure_data_is_saved().await {
-            self.private().changed.set(false);
-
             let data = PSStore::new();
             *self.private().data.borrow_mut() = data.clone();
             self.private().view.set_model(&data.as_model());
 
-            self.set_filename(None);
+            *self.private().filename.borrow_mut() = None;
             self.private().search_entry.set_text("");
             *self.private().password.borrow_mut() = None;
             self.listview_cursor_changed(None);
-            self.set_status("New file was created");
+
             self.set_mode(AppMode::FileOpened);
+            self.set_changed(false);
         }
     }
 
@@ -437,13 +435,11 @@ impl PSMainWindow {
             *self.private().data.borrow_mut() = data.clone();
             self.private().view.set_model(&data.as_model());
 
-            {
-                self.set_filename(Some(filename));
-                *self.private().password.borrow_mut() = Some(password);
-                self.private().changed.set(false);
-            }
+            *self.private().filename.borrow_mut() = Some(filename.to_owned());
+            *self.private().password.borrow_mut() = Some(password);
+
             self.set_mode(AppMode::FileOpened);
-            self.set_status(&format!("File '{}' was opened", filename.display()));
+            self.set_changed(false);
             self.private().search_entry.grab_focus();
         }
     }
@@ -459,7 +455,6 @@ impl PSMainWindow {
     async fn cb_save_as(&self) -> bool {
         let window = self.clone().upcast();
         if let Some(ref filename) = save_file(&window).await {
-            self.set_filename(Some(filename));
             if let Err(error) = self.save_data(filename).await {
                 say_error(&window, &error.to_string()).await;
                 return false;
@@ -617,18 +612,18 @@ impl PSMainWindow {
     #[action(name = "close")]
     async fn action_close_file(&self) {
         if self.ensure_data_is_saved().await {
-            self.private().changed.set(false);
             self.private().search_entry.set_text("");
 
             let data = PSStore::new();
             *self.private().data.borrow_mut() = data.clone();
             self.private().view.set_model(&data.as_model());
 
-            self.set_filename(None);
+            *self.private().filename.borrow_mut() = None;
             *self.private().password.borrow_mut() = None;
             self.listview_cursor_changed(None);
+
             self.set_mode(AppMode::Initial);
-            self.set_status("");
+            self.set_changed(false);
         }
     }
 
@@ -656,7 +651,7 @@ impl PSMainWindow {
                 *self.private().data.borrow_mut() = data.clone();
                 self.private().view.set_model(&data.as_model());
 
-                self.private().changed.set(true);
+                self.set_changed(true);
             }
         }
     }
@@ -665,8 +660,7 @@ impl PSMainWindow {
     async fn action_change_password(&self) {
         if let Some(new_password) = change_password(&self.clone().upcast()).await {
             *self.private().password.borrow_mut() = Some(new_password);
-            self.private().changed.set(true);
-            self.set_status("File password was changed");
+            self.set_changed(true);
         }
     }
 
@@ -696,8 +690,7 @@ impl PSMainWindow {
                 .append(group_iter.as_ref(), &new_record);
             self.refilter();
             self.private().view.select_iter(&iter);
-            self.set_status("New entry was added");
-            self.private().changed.set(true);
+            self.set_changed(true);
         }
     }
 }
@@ -707,7 +700,6 @@ impl PSMainWindow {
     #[action(name = "uncheck-all")]
     fn action_uncheck_all(&self) {
         self.private().data.borrow().uncheck_all();
-        self.set_status("Unchecked all items");
     }
 
     #[action(name = "merge")]
@@ -780,8 +772,7 @@ impl PSMainWindow {
         let iter = self.private().data.borrow().append(None, &result);
         self.refilter();
         self.private().view.select_iter(&iter);
-        self.set_status("New entry was created by merging");
-        self.private().changed.set(true);
+        self.set_changed(true);
     }
 }
 
@@ -793,7 +784,6 @@ impl PSMainWindow {
             if let Some(record) = self.private().data.borrow().get(&iter) {
                 if let Some(username) = record.username() {
                     get_clipboard().set_text(username);
-                    self.set_status("Name was copied to clipboard");
                 }
             }
         }
@@ -805,7 +795,6 @@ impl PSMainWindow {
             if let Some(record) = self.private().data.borrow().get(&iter) {
                 if let Some(password) = record.password() {
                     get_clipboard().set_text(password);
-                    self.set_status("Secret (password) was copied to clipboard");
                 }
             }
         }
@@ -828,8 +817,7 @@ impl PSMainWindow {
                     self.private().data.borrow().update(&iter, &new_record);
                     self.refilter();
                     self.listview_cursor_changed(Some(new_record));
-                    self.set_status("Entry was changed");
-                    self.private().changed.set(true);
+                    self.set_changed(true);
                 }
             }
         }
@@ -846,8 +834,7 @@ impl PSMainWindow {
         if confirmed {
             self.private().data.borrow().delete(&selection.0);
             self.listview_cursor_changed(None);
-            self.set_status("Entry was deleted");
-            self.private().changed.set(true);
+            self.set_changed(true);
         }
     }
 
@@ -875,8 +862,7 @@ impl PSMainWindow {
             .borrow()
             .update(&selection_iter, &new_record);
         self.refilter();
-        self.set_status("Entry has changed type");
-        self.private().changed.set(true);
+        self.set_changed(true);
         self.listview_cursor_changed(Some(new_record));
     }
 }
