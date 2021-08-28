@@ -96,6 +96,32 @@ impl ObjectImpl for PSMainWindowInner {
             .build();
         win.set_titlebar(Some(&header_bar));
 
+        let open_button = gtk::Button::builder()
+            .label("Open")
+            .action_name("app.open")
+            .build();
+        header_bar.pack_start(&open_button);
+        let new_button = gtk::Button::builder()
+            .tooltip_text("New file")
+            .image(&tool_icon("document-new-symbolic"))
+            .action_name("app.new")
+            .build();
+        header_bar.pack_start(&new_button);
+
+        let save_box = linked_button_box();
+        let save_button = gtk::Button::builder()
+            .label("Save")
+            .action_name("file.save")
+            .build();
+        save_box.pack_start(&save_button, false, false, 0);
+        let save_as_button = gtk::Button::builder()
+            .tooltip_text("Save file as...")
+            .image(&tool_icon("document-save-as-symbolic"))
+            .action_name("file.save-as")
+            .build();
+        save_box.pack_start(&save_as_button, false, false, 0);
+        header_bar.pack_end(&save_box);
+
         let data = PSStore::new();
         let view = PSTreeView::new();
         let preview = PSPreviewPanel::new();

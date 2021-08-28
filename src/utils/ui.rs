@@ -84,6 +84,14 @@ pub fn action_menu_button(menu: &gio::Menu, icon: &str, title: &str) -> gtk::Men
         .build()
 }
 
-fn tool_icon(icon: &str) -> gtk::Image {
+pub fn tool_icon(icon: &str) -> gtk::Image {
     gtk::Image::from_icon_name(Some(icon), gtk::IconSize::SmallToolbar)
+}
+
+pub fn linked_button_box() -> gtk::Box {
+    let bbox = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .build();
+    bbox.style_context().add_class("linked");
+    bbox
 }
