@@ -80,16 +80,14 @@ pub fn create_tree_popup() -> gio::MenuModel {
                 )
                 .item(
                     gio::MenuItem::create()
-                        .action("entry.copy-passwors")
+                        .action("entry.copy-password")
                         .label("Copy pass_word")
                         .accel("<Primary><Shift>c"),
                 ),
         )
-        .section(create_add_entity_menu())
         .section(
             gio::Menu::new()
                 .item(gio::MenuItem::create().action("entry.edit").label("_Edit"))
-                .submenu("_Convert", create_convert_entity_menu())
                 .item(
                     gio::MenuItem::create()
                         .action("entry.delete")
