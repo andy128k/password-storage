@@ -97,6 +97,7 @@ impl PSPreviewPanel {
             self.icon.set_icon_name(None);
             self.title.set_markup("");
             self.view.set_markup("");
+            self.convert_button.set_sensitive(false);
         }
     }
 }

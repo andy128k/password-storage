@@ -417,10 +417,10 @@ impl PSMainWindow {
             *self.private().filename.borrow_mut() = None;
             self.private().search_entry.set_text("");
             *self.private().password.borrow_mut() = None;
-            self.listview_cursor_changed(None);
 
             self.set_mode(AppMode::FileOpened);
             self.set_changed(false);
+            self.listview_cursor_changed(None);
         }
     }
 
@@ -440,6 +440,7 @@ impl PSMainWindow {
 
             self.set_mode(AppMode::FileOpened);
             self.set_changed(false);
+            self.listview_cursor_changed(None);
             self.private().search_entry.grab_focus();
         }
     }
@@ -620,10 +621,10 @@ impl PSMainWindow {
 
             *self.private().filename.borrow_mut() = None;
             *self.private().password.borrow_mut() = None;
-            self.listview_cursor_changed(None);
 
             self.set_mode(AppMode::Initial);
             self.set_changed(false);
+            self.listview_cursor_changed(None);
         }
     }
 
