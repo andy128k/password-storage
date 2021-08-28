@@ -4,7 +4,6 @@ use crate::gtk_prelude::*;
 use crate::main_window::PSMainWindow;
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
-use crate::ui::menu::create_menu_bar;
 use os_str_bytes::OsStringBytes;
 use std::cell::RefCell;
 use std::error::Error;
@@ -43,7 +42,6 @@ impl ObjectImpl for PSApplicationInner {
             }
 
             crate::icons::load_icons().unwrap();
-            app.set_menubar(Some(&create_menu_bar()));
         });
         app.connect_activate(clone!(@weak app => move |_app| {
             app.activate_main_window();

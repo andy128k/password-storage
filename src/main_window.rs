@@ -108,6 +108,12 @@ impl ObjectImpl for PSMainWindowInner {
             .build();
         header_bar.pack_start(&new_button);
 
+        let menu = gtk::MenuButton::builder()
+            .image(&tool_icon("open-menu-symbolic"))
+            .menu_model(&crate::ui::menu::create_main_menu())
+            .build();
+        header_bar.pack_end(&menu);
+
         let save_box = linked_button_box();
         let save_button = gtk::Button::builder()
             .label("Save")
@@ -122,14 +128,14 @@ impl ObjectImpl for PSMainWindowInner {
         save_box.pack_start(&save_as_button, false, false, 0);
         header_bar.pack_end(&save_box);
 
+        let search_entry = create_search_entry();
+        header_bar.pack_end(&search_entry);
+
         let data = PSStore::new();
         let view = PSTreeView::new();
         let preview = PSPreviewPanel::new();
 
         let dashboard = PSDashboard::new();
-
-        let search_entry = create_search_entry();
-        header_bar.pack_end(&search_entry);
 
         let grid = gtk::Grid::new();
 
