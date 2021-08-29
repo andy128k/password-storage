@@ -1,28 +1,27 @@
+use super::also::Also;
 use crate::gtk_prelude::*;
 
 pub fn scrolled<P: IsA<gtk::Widget>>(widget: &P) -> gtk::ScrolledWindow {
-    let sw = gtk::ScrolledWindow::builder()
+    gtk::ScrolledWindow::builder()
         .can_focus(true)
         .hscrollbar_policy(gtk::PolicyType::Automatic)
         .vscrollbar_policy(gtk::PolicyType::Automatic)
         .shadow_type(gtk::ShadowType::In)
         .hexpand(true)
         .vexpand(true)
-        .build();
-    sw.add(widget);
-    sw
+        .build()
+        .also(|sw| sw.add(widget))
 }
 
 pub fn paned<P1: IsA<gtk::Widget>, P2: IsA<gtk::Widget>>(pane1: &P1, pane2: &P2) -> gtk::Paned {
-    let paned = gtk::Paned::builder()
+    gtk::Paned::builder()
         .orientation(gtk::Orientation::Horizontal)
         .hexpand(true)
         .vexpand(true)
-        .build();
-    paned.pack1(pane1, true, false);
-    paned.pack2(pane2, false, false);
-    paned.set_focus_chain(&[pane1.clone().upcast(), pane2.clone().upcast()]);
-    paned
+        .build()
+        .also(|paned| paned.pack1(pane1, true, false))
+        .also(|paned| paned.pack2(pane2, false, false))
+        .also(|paned| paned.set_focus_chain(&[pane1.clone().upcast(), pane2.clone().upcast()]))
 }
 
 pub trait PSStackExt {
