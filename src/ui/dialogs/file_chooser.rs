@@ -1,5 +1,4 @@
 use crate::gtk_prelude::*;
-use crate::utils::promise::Promise;
 use std::path::PathBuf;
 
 async fn choose_file(
@@ -13,19 +12,13 @@ async fn choose_file(
         .title(title)
         .transient_for(parent_window)
         .build();
-
-    let (promise, future) = Promise::new();
-    dlg.connect_response(move |dlg, answer| {
-        dlg.hide();
-        let result = if answer == gtk::ResponseType::Accept {
-            dlg.filename()
-        } else {
-            None
-        };
-        promise.fulfill(result);
-    });
-    dlg.show();
-    future.await.unwrap_or(None)
+    let answer = dlg.run_future().await;
+    dlg.hide();
+    if answer == gtk::ResponseType::Accept {
+        dlg.filename()
+    } else {
+        None
+    }
 }
 
 pub async fn open_file(parent_window: &gtk::Window) -> Option<PathBuf> {

@@ -1,7 +1,6 @@
 use crate::error::*;
 use crate::gtk_prelude::*;
 use crate::ui::error_label::create_error_label;
-use crate::utils::promise::Promise;
 
 pub async fn read_file<T, R>(
     parent_window: &gtk::Window,
@@ -65,26 +64,26 @@ where
     }));
 
     dlg.set_response_sensitive(gtk::ResponseType::Accept, false);
+    dlg.show_all();
 
-    let (promise, future) = Promise::<Option<(T, String)>>::new();
-    dlg.connect_response(move |dlg, button| {
+    loop {
+        let button = dlg.run_future().await;
+
         if button != gtk::ResponseType::Accept {
             dlg.close();
-            promise.fulfill(None);
+            return None;
         }
 
         let password = entry.text();
         match read_file_callback(&password) {
             Ok(document) => {
                 dlg.close();
-                promise.fulfill(Some((document, password.into())));
+                return Some((document, password.into()));
             }
             Err(e) => {
                 error_label.set_visible(true);
                 error_label.set_label(&format!("Can't open this file.\n{}", e));
             }
         }
-    });
-    dlg.show_all();
-    future.await.unwrap_or(None)
+    }
 }

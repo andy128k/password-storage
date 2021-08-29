@@ -1,5 +1,4 @@
 use crate::gtk_prelude::*;
-use crate::utils::promise::Promise;
 
 async fn confirm(parent_window: &gtk::Window, message: &str, default: gtk::ResponseType) -> bool {
     let dlg = gtk::MessageDialog::builder()
@@ -14,14 +13,9 @@ async fn confirm(parent_window: &gtk::Window, message: &str, default: gtk::Respo
         .text(message)
         .build();
     dlg.set_default_response(default);
-
-    let (promise, future) = Promise::new();
-    dlg.connect_response(move |dlg, answer| {
-        dlg.close();
-        promise.fulfill(answer == gtk::ResponseType::Yes);
-    });
-    dlg.show_all();
-    future.await.unwrap_or(false)
+    let answer = dlg.run_future().await;
+    dlg.close();
+    answer == gtk::ResponseType::Yes
 }
 
 pub async fn confirm_likely(parent_window: &gtk::Window, message: &str) -> bool {

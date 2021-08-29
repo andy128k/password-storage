@@ -1,5 +1,4 @@
 use crate::gtk_prelude::*;
-use crate::utils::promise::Promise;
 
 async fn say(parent_window: &gtk::Window, message_type: gtk::MessageType, message: &str) {
     let dlg = gtk::MessageDialog::builder()
@@ -14,14 +13,8 @@ async fn say(parent_window: &gtk::Window, message_type: gtk::MessageType, messag
         .text(message)
         .build();
     dlg.set_default_response(gtk::ResponseType::Ok);
-
-    let (promise, future) = Promise::new();
-    dlg.connect_response(move |dlg, _answer| {
-        dlg.close();
-        promise.fulfill(());
-    });
-    dlg.show_all();
-    future.await.unwrap_or(())
+    dlg.run_future().await;
+    dlg.close();
 }
 
 pub async fn say_error(parent_window: &gtk::Window, message: &str) {

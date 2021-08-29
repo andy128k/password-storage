@@ -1,6 +1,5 @@
 use super::forms::base::FormWidget;
 use crate::gtk_prelude::*;
-use crate::utils::promise::Promise;
 
 pub async fn edit_object<T: 'static, W: FormWidget<T> + 'static>(
     object: Option<&T>,
@@ -40,16 +39,12 @@ pub async fn edit_object<T: 'static, W: FormWidget<T> + 'static>(
 
     widget.set_value(object);
 
-    let (promise, future) = Promise::<Option<T>>::new();
-    dlg.connect_response(move |dlg, answer| {
-        dlg.close();
-        if answer == gtk::ResponseType::Ok {
-            let new_object = widget.get_value();
-            promise.fulfill(new_object);
-        } else {
-            promise.fulfill(None);
-        }
-    });
     dlg.show_all();
-    future.await.unwrap_or(None)
+    let answer = dlg.run_future().await;
+    dlg.close();
+    if answer == gtk::ResponseType::Ok {
+        widget.get_value()
+    } else {
+        None
+    }
 }
