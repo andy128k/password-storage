@@ -19,7 +19,7 @@ use crate::ui::filter::create_model_filter;
 use crate::ui::menu::create_add_entity_menu;
 use crate::ui::merge_bar::create_merge_bar;
 use crate::ui::preview_panel::PSPreviewPanel;
-use crate::ui::search::create_search_entry;
+use crate::ui::search::create_search_bar;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
 use crate::utils::string::StringExt;
@@ -56,7 +56,8 @@ struct PSMainWindowPrivate {
     merge_actions: gio::SimpleActionGroup,
     entry_actions: gio::SimpleActionGroup,
 
-    search_entry: gtk::Entry,
+    search_entry: gtk::SearchEntry,
+    search_bar: gtk::SearchBar,
     merge_bar: gtk::InfoBar,
 
     filename: RefCell<Option<PathBuf>>,
@@ -128,9 +129,6 @@ impl ObjectImpl for PSMainWindowInner {
         save_box.pack_start(&save_as_button, false, false, 0);
         header_bar.pack_end(&save_box);
 
-        let search_entry = create_search_entry();
-        header_bar.pack_end(&search_entry);
-
         let data = PSStore::new();
         let view = PSTreeView::new();
         let preview = PSPreviewPanel::new();
@@ -141,6 +139,9 @@ impl ObjectImpl for PSMainWindowInner {
 
         let merge_bar = create_merge_bar();
         grid.attach(&merge_bar, 0, 1, 1, 1);
+
+        let (search_bar, search_entry) = create_search_bar();
+        grid.attach(&search_bar, 0, 2, 1, 1);
 
         let tree_container = gtk::Grid::new();
         tree_container.attach(&scrolled(&view.get_widget()), 0, 0, 1, 1);
@@ -160,7 +161,7 @@ impl ObjectImpl for PSMainWindowInner {
         let stack = gtk::Stack::new()
             .named("dashboard", &dashboard.get_widget())
             .named("file", &paned(&tree_container, &preview.get_widget()));
-        grid.attach(&stack, 0, 2, 1, 1);
+        grid.attach(&stack, 0, 3, 1, 1);
 
         win.add(&grid);
 
@@ -186,6 +187,7 @@ impl ObjectImpl for PSMainWindowInner {
             data: RefCell::new(data),
             view,
             search_entry,
+            search_bar,
             preview,
             merge_bar,
 
@@ -224,7 +226,7 @@ impl ObjectImpl for PSMainWindowInner {
 
         win.private()
             .search_entry
-            .connect_changed(clone!(@weak win => move |search_entry| {
+            .connect_search_changed(clone!(@weak win => move |search_entry| {
                 if let Some(search_text) = search_entry.text().non_empty() {
                     let look_at_secrets = win.private().config.get().unwrap().borrow().search_in_secrets;
                     let model = create_model_filter(
@@ -447,8 +449,8 @@ impl PSMainWindow {
             self.private().view.set_model(&data.as_model());
 
             *self.private().filename.borrow_mut() = None;
-            self.private().search_entry.set_text("");
             *self.private().password.borrow_mut() = None;
+            self.private().search_bar.set_search_mode(false);
 
             self.set_mode(AppMode::FileOpened);
             self.set_changed(false);
@@ -461,7 +463,7 @@ impl PSMainWindow {
             load_data(filename.to_owned(), &self.clone().upcast()).await
         {
             self.private().cache.get().unwrap().add_file(filename);
-            self.private().search_entry.set_text("");
+            self.private().search_bar.set_search_mode(false);
 
             let data = PSStore::from_tree(&entries);
             *self.private().data.borrow_mut() = data.clone();
@@ -473,7 +475,7 @@ impl PSMainWindow {
             self.set_mode(AppMode::FileOpened);
             self.set_changed(false);
             self.listview_cursor_changed(None);
-            self.private().search_entry.grab_focus();
+            self.private().view.get_widget().grab_focus();
         }
     }
 
@@ -538,7 +540,6 @@ impl PSMainWindow {
                     .set_state(&false.to_variant());
 
                 private.merge_bar.hide();
-                private.search_entry.hide();
                 private.view.set_selection_mode(false);
                 private.stack.set_visible_child_name("dashboard");
                 if let Some(cache) = self.private().cache.get() {
@@ -557,8 +558,6 @@ impl PSMainWindow {
                     .set_state(&false.to_variant());
 
                 private.merge_bar.hide();
-                private.search_entry.show();
-                private.search_entry.set_sensitive(true);
                 private.view.set_selection_mode(false);
                 private.stack.set_visible_child_name("file");
             }
@@ -574,12 +573,11 @@ impl PSMainWindow {
                     .set_state(&true.to_variant());
 
                 private.merge_bar.show();
-                private.search_entry.show();
-                private.search_entry.set_sensitive(true);
                 private.view.set_selection_mode(true);
                 private.stack.set_visible_child_name("file");
             }
         }
+        private.search_bar.set_search_mode(false);
         self.private().mode.set(mode);
     }
 
@@ -702,6 +700,7 @@ impl PSMainWindow {
 
     #[action(name = "find")]
     fn action_find(&self) {
+        self.private().search_bar.set_search_mode(true);
         self.private().search_entry.grab_focus();
     }
 
