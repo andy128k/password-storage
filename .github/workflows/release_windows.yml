@@ -1,0 +1,48 @@
+name: Release Windows
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable-gnu
+          default: true
+          override: true
+      - name: Set PATH
+        shell: bash
+        run: |
+          echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
+          echo "C:\msys64\usr\bin" >> $GITHUB_PATH
+      - name: Install dependencies
+        run: pacman --noconfirm -S mingw-w64-x86_64-gtk3
+      - name: Set PKG_CONFIG_PATH
+        shell: bash
+        run: echo "PKG_CONFIG_PATH=/mingw64/lib/pkgconfig" >> $GITHUB_ENV
+      - name: Set RUSTFLAGS
+        shell: bash
+        run: echo "RUSTFLAGS=-L C:\msys64\mingw64\lib" >> $GITHUB_ENV
+      - name: Build
+        run: cargo build --verbose --release
+      - name: Package
+        id: package
+        run: |
+          echo VERSION=${{ github.event.release.tag_name }}
+          copy .\target\release\password-storage.exe .\target\release\password-storage-${{ github.event.release.tag_name }}.exe
+          echo "::set-output name=exe-path::.\target\release\password-storage-${{ github.event.release.tag_name }}.exe"
+          echo "::set-output name=exe-name::password-storage-${{ github.event.release.tag_name }}.exe"
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_USER: ${{ secrets.DEPLOY_USER }}
+          GITHUB_TOKEN: ${{ secrets.DEPLOY_PAT }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ steps.package.outputs.exe-path }}
+          asset_name: ${{ steps.package.outputs.exe-name }}
+          asset_content_type: application/octet-stream
