@@ -19,20 +19,6 @@ fn centered<W: IsA<gtk::Widget> + WidgetExt>(widget: &W) -> gtk::Widget {
     grid.upcast()
 }
 
-thread_local! {
-    static CSS_PROVIDER: gtk::CssProvider = {
-        let provider = gtk::CssProvider::new();
-        provider
-            .load_from_data(br##"
-                label.error {
-                    color: #FF3333;
-                }
-            "##)
-            .expect("CSS is loaded");
-        provider
-    };
-}
-
 fn accel_label(accel: &str) -> Option<glib::GString> {
     let (key, mode) = gtk::accelerator_parse(accel);
     gtk::accelerator_get_label(key, mode)
@@ -70,12 +56,7 @@ pub fn action_row(action: &str, label: &str, icon: &str, accel: Option<&str>) ->
     let row = gtk::ListBoxRow::builder().action_name(action).build();
     row.add(&grid);
 
-    let context = row.style_context();
-    context.add_provider(
-        &CSS_PROVIDER.with(Clone::clone),
-        gtk::STYLE_PROVIDER_PRIORITY_FALLBACK,
-    );
-    context.add_class("frame");
+    row.style_context().add_class("frame");
 
     set_group_title(&row, "Start");
 
@@ -118,12 +99,7 @@ pub fn file_row(
         .build();
     if !filename.is_file() {
         label2.set_tooltip_text(Some("File does not exist."));
-        let context = label2.style_context();
-        context.add_provider(
-            &CSS_PROVIDER.with(Clone::clone),
-            gtk::STYLE_PROVIDER_PRIORITY_FALLBACK,
-        );
-        context.add_class(&gtk::STYLE_CLASS_ERROR);
+        label2.style_context().add_class("error");
     }
     grid.attach(&label2, 0, 1, 2, 1);
 
@@ -139,12 +115,7 @@ pub fn file_row(
         on_remove(&row, &filename);
     }));
 
-    let context = row.style_context();
-    context.add_provider(
-        &CSS_PROVIDER.with(Clone::clone),
-        gtk::STYLE_PROVIDER_PRIORITY_FALLBACK,
-    );
-    context.add_class("frame");
+    row.style_context().add_class("frame");
 
     set_group_title(&row, "Recent files");
 

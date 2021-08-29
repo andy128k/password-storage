@@ -627,6 +627,9 @@ impl PSMainWindow {
 
         win.show_all();
         win.set_mode(AppMode::Initial);
+        if let Some(screen) = win.screen() {
+            crate::css::load_css(&screen);
+        }
         win
     }
 }

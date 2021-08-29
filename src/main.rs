@@ -3,6 +3,7 @@
 mod application;
 mod cache;
 mod config;
+mod css;
 mod entropy;
 mod error;
 mod format;
