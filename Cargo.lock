@@ -623,9 +623,9 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "os_str_bytes"
-version = "4.0.0"
+version = "4.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "749d26d16b126e50c34d1e662259aa47ac548bc62f0822e91d81810f3b9c01fb"
+checksum = "324abb24c96ea09b7da6aaf68fad1be6242da1042e6f433ee929c26d8fba475b"
 
 [[package]]
 name = "pango"
