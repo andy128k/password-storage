@@ -45,8 +45,6 @@ impl PasswordEditor {
             .activates_default(true)
             .width_request(300)
             .hexpand(true)
-            .secondary_icon_name("system-run")
-            .secondary_icon_tooltip_text("Generate password")
             .build();
         entry.connect_changed(clone!(@weak level => move |e| {
             let value = if e.text().is_empty() {
@@ -63,15 +61,29 @@ impl PasswordEditor {
             };
             level.set_value(value);
         }));
-        entry.connect_icon_release(|e, pos, _button| {
-            if pos == gtk::EntryIconPosition::Secondary {
-                glib::MainContext::default().spawn_local(generate_password_clicked(e.clone()));
-            }
-        });
 
-        let container = gtk::Grid::builder().row_spacing(5).build();
+        let generate_button = gtk::Button::builder()
+            .image(&gtk::Image::from_icon_name(
+                Some("random"),
+                gtk::IconSize::LargeToolbar,
+            ))
+            .tooltip_text("Generate password")
+            .relief(gtk::ReliefStyle::None)
+            .build();
+        generate_button.style_context().add_class("square");
+        generate_button.connect_clicked(clone!(@weak entry => move |_| {
+            glib::MainContext::default().spawn_local(
+                generate_password_clicked(entry)
+            );
+        }));
+
+        let container = gtk::Grid::builder()
+            .row_spacing(5)
+            .column_spacing(5)
+            .build();
         container.attach(&entry, 0, 0, 1, 1);
-        container.attach(&level, 0, 1, 1, 1);
+        container.attach(&square(generate_button), 1, 0, 1, 1);
+        container.attach(&level, 0, 1, 2, 1);
 
         Self { container, entry }
     }
@@ -101,6 +113,15 @@ impl FormWidget<String> for PasswordEditor {
 
 fn get_value(entry: &gtk::Entry) -> Option<String> {
     entry.text().non_empty().map(|gs| gs.to_string())
+}
+
+fn square(widget: impl IsA<gtk::Widget>) -> gtk::Widget {
+    let af = gtk::AspectFrame::builder()
+        .ratio(1.0)
+        .shadow_type(gtk::ShadowType::None)
+        .build();
+    af.add(&widget);
+    af.upcast()
 }
 
 #[cfg(test)]

@@ -18,3 +18,7 @@ levelbar.password .filled.strength-very-strong {
   background-color: #008000;
   border-color: #008000;
 }
+
+button.square {
+  padding: 4px;
+}
