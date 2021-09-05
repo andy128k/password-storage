@@ -102,9 +102,10 @@ pub struct Form(Rc<RefCell<FormPrivate>>);
 
 impl Form {
     pub fn new() -> Self {
-        let grid = gtk::Grid::new();
-        grid.set_column_spacing(8);
-        grid.set_row_spacing(8);
+        let grid = gtk::Grid::builder()
+            .column_spacing(10)
+            .row_spacing(10)
+            .build();
 
         let private = FormPrivate {
             grid,
