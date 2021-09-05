@@ -1,8 +1,9 @@
-use super::base::*;
 use crate::entropy::{password_entropy, AsciiClassifier};
 use crate::gtk_prelude::*;
+use crate::include_css;
 use crate::password::generate_password;
 use crate::ui::dialogs::ask::confirm_unlikely;
+use crate::ui::forms::base::FormWidget;
 use crate::ui::password_strenth_bar::PasswordStrenthBar;
 use crate::utils::string::StringExt;
 
@@ -44,6 +45,8 @@ impl PasswordEditor {
             level.set_strenth(strenth);
         }));
 
+        let css_provider = include_css!("style.css");
+
         let visibility_toggle = gtk::ToggleButton::builder()
             .image(&gtk::Image::from_icon_name(
                 Some("eye"),
@@ -52,7 +55,9 @@ impl PasswordEditor {
             .tooltip_text("Reveal password")
             .relief(gtk::ReliefStyle::None)
             .build();
-        visibility_toggle.style_context().add_class("square");
+        visibility_toggle
+            .style_context()
+            .add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
         visibility_toggle.connect_clicked(clone!(@weak entry => move |t| {
             entry.set_visibility(t.is_active());
         }));
@@ -65,7 +70,9 @@ impl PasswordEditor {
             .tooltip_text("Generate password")
             .relief(gtk::ReliefStyle::None)
             .build();
-        generate_button.style_context().add_class("square");
+        generate_button
+            .style_context()
+            .add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
         generate_button.connect_clicked(clone!(@weak entry => move |_| {
             glib::MainContext::default().spawn_local(
                 generate_password_clicked(entry)

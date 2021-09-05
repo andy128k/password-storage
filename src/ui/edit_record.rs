@@ -3,7 +3,7 @@ use super::forms::base::*;
 use super::forms::entry::*;
 use super::forms::form::*;
 use super::forms::multiline::*;
-use super::forms::password_editor::PasswordEditor;
+use super::password_editor::PasswordEditor;
 use crate::gtk_prelude::*;
 use crate::model::record::{FieldType, Record, RecordType};
 
