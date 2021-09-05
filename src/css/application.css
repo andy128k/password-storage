@@ -1,24 +1,3 @@
-levelbar.password .filled.strength-very-weak {
-  background-color: #ff0000;
-  border-color: #ff0000;
-}
-levelbar.password .filled.strength-weak {
-  background-color: #ff8000;
-  border-color: #ff8000;
-}
-levelbar.password .filled.strength-reasonable {
-  background-color: #ffff00;
-  border-color: #ffff00;
-}
-levelbar.password .filled.strength-strong {
-  background-color: #c0ff00;
-  border-color: #c0ff00;
-}
-levelbar.password .filled.strength-very-strong {
-  background-color: #008000;
-  border-color: #008000;
-}
-
 button.square {
   padding: 4px;
 }

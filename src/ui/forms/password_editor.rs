@@ -1,8 +1,9 @@
 use super::base::*;
-use crate::entropy::{password_entropy, AsciiClassifier, PasswordStrenth};
+use crate::entropy::{password_entropy, AsciiClassifier};
 use crate::gtk_prelude::*;
 use crate::password::generate_password;
 use crate::ui::dialogs::ask::confirm_unlikely;
+use crate::ui::password_strenth_bar::PasswordStrenthBar;
 use crate::utils::string::StringExt;
 
 pub struct PasswordEditor {
@@ -28,17 +29,7 @@ async fn generate_password_clicked(entry: gtk::Entry) {
 
 impl PasswordEditor {
     pub fn new() -> Self {
-        let level = gtk::LevelBar::builder()
-            .mode(gtk::LevelBarMode::Discrete)
-            .min_value(0.0)
-            .max_value(5.0)
-            .build();
-        level.style_context().add_class("password");
-        level.add_offset_value("strength-very-weak", 1.0);
-        level.add_offset_value("strength-weak", 2.0);
-        level.add_offset_value("strength-reasonable", 3.0);
-        level.add_offset_value("strength-strong", 4.0);
-        level.add_offset_value("strength-very-strong", 5.0);
+        let level = PasswordStrenthBar::new();
 
         let entry = gtk::Entry::builder()
             .visibility(false)
@@ -48,19 +39,9 @@ impl PasswordEditor {
             .hexpand(true)
             .build();
         entry.connect_changed(clone!(@weak level => move |e| {
-            let value = if e.text().is_empty() {
-                0.0
-            } else {
-                let entropy = password_entropy(&AsciiClassifier, e.text().as_bytes());
-                match entropy.into() {
-                    PasswordStrenth::VeryWeak => 1.0,
-                    PasswordStrenth::Weak => 2.0,
-                    PasswordStrenth::Reasonable => 3.0,
-                    PasswordStrenth::Strong => 4.0,
-                    PasswordStrenth::VeryStrong => 5.0,
-                }
-            };
-            level.set_value(value);
+            let strenth = get_value(e)
+                .map(|text| password_entropy(&AsciiClassifier, text.as_bytes()).into());
+            level.set_strenth(strenth);
         }));
 
         let visibility_toggle = gtk::ToggleButton::builder()
@@ -98,7 +79,7 @@ impl PasswordEditor {
         container.attach(&entry, 0, 0, 1, 1);
         container.attach(&square(visibility_toggle), 1, 0, 1, 1);
         container.attach(&square(generate_button), 2, 0, 1, 1);
-        container.attach(&level, 0, 1, 3, 1);
+        container.attach(&level.get_widget(), 0, 1, 3, 1);
 
         Self { container, entry }
     }

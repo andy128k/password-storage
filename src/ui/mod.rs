@@ -7,6 +7,7 @@ pub mod filter;
 pub mod forms;
 pub mod menu;
 pub mod merge_bar;
+pub mod password_strenth_bar;
 pub mod preview_panel;
 pub mod search;
 pub mod tree_view;
