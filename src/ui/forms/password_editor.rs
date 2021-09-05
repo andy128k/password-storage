@@ -41,6 +41,7 @@ impl PasswordEditor {
         level.add_offset_value("strength-very-strong", 5.0);
 
         let entry = gtk::Entry::builder()
+            .visibility(false)
             .can_focus(true)
             .activates_default(true)
             .width_request(300)
@@ -60,6 +61,19 @@ impl PasswordEditor {
                 }
             };
             level.set_value(value);
+        }));
+
+        let visibility_toggle = gtk::ToggleButton::builder()
+            .image(&gtk::Image::from_icon_name(
+                Some("eye"),
+                gtk::IconSize::LargeToolbar,
+            ))
+            .tooltip_text("Reveal password")
+            .relief(gtk::ReliefStyle::None)
+            .build();
+        visibility_toggle.style_context().add_class("square");
+        visibility_toggle.connect_clicked(clone!(@weak entry => move |t| {
+            entry.set_visibility(t.is_active());
         }));
 
         let generate_button = gtk::Button::builder()
@@ -82,8 +96,9 @@ impl PasswordEditor {
             .column_spacing(5)
             .build();
         container.attach(&entry, 0, 0, 1, 1);
-        container.attach(&square(generate_button), 1, 0, 1, 1);
-        container.attach(&level, 0, 1, 2, 1);
+        container.attach(&square(visibility_toggle), 1, 0, 1, 1);
+        container.attach(&square(generate_button), 2, 0, 1, 1);
+        container.attach(&level, 0, 1, 3, 1);
 
         Self { container, entry }
     }
