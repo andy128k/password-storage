@@ -20,14 +20,6 @@ jobs:
         id: make-dmg
         run: |
           VERSION=${{ github.event.release.tag_name }} make osx_app
-          echo ::set-output name=dmg-path::$(ls target/dmg/PasswordStorage*.dmg)
-          echo ::set-output name=dmg-name::$(basename target/dmg/PasswordStorage*.dmg)
-      - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_USER: ${{ secrets.DEPLOY_USER }}
-          GITHUB_TOKEN: ${{ secrets.DEPLOY_PAT }}
+      - uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.make-dmg.outputs.dmg-path }}
-          asset_name: ${{ steps.make-dmg.outputs.dmg-name }}
-          asset_content_type: application/octet-stream
+          files: target/dmg/PasswordStorage*.dmg

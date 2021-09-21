@@ -26,14 +26,6 @@ jobs:
         id: make-deb
         run: |
           make deb
-          echo ::set-output name=deb-path::$(ls target/debian/password-storage*.deb)
-          echo ::set-output name=deb-name::$(basename target/debian/password-storage*.deb)
-      - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_USER: ${{ secrets.DEPLOY_USER }}
-          GITHUB_TOKEN: ${{ secrets.DEPLOY_PAT }}
+      - uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.make-deb.outputs.deb-path }}
-          asset_name: ${{ steps.make-deb.outputs.deb-name }}
-          asset_content_type: application/octet-stream
+          files: target/debian/password-storage*.deb

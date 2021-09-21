@@ -35,14 +35,6 @@ jobs:
         run: |
           echo VERSION=${{ github.event.release.tag_name }}
           copy .\target\release\password-storage.exe .\target\release\password-storage-${{ github.event.release.tag_name }}.exe
-          echo "::set-output name=exe-path::.\target\release\password-storage-${{ github.event.release.tag_name }}.exe"
-          echo "::set-output name=exe-name::password-storage-${{ github.event.release.tag_name }}.exe"
-      - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_USER: ${{ secrets.DEPLOY_USER }}
-          GITHUB_TOKEN: ${{ secrets.DEPLOY_PAT }}
+      - uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.package.outputs.exe-path }}
-          asset_name: ${{ steps.package.outputs.exe-name }}
-          asset_content_type: application/octet-stream
+          files: .\target\release\password-storage-*.exe
