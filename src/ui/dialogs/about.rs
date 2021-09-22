@@ -1,7 +1,7 @@
 use crate::gtk_prelude::*;
 use crate::version::VERSION;
 
-pub fn about(parent: Option<&gtk::Window>) {
+pub async fn about(parent: Option<&gtk::Window>) {
     let dlg = gtk::AboutDialog::builder()
         .window_position(gtk::WindowPosition::CenterOnParent)
         .modal(true)
@@ -16,4 +16,6 @@ pub fn about(parent: Option<&gtk::Window>) {
         .build();
     dlg.set_transient_for(parent);
     dlg.show();
+    dlg.run_future().await;
+    dlg.close();
 }
