@@ -30,11 +30,14 @@ jobs:
         run: echo "RUSTFLAGS=-L C:\msys64\mingw64\lib" >> $GITHUB_ENV
       - name: Build
         run: cargo build --verbose --release
+
       - name: Package
-        id: package
         run: |
-          echo VERSION=${{ github.event.release.tag_name }}
-          copy .\target\release\password-storage.exe .\target\release\password-storage-${{ github.event.release.tag_name }}.exe
+          mkdir win
+          copy .\\target\\release\\password-storage.exe win
+          "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" "/DVersion=${{ github.event.release.tag_name }}" ".\\windows\\setup.iss"
+        shell: cmd
+
       - uses: softprops/action-gh-release@v1
         with:
-          files: .\target\release\password-storage-*.exe
+          files: .\PasswordStorage-*.*
