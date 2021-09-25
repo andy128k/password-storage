@@ -3,7 +3,6 @@ pub mod dialogs;
 pub mod edit_object;
 pub mod edit_record;
 pub mod error_label;
-pub mod filter;
 pub mod forms;
 pub mod menu;
 pub mod merge_bar;

@@ -56,3 +56,20 @@ pub fn tree_parents_entries(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> Tre
         iter: Some(iter.clone()),
     }
 }
+
+pub fn flatten_tree(model: &gtk::TreeModel) -> Vec<gtk::TreeIter> {
+    fn traverse(
+        model: &gtk::TreeModel,
+        parent_iter: Option<&gtk::TreeIter>,
+        iters: &mut Vec<gtk::TreeIter>,
+    ) {
+        for i in tree_children_entries(model, parent_iter) {
+            iters.push(i.clone());
+            traverse(model, Some(&i), iters);
+        }
+    }
+
+    let mut iters = Vec::new();
+    traverse(model, None, &mut iters);
+    iters
+}

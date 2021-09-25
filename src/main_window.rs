@@ -15,14 +15,15 @@ use crate::ui::dialogs::file_chooser::{open_file, save_file};
 use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
-use crate::ui::filter::create_model_filter;
 use crate::ui::menu::create_add_entity_menu;
 use crate::ui::merge_bar::create_merge_bar;
 use crate::ui::preview_panel::PSPreviewPanel;
 use crate::ui::search::create_search_bar;
+use crate::ui::search::SearchEvent;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
 use crate::utils::string::StringExt;
+use crate::utils::tree::flatten_tree;
 use crate::utils::ui::*;
 use guard::guard;
 use once_cell::unsync::OnceCell;
@@ -226,25 +227,18 @@ impl ObjectImpl for PSMainWindowInner {
 
         win.private()
             .search_entry
-            .connect_search_changed(clone!(@weak win => move |search_entry| {
-                if let Some(search_text) = search_entry.text().non_empty() {
-                    let look_at_secrets = win.private().config.get().unwrap().borrow().search_in_secrets;
-                    let model = create_model_filter(
-                        &win.private().data.borrow(),
-                        &search_text,
-                        look_at_secrets,
-                    );
-                    win.private().view.set_model(&model.upcast());
-                    win.private().view.view.set_reorderable(false);
-                    win.refilter();
-                    win.private().view.view.expand_all();
-                } else {
-                    let model = win.private().data.borrow().as_model();
-                    win.private().view.set_model(&model);
-                    win.private().view.view.set_reorderable(true);
-                    win.private().view.view.collapse_all();
-                }
-                win.listview_cursor_changed(None);
+            .connect_search_changed(clone!(@weak win => move |entry| {
+                win.search(&entry.text(), SearchEvent::Change);
+            }));
+        win.private()
+            .search_entry
+            .connect_next_match(clone!(@weak win => move |entry| {
+                win.search(&entry.text(), SearchEvent::Next);
+            }));
+        win.private()
+            .search_entry
+            .connect_previous_match(clone!(@weak win => move |entry| {
+                win.search(&entry.text(), SearchEvent::Prev);
             }));
 
         win.private()
@@ -319,14 +313,6 @@ impl PSMainWindow {
         }
     }
 
-    fn refilter(&self) {
-        if let Some(model) = self.private().view.view.model() {
-            if let Ok(filter) = model.downcast::<gtk::TreeModelFilter>() {
-                filter.refilter();
-            }
-        }
-    }
-
     fn get_selected_group_iter(&self) -> Option<gtk::TreeIter> {
         let (iter, _path) = self.private().view.get_selected_iter()?;
         let model = &self.private().data.borrow();
@@ -368,6 +354,42 @@ impl PSMainWindow {
         self.private()
             .preview
             .update(record, show_secrets_on_preview);
+    }
+
+    fn search(&self, search_text: &str, event: SearchEvent) {
+        guard!(let Some(search_text) = search_text.non_empty() else { return });
+
+        let private = self.private();
+        let model = private.data.borrow().as_model();
+        let iters = flatten_tree(&model);
+
+        let mut search_iter: Box<dyn Iterator<Item = &gtk::TreeIter>> = match event {
+            SearchEvent::Change | SearchEvent::Next => Box::new(iters.iter()),
+            SearchEvent::Prev => Box::new(iters.iter().rev()),
+        };
+        if let Some((_selection_iter, selection_path)) = private.view.get_selected_iter() {
+            search_iter = Box::new(
+                search_iter
+                    .skip_while(move |iter| model.path(iter).as_ref() != Some(&selection_path)),
+            );
+        }
+        match event {
+            SearchEvent::Change => {}
+            SearchEvent::Next | SearchEvent::Prev => search_iter = Box::new(search_iter.skip(1)),
+        };
+
+        let look_at_secrets = private.config.get().unwrap().borrow().search_in_secrets;
+
+        let next_match = search_iter
+            .filter_map(|iter| private.data.borrow().get(iter).map(|record| (iter, record)))
+            .find(|(_iter, record)| record.has_text(search_text, look_at_secrets));
+
+        if let Some(next_match) = next_match {
+            private.view.select_iter(next_match.0);
+            self.listview_cursor_changed(Some(next_match.1));
+        } else {
+            self.error_bell();
+        }
     }
 
     fn get_usernames(&self) -> Vec<String> {
@@ -723,7 +745,6 @@ impl PSMainWindow {
                 .data
                 .borrow()
                 .append(group_iter.as_ref(), &new_record);
-            self.refilter();
             self.private().view.select_iter(&iter);
             self.set_changed(true);
         }
@@ -805,7 +826,6 @@ impl PSMainWindow {
 
         // TODO: detect common path
         let iter = self.private().data.borrow().append(None, &result);
-        self.refilter();
         self.private().view.select_iter(&iter);
         self.set_changed(true);
     }
@@ -850,7 +870,6 @@ impl PSMainWindow {
                 .await
                 {
                     self.private().data.borrow().update(&iter, &new_record);
-                    self.refilter();
                     self.listview_cursor_changed(Some(new_record));
                     self.set_changed(true);
                 }
@@ -896,7 +915,6 @@ impl PSMainWindow {
             .data
             .borrow()
             .update(&selection_iter, &new_record);
-        self.refilter();
         self.set_changed(true);
         self.listview_cursor_changed(Some(new_record));
     }

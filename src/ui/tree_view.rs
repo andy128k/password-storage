@@ -1,5 +1,6 @@
 use crate::gtk_prelude::*;
 use crate::store::TreeStoreColumn;
+use guard::guard;
 
 const GDK_BUTTON_SECONDARY: u32 = 3;
 
@@ -16,36 +17,23 @@ fn get_real_iter(
 ) -> Option<(gtk::TreeModel, gtk::TreeIter)> {
     let model = view.model()?;
     let iter = model.iter(path)?;
-    match model.clone().downcast::<gtk::TreeModelFilter>() {
-        Ok(filter) => Some((
-            filter.model().unwrap(),
-            filter.convert_iter_to_child_iter(&iter),
-        )),
-        Err(_) => Some((model, iter)),
-    }
+    Some((model, iter))
 }
 
 pub fn get_selected_iter(view: &gtk::TreeView) -> Option<(gtk::TreeIter, gtk::TreePath)> {
     let (current_model, iter) = view.selection().selected()?;
     let path = current_model.path(&iter)?;
-    let real_iter = match current_model.downcast::<gtk::TreeModelFilter>() {
-        Ok(filter) => filter.convert_iter_to_child_iter(&iter),
-        Err(_) => iter,
-    };
-    Some((real_iter, path))
+    Some((iter, path))
 }
 
 pub fn select_iter(view: &gtk::TreeView, iter: &gtk::TreeIter) {
-    if let Some(current_model) = view.model() {
-        let iter_to_select = match current_model.clone().downcast::<gtk::TreeModelFilter>() {
-            Ok(filter) => filter.convert_child_iter_to_iter(iter),
-            Err(_) => Some(iter.clone()),
-        };
-        if let Some(path) = iter_to_select.and_then(|iter| current_model.path(&iter)) {
-            view.expand_to_path(&path);
-            view.set_cursor(&path, None::<&gtk::TreeViewColumn>, false);
-        }
-    }
+    guard!(let Some(current_model) = view.model() else { return });
+    guard!(let Some(path) = current_model.path(iter) else { return });
+
+    view.expand_to_path(&path);
+    view.scroll_to_cell(Some(&path), None::<&gtk::TreeViewColumn>, true, 0.5, 0.0);
+    view.set_cursor(&path, None::<&gtk::TreeViewColumn>, false);
+    view.selection().select_path(&path);
 }
 
 impl PSTreeView {

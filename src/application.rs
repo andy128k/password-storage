@@ -36,8 +36,10 @@ impl ObjectImpl for PSApplicationInner {
             }
 
             for (_group_title, actions) in SHORTCUTS {
-                for (action, _title, accel) in actions.iter() {
-                    app.set_accels_for_action(action, &[accel]);
+                for Shortcut { action, accel, .. } in actions.iter() {
+                    if let Some(action) = action {
+                        app.set_accels_for_action(action, &[accel]);
+                    }
                 }
             }
 
@@ -158,13 +160,13 @@ impl PSApplication {
         let section = gtk::ShortcutsSection::builder().visible(true).build();
         for (group_title, actions) in SHORTCUTS {
             let group = gtk::ShortcutsGroup::builder().title(group_title).build();
-            for (action, title, accel) in actions.iter() {
+            for shortcut in actions.iter() {
                 let s = gtk::ShortcutsShortcut::builder()
                     .shortcut_type(gtk::ShortcutType::Accelerator)
-                    .action_name(action)
-                    .accelerator(accel)
-                    .title(title)
+                    .accelerator(shortcut.accel)
+                    .title(shortcut.title)
                     .build();
+                s.set_action_name(shortcut.action);
                 group.add(&s);
             }
             section.add(&group);
@@ -174,35 +176,53 @@ impl PSApplication {
     }
 }
 
-type SCAction<'a> = (&'a str, &'a str, &'a str);
-type SCGroup<'a> = (&'a str, &'a [SCAction<'a>]);
+struct Shortcut<'a> {
+    action: Option<&'a str>,
+    title: &'a str,
+    accel: &'a str,
+}
+
+impl<'a> Shortcut<'a> {
+    pub const fn new(accel: &'a str, title: &'a str) -> Self {
+        Self {
+            action: None,
+            title,
+            accel,
+        }
+    }
+
+    pub const fn action(mut self, action: &'a str) -> Self {
+        self.action = Some(action);
+        self
+    }
+}
+
+type SCGroup<'a> = (&'a str, &'a [Shortcut<'a>]);
 
 const SHORTCUTS: &[SCGroup<'static>] = &[
     (
         "General",
         &[
-            ("app.new", "New file", "<Primary>n"),
-            ("app.open", "Open file", "<Primary>o"),
-            ("file.save", "Save file", "<Primary>s"),
-            ("file.close", "Close file", "<Primary>w"),
-            ("app.quit", "Quit", "<Primary>q"),
+            Shortcut::new("<Primary>n", "New file").action("app.new"),
+            Shortcut::new("<Primary>o", "Open file").action("app.open"),
+            Shortcut::new("<Primary>s", "Save file").action("file.save"),
+            Shortcut::new("<Primary>w", "Close file").action("file.close"),
+            Shortcut::new("<Primary>q", "Quit").action("app.quit"),
         ],
     ),
     (
         "Document",
         &[
-            ("file.find", "Find", "<Primary>f"),
-            ("entry.copy-name", "Copy name", "<Primary>c"),
-            ("entry.copy-password", "Copy password", "<Primary><Shift>c"),
+            Shortcut::new("<Primary>f", "Find").action("file.find"),
+            Shortcut::new("<Primary>g", "Find next match"),
+            Shortcut::new("<Primary><Shift>g", "Find previous match"),
+            Shortcut::new("<Primary>c", "Copy name").action("entry.copy-name"),
+            Shortcut::new("<Primary><Shift>c", "Copy password").action("entry.copy-password"),
         ],
     ),
     (
         "Miscellaneous",
-        &[(
-            "app.shortcuts",
-            "Keyboard shortcuts memo",
-            "<Primary>question",
-        )],
+        &[Shortcut::new("<Primary>question", "Keyboard shortcuts memo").action("app.shortcuts")],
     ),
 ];
 
