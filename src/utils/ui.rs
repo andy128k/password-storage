@@ -24,6 +24,16 @@ pub fn paned<P1: IsA<gtk::Widget>, P2: IsA<gtk::Widget>>(pane1: &P1, pane2: &P2)
         .also(|paned| paned.set_focus_chain(&[pane1.clone().upcast(), pane2.clone().upcast()]))
 }
 
+pub fn overlayed<P1: IsA<gtk::Widget>, P2: IsA<gtk::Widget>>(
+    widget: &P1,
+    overlay: &P2,
+) -> gtk::Overlay {
+    gtk::Overlay::builder().build().also(|o| {
+        o.add(widget);
+        o.add_overlay(overlay);
+    })
+}
+
 pub trait PSStackExt {
     fn named<P: IsA<gtk::Widget>>(self, name: &str, child: &P) -> Self;
 }

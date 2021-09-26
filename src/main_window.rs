@@ -20,6 +20,7 @@ use crate::ui::merge_bar::create_merge_bar;
 use crate::ui::preview_panel::PSPreviewPanel;
 use crate::ui::search::create_search_bar;
 use crate::ui::search::SearchEvent;
+use crate::ui::toast::Toast;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
 use crate::utils::string::StringExt;
@@ -60,6 +61,7 @@ struct PSMainWindowPrivate {
     search_entry: gtk::SearchEntry,
     search_bar: gtk::SearchBar,
     merge_bar: gtk::InfoBar,
+    toast: Toast,
 
     filename: RefCell<Option<PathBuf>>,
     password: RefCell<Option<String>>,
@@ -133,6 +135,7 @@ impl ObjectImpl for PSMainWindowInner {
         let data = PSStore::new();
         let view = PSTreeView::new();
         let preview = PSPreviewPanel::new();
+        let toast = Toast::new();
 
         let dashboard = PSDashboard::new();
 
@@ -161,7 +164,13 @@ impl ObjectImpl for PSMainWindowInner {
 
         let stack = gtk::Stack::new()
             .named("dashboard", &dashboard.get_widget())
-            .named("file", &paned(&tree_container, &preview.get_widget()));
+            .named(
+                "file",
+                &overlayed(
+                    &paned(&tree_container, &preview.get_widget()),
+                    &toast.as_widget(),
+                ),
+            );
         grid.attach(&stack, 0, 3, 1, 1);
 
         win.add(&grid);
@@ -191,6 +200,7 @@ impl ObjectImpl for PSMainWindowInner {
             search_bar,
             preview,
             merge_bar,
+            toast,
 
             doc_actions: doc_actions.clone(),
             file_actions: file_actions.clone(),
@@ -457,6 +467,9 @@ impl PSMainWindow {
 
             format::save_file(filename, &password, &tree)?;
 
+            self.private()
+                .toast
+                .notify(&format!("File '{}' was saved", filename.display()));
             *self.private().filename.borrow_mut() = Some(filename.to_owned());
             self.set_changed(false);
             self.private().cache.get().unwrap().add_file(filename);
@@ -839,6 +852,7 @@ impl PSMainWindow {
             if let Some(record) = self.private().data.borrow().get(&iter) {
                 if let Some(username) = record.username() {
                     get_clipboard().set_text(username);
+                    self.private().toast.notify("Name is copied to clipboard");
                 }
             }
         }
@@ -850,6 +864,9 @@ impl PSMainWindow {
             if let Some(record) = self.private().data.borrow().get(&iter) {
                 if let Some(password) = record.password() {
                     get_clipboard().set_text(password);
+                    self.private()
+                        .toast
+                        .notify("Secret (password) is copied to clipboard");
                 }
             }
         }

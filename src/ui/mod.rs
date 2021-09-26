@@ -10,4 +10,5 @@ pub mod password_editor;
 pub mod password_strenth_bar;
 pub mod preview_panel;
 pub mod search;
+pub mod toast;
 pub mod tree_view;
