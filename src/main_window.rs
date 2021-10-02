@@ -747,8 +747,8 @@ impl PSMainWindow {
         if let Some(new_record) = edit_record(
             &empty_record,
             &self.clone().upcast(),
-            "Add",
-            &self.get_usernames(),
+            "Add record",
+            self.get_usernames(),
         )
         .await
         {
@@ -881,8 +881,8 @@ impl PSMainWindow {
                 if let Some(new_record) = edit_record(
                     &record,
                     &self.clone().upcast(),
-                    "Edit",
-                    &self.get_usernames(),
+                    "Edit record",
+                    self.get_usernames(),
                 )
                 .await
                 {
