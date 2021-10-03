@@ -11,20 +11,6 @@ pub fn create_add_entity_menu() -> gio::Menu {
     }))
 }
 
-pub fn create_convert_entity_menu() -> gio::Menu {
-    gio::Menu::from_items(
-        RECORD_TYPES
-            .iter()
-            .filter(|rt| !rt.is_group)
-            .map(|record_type| {
-                gio::MenuItem::create()
-                    .action(&format!("entry.convert-to::{}", record_type.name))
-                    .label(&format!("Convert to {}", record_type.name))
-                    .icon(record_type.icon)
-            }),
-    )
-}
-
 pub fn create_main_menu() -> gio::MenuModel {
     gio::Menu::new()
         .section(

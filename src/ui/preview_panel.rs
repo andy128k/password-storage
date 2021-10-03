@@ -1,15 +1,12 @@
 use crate::gtk_prelude::*;
 use crate::markup_builder::*;
 use crate::model::record::Record;
-use crate::ui::menu::create_convert_entity_menu;
-use crate::utils::ui::{action_button, action_menu_button};
 
 pub struct PSPreviewPanel {
     grid: gtk::Grid,
     icon: gtk::Image,
     title: gtk::Label,
     view: gtk::Label,
-    convert_button: gtk::MenuButton,
 }
 
 impl PSPreviewPanel {
@@ -46,37 +43,11 @@ impl PSPreviewPanel {
             .build();
         grid.attach(&view, 0, 2, 2, 1);
 
-        let action_bar = gtk::ActionBar::builder().hexpand(true).build();
-        action_bar.pack_start(&action_button("entry.edit", "text-editor-symbolic", "Edit"));
-        let convert_button = action_menu_button(
-            &create_convert_entity_menu(),
-            "system-run-symbolic",
-            "Convert to another type",
-        );
-        action_bar.pack_start(&convert_button);
-        action_bar.pack_start(&action_button(
-            "entry.delete",
-            "edit-delete-symbolic",
-            "Delete",
-        ));
-        action_bar.pack_end(&action_button(
-            "entry.copy-password",
-            "dialog-password-symbolic",
-            "Copy password",
-        ));
-        action_bar.pack_end(&action_button(
-            "entry.copy-name",
-            "edit-copy-symbolic",
-            "Copy name",
-        ));
-        grid.attach(&action_bar, 0, 3, 2, 1);
-
         Self {
             grid,
             icon,
             title,
             view,
-            convert_button,
         }
     }
 
@@ -91,13 +62,10 @@ impl PSPreviewPanel {
             self.title.set_markup(&big(&record.name()));
             self.view
                 .set_markup(&record_to_markup(&record, show_secrets));
-            self.convert_button
-                .set_sensitive(!record.record_type.is_group);
         } else {
             self.icon.set_icon_name(None);
             self.title.set_markup("");
             self.view.set_markup("");
-            self.convert_button.set_sensitive(false);
         }
     }
 }

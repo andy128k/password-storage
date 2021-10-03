@@ -160,6 +160,21 @@ impl ObjectImpl for PSMainWindowInner {
             "list-remove-symbolic",
             "Remove record",
         ));
+        tree_action_bar.pack_start(&action_button(
+            "entry.edit",
+            "document-edit-symbolic",
+            "Edit record",
+        ));
+        tree_action_bar.pack_end(&action_button(
+            "entry.copy-password",
+            "dialog-password-symbolic",
+            "Copy password",
+        ));
+        tree_action_bar.pack_end(&action_button(
+            "entry.copy-name",
+            "edit-copy-symbolic",
+            "Copy name",
+        ));
         tree_container.attach(&tree_action_bar, 0, 1, 1, 1);
 
         let stack = gtk::Stack::new()
