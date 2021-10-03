@@ -179,15 +179,19 @@ impl ObjectImpl for PSMainWindowInner {
 
         let doc_actions = gio::SimpleActionGroup::new();
         win.register_doc_actions(&doc_actions);
+        win.insert_action_group("doc", Some(&doc_actions));
 
         let file_actions = gio::SimpleActionGroup::new();
         win.register_file_actions(&file_actions);
+        win.insert_action_group("file", Some(&file_actions));
 
         let merge_actions = gio::SimpleActionGroup::new();
         win.register_merge_actions(&merge_actions);
+        win.insert_action_group("merge", Some(&merge_actions));
 
         let entry_actions = gio::SimpleActionGroup::new();
         win.register_entry_actions(&entry_actions);
+        win.insert_action_group("entry", Some(&entry_actions));
 
         let private = PSMainWindowPrivate {
             mode: Cell::new(AppMode::Initial),
@@ -202,10 +206,10 @@ impl ObjectImpl for PSMainWindowInner {
             merge_bar,
             toast,
 
-            doc_actions: doc_actions.clone(),
-            file_actions: file_actions.clone(),
-            merge_actions: merge_actions.clone(),
-            entry_actions: entry_actions.clone(),
+            doc_actions,
+            file_actions,
+            merge_actions,
+            entry_actions,
 
             filename: RefCell::new(None),
             password: RefCell::new(None),
@@ -229,11 +233,6 @@ impl ObjectImpl for PSMainWindowInner {
             }),
         );
         *self.delete_handler.borrow_mut() = Some(delete_handler);
-
-        win.insert_action_group("doc", Some(&doc_actions));
-        win.insert_action_group("file", Some(&file_actions));
-        win.insert_action_group("merge", Some(&merge_actions));
-        win.insert_action_group("entry", Some(&entry_actions));
 
         win.private()
             .search_entry
