@@ -1,12 +1,11 @@
 use crate::cache::Cache;
-use crate::config::Config;
+use crate::config::ConfigService;
 use crate::gtk_prelude::*;
-use std::cell::RefCell;
 use std::rc::Rc;
 
 #[derive(Default)]
 pub struct PSApplication {
-    pub config: Rc<RefCell<Config>>,
+    pub config: Rc<ConfigService>,
     pub cache: Cache,
 }
 

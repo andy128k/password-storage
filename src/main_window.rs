@@ -1,5 +1,5 @@
 use crate::cache::Cache;
-use crate::config::Config;
+use crate::config::ConfigService;
 use crate::error::*;
 use crate::format;
 use crate::gtk_prelude::*;
@@ -67,7 +67,7 @@ struct PSMainWindowPrivate {
     password: RefCell<Option<String>>,
     changed: Cell<bool>,
 
-    config: OnceCell<Rc<RefCell<Config>>>,
+    config: OnceCell<Rc<ConfigService>>,
     cache: OnceCell<Cache>,
 }
 
@@ -373,7 +373,7 @@ impl PSMainWindow {
             .config
             .get()
             .unwrap()
-            .borrow()
+            .get()
             .show_secrets_on_preview;
         self.private()
             .preview
@@ -402,7 +402,7 @@ impl PSMainWindow {
             SearchEvent::Next | SearchEvent::Prev => search_iter = Box::new(search_iter.skip(1)),
         };
 
-        let look_at_secrets = private.config.get().unwrap().borrow().search_in_secrets;
+        let look_at_secrets = private.config.get().unwrap().get().search_in_secrets;
 
         let next_match = search_iter
             .filter_map(|iter| private.data.borrow().get(iter).map(|record| (iter, record)))
@@ -650,7 +650,7 @@ impl PSMainWindow {
         }
     }
 
-    pub fn new(app: &gtk::Application, config: &Rc<RefCell<Config>>, cache: &Cache) -> Self {
+    pub fn new(app: &gtk::Application, config: &Rc<ConfigService>, cache: &Cache) -> Self {
         let win = glib::Object::new(&[("application", app)]).expect("MainWindow is created");
 
         let private = PSMainWindowInner::from_instance(&win);

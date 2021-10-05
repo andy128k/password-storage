@@ -1,4 +1,3 @@
-use crate::config::Config;
 use crate::gtk_prelude::*;
 use crate::main_window::PSMainWindow;
 use crate::ui::dialogs::about::about;
@@ -28,7 +27,6 @@ impl PSApplication {
     fn on_startup(&self) {
         let private = implementation::PSApplication::from_instance(self);
 
-        *private.config.borrow_mut() = Config::load();
         private.cache.load();
 
         if let Err(error) = configure() {
@@ -52,7 +50,6 @@ impl PSApplication {
 
     fn on_shutdown(&self) {
         let private = implementation::PSApplication::from_instance(self);
-        private.config.borrow().save().unwrap();
         private.cache.save().unwrap();
     }
 
@@ -100,9 +97,9 @@ impl PSApplication {
     async fn preferences(&self) {
         let win = self.activate_main_window();
         let private = implementation::PSApplication::from_instance(self);
-        let config = private.config.borrow().clone();
+        let config = private.config.get();
         if let Some(new_config) = preferences(&win.clone().upcast(), &config).await {
-            *private.config.borrow_mut() = new_config;
+            private.config.set(new_config);
         }
     }
 

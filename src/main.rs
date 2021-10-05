@@ -9,6 +9,7 @@ mod error;
 mod format;
 mod gtk_prelude;
 mod icons;
+mod id;
 mod main_window;
 mod markup_builder;
 mod model;
