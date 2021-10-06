@@ -368,16 +368,7 @@ impl PSMainWindow {
             .simple_action("convert-to")
             .set_enabled(record.as_ref().map_or(false, |r| !r.record_type.is_group));
 
-        let show_secrets_on_preview = self
-            .private()
-            .config
-            .get()
-            .unwrap()
-            .get()
-            .show_secrets_on_preview;
-        self.private()
-            .preview
-            .update(record, show_secrets_on_preview);
+        self.private().preview.update_record(record);
     }
 
     fn search(&self, search_text: &str, event: SearchEvent) {
@@ -651,26 +642,17 @@ impl PSMainWindow {
     }
 
     pub fn new(app: &gtk::Application, config: &Rc<ConfigService>, cache: &Cache) -> Self {
-        let win = glib::Object::new(&[("application", app)]).expect("MainWindow is created");
+        let win: Self = glib::Object::new(&[("application", app)]).expect("MainWindow is created");
 
-        let private = PSMainWindowInner::from_instance(&win);
-        private
-            .private
-            .get()
-            .unwrap()
-            .config
-            .set(config.clone())
-            .ok()
-            .unwrap();
-        private
-            .private
-            .get()
-            .unwrap()
-            .cache
-            .set(cache.clone())
-            .ok()
-            .unwrap();
-        private.private.get().unwrap().dashboard.update(cache);
+        win.private().config.set(config.clone()).ok().unwrap();
+        win.private().cache.set(cache.clone()).ok().unwrap();
+        win.private().dashboard.update(cache);
+
+        let show_secrets_on_preview = config.get().show_secrets_on_preview;
+        win.private().preview.update_config(show_secrets_on_preview);
+        config.subscribe(glib::clone!(@weak win => move |new_config| {
+            win.private().preview.update_config(new_config.show_secrets_on_preview);
+        }));
 
         win.show_all();
         win.set_mode(AppMode::Initial);

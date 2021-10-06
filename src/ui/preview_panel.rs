@@ -1,12 +1,15 @@
 use crate::gtk_prelude::*;
 use crate::markup_builder::*;
 use crate::model::record::Record;
+use std::cell::{Cell, RefCell};
 
 pub struct PSPreviewPanel {
     grid: gtk::Grid,
     icon: gtk::Image,
     title: gtk::Label,
     view: gtk::Label,
+    record: RefCell<Option<Record>>,
+    show_secrets: Cell<bool>,
 }
 
 impl PSPreviewPanel {
@@ -48,6 +51,8 @@ impl PSPreviewPanel {
             icon,
             title,
             view,
+            record: RefCell::new(None),
+            show_secrets: Cell::new(false),
         }
     }
 
@@ -55,18 +60,28 @@ impl PSPreviewPanel {
         self.grid.clone().upcast()
     }
 
-    pub fn update(&self, record_opt: Option<Record>, show_secrets: bool) {
-        if let Some(record) = record_opt {
+    fn update(&self) {
+        if let Some(record) = self.record.borrow().as_ref() {
             self.icon
                 .set_from_icon_name(Some(record.record_type.icon), gtk::IconSize::Dialog);
             self.title.set_markup(&big(&record.name()));
             self.view
-                .set_markup(&record_to_markup(&record, show_secrets));
+                .set_markup(&record_to_markup(&record, self.show_secrets.get()));
         } else {
             self.icon.set_icon_name(None);
             self.title.set_markup("");
             self.view.set_markup("");
         }
+    }
+
+    pub fn update_record(&self, record_opt: Option<Record>) {
+        *self.record.borrow_mut() = record_opt;
+        self.update();
+    }
+
+    pub fn update_config(&self, show_secrets: bool) {
+        self.show_secrets.set(show_secrets);
+        self.update();
     }
 }
 
