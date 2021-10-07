@@ -655,10 +655,12 @@ impl PSMainWindow {
             .preview
             .update_config(config.show_secrets_on_preview);
         win.private().search_bar.configure(config.search_in_secrets);
-        config_service.subscribe(glib::clone!(@weak win => move |new_config| {
-            win.private().preview.update_config(new_config.show_secrets_on_preview);
-            win.private().search_bar.configure(new_config.search_in_secrets);
-        }));
+        config_service
+            .on_change
+            .subscribe(glib::clone!(@weak win => move |new_config| {
+                win.private().preview.update_config(new_config.show_secrets_on_preview);
+                win.private().search_bar.configure(new_config.search_in_secrets);
+            }));
 
         win.show_all();
         win.set_mode(AppMode::Initial);
