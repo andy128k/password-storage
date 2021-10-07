@@ -18,12 +18,10 @@ use crate::ui::edit_record::edit_record;
 use crate::ui::menu::create_add_entity_menu;
 use crate::ui::merge_bar::create_merge_bar;
 use crate::ui::preview_panel::PSPreviewPanel;
-use crate::ui::search::create_search_bar;
-use crate::ui::search::SearchEvent;
+use crate::ui::search::{PSSearchBar, SearchEvent, SearchEventType};
 use crate::ui::toast::Toast;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
-use crate::utils::string::StringExt;
 use crate::utils::tree::flatten_tree;
 use crate::utils::ui::*;
 use guard::guard;
@@ -58,8 +56,7 @@ struct PSMainWindowPrivate {
     merge_actions: gio::SimpleActionGroup,
     entry_actions: gio::SimpleActionGroup,
 
-    search_entry: gtk::SearchEntry,
-    search_bar: gtk::SearchBar,
+    search_bar: PSSearchBar,
     merge_bar: gtk::InfoBar,
     toast: Toast,
 
@@ -67,7 +64,7 @@ struct PSMainWindowPrivate {
     password: RefCell<Option<String>>,
     changed: Cell<bool>,
 
-    config: OnceCell<Rc<ConfigService>>,
+    config_service: OnceCell<Rc<ConfigService>>,
     cache: OnceCell<Cache>,
 }
 
@@ -144,8 +141,8 @@ impl ObjectImpl for PSMainWindowInner {
         let merge_bar = create_merge_bar();
         grid.attach(&merge_bar, 0, 1, 1, 1);
 
-        let (search_bar, search_entry) = create_search_bar();
-        grid.attach(&search_bar, 0, 2, 1, 1);
+        let search_bar = PSSearchBar::new();
+        grid.attach(&search_bar.get_widget(), 0, 2, 1, 1);
 
         let tree_container = gtk::Grid::new();
         tree_container.attach(&scrolled(&view.get_widget()), 0, 0, 1, 1);
@@ -215,7 +212,6 @@ impl ObjectImpl for PSMainWindowInner {
             dashboard,
             data: RefCell::new(data),
             view,
-            search_entry,
             search_bar,
             preview,
             merge_bar,
@@ -230,7 +226,7 @@ impl ObjectImpl for PSMainWindowInner {
             password: RefCell::new(None),
             changed: Cell::new(false),
 
-            config: OnceCell::new(),
+            config_service: OnceCell::new(),
             cache: OnceCell::new(),
         };
 
@@ -250,19 +246,19 @@ impl ObjectImpl for PSMainWindowInner {
         *self.delete_handler.borrow_mut() = Some(delete_handler);
 
         win.private()
-            .search_entry
-            .connect_search_changed(clone!(@weak win => move |entry| {
-                win.search(&entry.text(), SearchEvent::Change);
+            .search_bar
+            .on_search
+            .subscribe(clone!(@weak win => move |event| {
+                win.search(event);
             }));
         win.private()
-            .search_entry
-            .connect_next_match(clone!(@weak win => move |entry| {
-                win.search(&entry.text(), SearchEvent::Next);
-            }));
-        win.private()
-            .search_entry
-            .connect_previous_match(clone!(@weak win => move |entry| {
-                win.search(&entry.text(), SearchEvent::Prev);
+            .search_bar
+            .on_configure
+            .subscribe(clone!(@weak win => move |search_config| {
+                win.private().config_service.get().unwrap()
+                    .update(|config| {
+                        config.search_in_secrets = search_config.search_in_secrets;
+                    });
             }));
 
         win.private()
@@ -371,16 +367,18 @@ impl PSMainWindow {
         self.private().preview.update_record(record);
     }
 
-    fn search(&self, search_text: &str, event: SearchEvent) {
-        guard!(let Some(search_text) = search_text.non_empty() else { return });
+    fn search(&self, event: &SearchEvent) {
+        if event.query.is_empty() {
+            return;
+        }
 
         let private = self.private();
         let model = private.data.borrow().as_model();
         let iters = flatten_tree(&model);
 
-        let mut search_iter: Box<dyn Iterator<Item = &gtk::TreeIter>> = match event {
-            SearchEvent::Change | SearchEvent::Next => Box::new(iters.iter()),
-            SearchEvent::Prev => Box::new(iters.iter().rev()),
+        let mut search_iter: Box<dyn Iterator<Item = &gtk::TreeIter>> = match event.event_type {
+            SearchEventType::Change | SearchEventType::Next => Box::new(iters.iter()),
+            SearchEventType::Prev => Box::new(iters.iter().rev()),
         };
         if let Some((_selection_iter, selection_path)) = private.view.get_selected_iter() {
             search_iter = Box::new(
@@ -388,16 +386,16 @@ impl PSMainWindow {
                     .skip_while(move |iter| model.path(iter).as_ref() != Some(&selection_path)),
             );
         }
-        match event {
-            SearchEvent::Change => {}
-            SearchEvent::Next | SearchEvent::Prev => search_iter = Box::new(search_iter.skip(1)),
+        match event.event_type {
+            SearchEventType::Change => {}
+            SearchEventType::Next | SearchEventType::Prev => {
+                search_iter = Box::new(search_iter.skip(1))
+            }
         };
-
-        let look_at_secrets = private.config.get().unwrap().get().search_in_secrets;
 
         let next_match = search_iter
             .filter_map(|iter| private.data.borrow().get(iter).map(|record| (iter, record)))
-            .find(|(_iter, record)| record.has_text(search_text, look_at_secrets));
+            .find(|(_iter, record)| record.has_text(&event.query, event.search_in_secrets));
 
         if let Some(next_match) = next_match {
             private.view.select_iter(next_match.0);
@@ -641,17 +639,25 @@ impl PSMainWindow {
         }
     }
 
-    pub fn new(app: &gtk::Application, config: &Rc<ConfigService>, cache: &Cache) -> Self {
+    pub fn new(app: &gtk::Application, config_service: &Rc<ConfigService>, cache: &Cache) -> Self {
         let win: Self = glib::Object::new(&[("application", app)]).expect("MainWindow is created");
 
-        win.private().config.set(config.clone()).ok().unwrap();
+        win.private()
+            .config_service
+            .set(config_service.clone())
+            .ok()
+            .unwrap();
         win.private().cache.set(cache.clone()).ok().unwrap();
         win.private().dashboard.update(cache);
 
-        let show_secrets_on_preview = config.get().show_secrets_on_preview;
-        win.private().preview.update_config(show_secrets_on_preview);
-        config.subscribe(glib::clone!(@weak win => move |new_config| {
+        let config = config_service.get();
+        win.private()
+            .preview
+            .update_config(config.show_secrets_on_preview);
+        win.private().search_bar.configure(config.search_in_secrets);
+        config_service.subscribe(glib::clone!(@weak win => move |new_config| {
             win.private().preview.update_config(new_config.show_secrets_on_preview);
+            win.private().search_bar.configure(new_config.search_in_secrets);
         }));
 
         win.show_all();
@@ -677,7 +683,7 @@ impl PSMainWindow {
     #[action(name = "close")]
     async fn action_close_file(&self) {
         if self.ensure_data_is_saved().await {
-            self.private().search_entry.set_text("");
+            self.private().search_bar.reset();
 
             let data = PSStore::new();
             *self.private().data.borrow_mut() = data.clone();
@@ -704,7 +710,7 @@ impl PSMainWindow {
 
     #[action(name = "merge-file")]
     async fn action_merge_file(&self) {
-        self.private().search_entry.set_text("");
+        self.private().search_bar.reset();
 
         let window = self.clone().upcast();
         if let Some(filename) = open_file(&window).await {
@@ -732,7 +738,6 @@ impl PSMainWindow {
     #[action(name = "find")]
     fn action_find(&self) {
         self.private().search_bar.set_search_mode(true);
-        self.private().search_entry.grab_focus();
     }
 
     #[action(name = "add")]

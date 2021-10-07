@@ -76,6 +76,12 @@ impl ConfigService {
         *self.cached.borrow_mut() = Some(new_value);
     }
 
+    pub fn update(&self, updater: impl Fn(&mut Config)) {
+        let mut value = self.get();
+        (updater)(&mut value);
+        self.set(value);
+    }
+
     pub fn subscribe(&self, listener: impl Fn(&Config) + 'static) -> ConfigListenerId {
         let listener_id = Id::default();
         self.listeners
