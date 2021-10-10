@@ -66,7 +66,7 @@ impl PSPreviewPanel {
                 .set_from_icon_name(Some(record.record_type.icon), gtk::IconSize::Dialog);
             self.title.set_markup(&big(&record.name()));
             self.view
-                .set_markup(&record_to_markup(&record, self.show_secrets.get()));
+                .set_markup(&record_to_markup(record, self.show_secrets.get()));
         } else {
             self.icon.set_icon_name(None);
             self.title.set_markup("");

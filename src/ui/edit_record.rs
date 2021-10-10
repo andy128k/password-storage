@@ -131,7 +131,7 @@ impl RecordWidget {
             .build();
         grid.attach(&separator, 1, 0, 1, 4);
 
-        let widget = Self(Rc::new(RecordWidgetPrivate {
+        Self(Rc::new(RecordWidgetPrivate {
             grid,
             icon,
             type_label,
@@ -139,8 +139,7 @@ impl RecordWidget {
             form: RefCell::new(None),
             names,
             callback: RefCell::new(Box::new(no_op)),
-        }));
-        widget
+        }))
     }
 
     fn set_record_type(&self, record_type: &'static RecordType) {

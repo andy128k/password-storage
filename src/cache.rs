@@ -2,7 +2,7 @@ use crate::error::*;
 use crate::gtk_prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
-use std::fs::{read, write};
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -20,7 +20,7 @@ fn cache_path() -> PathBuf {
 
 impl Cache {
     fn from_file(filename: &Path) -> Result<CachePrivate> {
-        let buf = read(filename)?;
+        let buf = fs::read(filename)?;
         let config: CachePrivate = toml::from_slice(&buf)?;
         Ok(config)
     }
@@ -40,7 +40,7 @@ impl Cache {
     pub fn save(&self) -> Result<()> {
         let filename = cache_path();
         let dump = toml::to_vec(&*self.0.borrow())?;
-        write(&filename, &dump)?;
+        fs::write(&filename, &dump)?;
         Ok(())
     }
 
