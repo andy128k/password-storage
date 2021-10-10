@@ -8,7 +8,7 @@ use crate::gtk_prelude::*;
 use crate::model::record::FIELD_NAME;
 use crate::model::record::RECORD_TYPES;
 use crate::model::record::{FieldType, Record, RecordType};
-use crate::ui::record_type_popover::record_type_popover;
+use crate::ui::record_type_popover::RecordTypePopoverBuilder;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -160,12 +160,13 @@ impl RecordWidget {
                 .cloned()
                 .collect::<Vec<_>>();
 
-            let popover = record_type_popover(
-                &convert_to_types,
-                glib::clone!(@weak self as this => move |dest_record_type| {
+            let popover = RecordTypePopoverBuilder::default()
+                .record_types(&convert_to_types)
+                .on_activate(glib::clone!(@weak self as this => move |dest_record_type| {
                     this.convert_to(dest_record_type);
-                }),
-            );
+                }))
+                .build();
+
             self.0.convert_button.set_popover(Some(&popover));
             self.0.convert_button.show();
         } else {

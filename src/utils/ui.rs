@@ -82,13 +82,12 @@ pub fn action_button(action: &str, icon: &str, title: &str) -> gtk::Button {
         .build()
 }
 
-pub fn action_menu_button(menu: &gio::Menu, icon: &str, title: &str) -> gtk::MenuButton {
+pub fn action_popover_button(popover: &gtk::Popover, icon: &str, title: &str) -> gtk::MenuButton {
     gtk::MenuButton::builder()
-        .menu_model(menu)
+        .popover(popover)
         .image(&tool_icon(icon))
         .has_tooltip(true)
         .tooltip_text(title)
-        .use_popover(false) // TODO: popover doesn't show icons
         .relief(gtk::ReliefStyle::None)
         .build()
 }

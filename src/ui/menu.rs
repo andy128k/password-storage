@@ -1,15 +1,5 @@
 use crate::gtk_prelude::*;
-use crate::model::record::RECORD_TYPES;
 use crate::utils::menu_builder::*;
-
-pub fn create_add_entity_menu() -> gio::Menu {
-    gio::Menu::from_items(RECORD_TYPES.iter().map(|record_type| {
-        gio::MenuItem::create()
-            .action(&format!("file.add::{}", record_type.name))
-            .label(&format!("Add {}", record_type.name))
-            .icon(record_type.icon)
-    }))
-}
 
 pub fn create_main_menu() -> gio::MenuModel {
     gio::Menu::new()

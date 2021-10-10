@@ -3,7 +3,7 @@ use crate::config::ConfigService;
 use crate::error::*;
 use crate::format;
 use crate::gtk_prelude::*;
-use crate::model::record::{Record, RecordType, FIELD_NAME, RECORD_TYPE_GENERIC};
+use crate::model::record::{Record, RecordType, FIELD_NAME, RECORD_TYPES, RECORD_TYPE_GENERIC};
 use crate::model::tree::RecordTree;
 use crate::store::PSStore;
 use crate::ui;
@@ -15,9 +15,9 @@ use crate::ui::dialogs::file_chooser::{open_file, save_file};
 use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
-use crate::ui::menu::create_add_entity_menu;
 use crate::ui::merge_bar::create_merge_bar;
 use crate::ui::preview_panel::PSPreviewPanel;
+use crate::ui::record_type_popover::RecordTypePopoverBuilder;
 use crate::ui::search::{PSSearchBar, SearchEvent, SearchEventType};
 use crate::ui::toast::Toast;
 use crate::ui::tree_view::PSTreeView;
@@ -147,8 +147,11 @@ impl ObjectImpl for PSMainWindowInner {
         let tree_container = gtk::Grid::new();
         tree_container.attach(&scrolled(&view.get_widget()), 0, 0, 1, 1);
         let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
-        tree_action_bar.pack_start(&action_menu_button(
-            &create_add_entity_menu(),
+        tree_action_bar.pack_start(&action_popover_button(
+            &RecordTypePopoverBuilder::default()
+                .record_types(&*RECORD_TYPES)
+                .action_name_func(|record_type| format!("file.add::{}", record_type.name))
+                .build(),
             "list-add-symbolic",
             "Add new record",
         ));
