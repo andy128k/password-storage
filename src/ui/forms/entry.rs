@@ -79,9 +79,10 @@ impl Name {
     pub fn new(names: &[String]) -> Self {
         let completion = gtk::EntryCompletion::builder()
             .model(&build_completion_model(names))
-            .text_column(0)
-            .popup_set_width(false)
+            .popup_set_width(true)
             .build();
+        // workaround for a bug in GTK https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=805110
+        completion.set_text_column(0);
 
         let entry = gtk::Entry::builder()
             .can_focus(true)
