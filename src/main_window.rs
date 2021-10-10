@@ -952,7 +952,7 @@ async fn new_password(parent_window: &gtk::Window) -> Option<String> {
     let mut form = ui::forms::form::Form::new();
     form.add(
         "Password",
-        Box::new(ui::forms::entry::Password::new()),
+        Box::new(ui::forms::entry::Text::new().for_password()),
         true,
     );
     let result = ui::edit_object::edit_object(

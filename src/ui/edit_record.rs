@@ -40,7 +40,7 @@ impl RecordForm {
             let fw: Box<dyn FormWidget<String>> = match field.field_type {
                 FieldType::Text => Box::new(Text::new()),
                 FieldType::MultiLine => Box::new(MultiLine::new()),
-                FieldType::Name => Box::new(Name::new(names)),
+                FieldType::Name => Box::new(Text::new().with_completion(names)),
                 FieldType::Password => Box::new(PasswordEditor::new()),
                 FieldType::Secret => Box::new(Text::new()),
             };
