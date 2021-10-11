@@ -47,6 +47,7 @@ impl PSTreeView {
         let column = gtk::TreeViewColumn::new();
         column.set_sizing(gtk::TreeViewColumnSizing::Autosize);
         column.set_expand(true);
+        column.set_spacing(5);
 
         let check_renderer = gtk::CellRendererToggle::new();
         check_renderer.set_visible(false);
@@ -56,7 +57,7 @@ impl PSTreeView {
         column.pack_start(&check_renderer, false);
 
         let icon = gtk::CellRendererPixbuf::new();
-        icon.set_property_stock_size(gtk::IconSize::Menu);
+        icon.set_property_stock_size(gtk::IconSize::LargeToolbar);
         column.pack_start(&icon, false);
         column.add_attribute(&icon, "icon-name", TreeStoreColumn::TypeIcon.into());
 
