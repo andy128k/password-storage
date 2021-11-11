@@ -18,7 +18,7 @@ os_str_bytes = "5"
 rand = "0.8"
 aes = "0.7"
 block-modes = "0.8"
-deflate = "0.9"
+deflate = "1.0"
 inflate = "0.4"
 quick-xml = "0.22"
 
