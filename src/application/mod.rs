@@ -15,15 +15,17 @@ glib::wrapper! {
         @implements gio::ActionMap;
 }
 
-impl PSApplication {
-    pub fn new() -> Self {
+impl Default for PSApplication {
+    fn default() -> Self {
         glib::Object::new(&[
             ("application-id", &"net.andy128k.password-storage"),
             ("flags", &gio::ApplicationFlags::HANDLES_OPEN),
         ])
         .expect("Application is created")
     }
+}
 
+impl PSApplication {
     fn on_startup(&self) {
         let private = implementation::PSApplication::from_instance(self);
 

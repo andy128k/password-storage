@@ -24,7 +24,7 @@ mod version;
 use crate::gtk_prelude::*;
 
 fn main() {
-    let app = application::PSApplication::new();
+    let app = application::PSApplication::default();
     let code = app.run();
     std::process::exit(code);
 }

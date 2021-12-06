@@ -165,7 +165,7 @@ mod test {
 
         let mut w = PasswordEditor::new();
         let value2 = value.clone();
-        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.clone().cloned()));
+        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.cloned()));
 
         let new_value = "passw0rd".to_string();
         w.set_value(Some(&new_value));

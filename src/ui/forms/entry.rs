@@ -105,7 +105,7 @@ mod test {
 
         let mut w = Text::new();
         let value2 = value.clone();
-        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.clone().cloned()));
+        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.cloned()));
 
         let new_value = "new value".to_string();
         w.set_value(Some(&new_value));
@@ -143,7 +143,7 @@ mod test {
 
         let mut w = Text::new().with_completion(&[]);
         let value2 = value.clone();
-        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.clone().cloned()));
+        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.cloned()));
 
         let new_value = "new value".to_string();
         w.set_value(Some(&new_value));
@@ -181,7 +181,7 @@ mod test {
 
         let mut w = Text::new().for_password();
         let value2 = value.clone();
-        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.clone().cloned()));
+        w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.cloned()));
 
         let new_value = "secret".to_string();
         w.set_value(Some(&new_value));
