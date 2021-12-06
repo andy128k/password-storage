@@ -13,7 +13,7 @@ lazy_static = "1"
 once_cell = "1"
 guard = "0.5"
 futures = "0.3"
-os_str_bytes = "5"
+os_str_bytes = "6"
 
 rand = "0.8"
 aes = "0.7"
