@@ -169,15 +169,8 @@ impl PSStore {
         });
     }
 
-    pub fn parents(&self, iter: &gtk::TreeIter) -> Vec<(gtk::TreeIter, Record)> {
-        let model = self.as_model();
-        let mut result = Vec::new();
-        for i in crate::utils::tree::tree_parents_entries(&model, iter) {
-            if let Some(record) = self.get(&i) {
-                result.push((i, record));
-            }
-        }
-        result
+    pub fn parent(&self, iter: &gtk::TreeIter) -> Option<gtk::TreeIter> {
+        self.model.iter_parent(iter)
     }
 
     fn children(&self, iter: Option<&gtk::TreeIter>) -> Vec<(gtk::TreeIter, Record)> {

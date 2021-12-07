@@ -339,12 +339,12 @@ impl PSMainWindow {
     fn get_selected_group_iter(&self) -> Option<gtk::TreeIter> {
         let (iter, _path) = self.private().view.get_selected_iter()?;
         let model = &self.private().data.borrow();
-        for (i, record) in model.parents(&iter) {
-            if record.record_type.is_group {
-                return Some(i);
-            }
+
+        let selected_record = model.get(&iter)?;
+        if selected_record.record_type.is_group {
+            return Some(iter);
         }
-        None
+        model.parent(&iter)
     }
 
     fn listview_cursor_changed(&self, record: Option<Record>) {
