@@ -2,6 +2,7 @@ use crate::entropy::*;
 use crate::gtk_prelude::*;
 use crate::model::record::Record;
 use crate::model::tree::{RecordNode, RecordTree};
+use guard::guard;
 
 #[derive(Clone)]
 pub struct PSStore {
@@ -125,6 +126,49 @@ impl PSStore {
         self.model.clone().upcast()
     }
 
+    fn traverse_one<B, F: FnMut(&TreeTraverseEvent) -> std::ops::ControlFlow<B>>(
+        &self,
+        parent_iter: Option<&gtk::TreeIter>,
+        func: &mut F,
+    ) -> std::ops::ControlFlow<B> {
+        let model = self.as_model();
+        for iter in crate::utils::tree::tree_children_entries(&model, parent_iter) {
+            guard!(let Some(record) = self.get(&iter) else { continue; });
+
+            (func)(&TreeTraverseEvent::Start {
+                iter: &iter,
+                record: &record,
+            })?;
+
+            if record.record_type.is_group {
+                self.traverse_one(Some(&iter), func)?;
+            }
+
+            (func)(&TreeTraverseEvent::End {
+                iter: &iter,
+                record: &record,
+            })?;
+        }
+        std::ops::ControlFlow::Continue(())
+    }
+
+    pub fn traverse<B, F: FnMut(&TreeTraverseEvent) -> std::ops::ControlFlow<B>>(
+        &self,
+        func: &mut F,
+    ) -> Option<B> {
+        match self.traverse_one(None, func) {
+            std::ops::ControlFlow::Break(value) => Some(value),
+            std::ops::ControlFlow::Continue(..) => None,
+        }
+    }
+
+    pub fn traverse_all<F: FnMut(&TreeTraverseEvent)>(&self, func: &mut F) {
+        let _: Option<()> = self.traverse(&mut |event| {
+            (func)(event);
+            std::ops::ControlFlow::Continue(())
+        });
+    }
+
     pub fn parents(&self, iter: &gtk::TreeIter) -> Vec<(gtk::TreeIter, Record)> {
         let model = self.as_model();
         let mut result = Vec::new();
@@ -136,7 +180,7 @@ impl PSStore {
         result
     }
 
-    pub fn children(&self, iter: Option<&gtk::TreeIter>) -> Vec<(gtk::TreeIter, Record)> {
+    fn children(&self, iter: Option<&gtk::TreeIter>) -> Vec<(gtk::TreeIter, Record)> {
         let model = self.as_model();
         let mut result = Vec::new();
         for i in crate::utils::tree::tree_children_entries(&model, iter) {
@@ -228,4 +272,15 @@ impl PSStore {
         }
         uncheck(&self.model, None);
     }
+}
+
+pub enum TreeTraverseEvent<'e> {
+    Start {
+        iter: &'e gtk::TreeIter,
+        record: &'e Record,
+    },
+    End {
+        iter: &'e gtk::TreeIter,
+        record: &'e Record,
+    },
 }

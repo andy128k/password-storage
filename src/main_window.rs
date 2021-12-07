@@ -5,7 +5,7 @@ use crate::format;
 use crate::gtk_prelude::*;
 use crate::model::record::{Record, RecordType, FIELD_NAME, RECORD_TYPES, RECORD_TYPE_GENERIC};
 use crate::model::tree::RecordTree;
-use crate::store::PSStore;
+use crate::store::{PSStore, TreeTraverseEvent};
 use crate::ui;
 use crate::ui::dashboard::PSDashboard;
 use crate::ui::dialogs::ask::{confirm_likely, confirm_unlikely};
@@ -27,7 +27,7 @@ use crate::utils::ui::*;
 use guard::guard;
 use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::convert::Into;
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
@@ -409,29 +409,15 @@ impl PSMainWindow {
     }
 
     fn get_usernames(&self) -> Vec<String> {
-        fn traverse(
-            store: &PSStore,
-            parent_iter: Option<&gtk::TreeIter>,
-            result: &mut HashSet<String>,
-        ) {
-            for (i, record) in store.children(parent_iter) {
-                if record.record_type.is_group {
-                    traverse(store, Some(&i), result);
-                } else {
-                    record
-                        .username()
-                        .map(|username| result.insert(username.to_string()));
-                }
+        let mut result = BTreeSet::new();
+        self.private().data.borrow().traverse_all(&mut |event| {
+            guard!(let TreeTraverseEvent::Start { record, .. } = event else { return; });
+            guard!(let Some(username) = record.username() else { return; });
+            if !username.is_empty() && !result.contains(username) {
+                result.insert(username.to_string());
             }
-        }
-
-        let mut result = HashSet::new();
-        traverse(&self.private().data.borrow(), None, &mut result);
-        result.remove("");
-
-        let mut vec: Vec<String> = result.into_iter().collect();
-        vec.sort();
-        vec
+        });
+        result.into_iter().collect()
     }
 
     async fn ensure_password_is_set(&self) -> Option<String> {
@@ -780,28 +766,20 @@ impl PSMainWindow {
     #[action(name = "merge")]
     async fn action_merge(&self) {
         let checked = {
-            fn collect_checked(
-                model: &PSStore,
-                parent: Option<&gtk::TreeIter>,
-                path: &[String],
-                result: &mut Vec<(Record, Vec<String>)>,
-            ) {
-                for (i, record) in model.children(parent) {
-                    if model.is_selected(&i) {
-                        result.push((record.clone(), path.to_vec()));
-                    }
-                    let mut p = path.to_vec();
-                    p.push(record.name().to_string());
-                    collect_checked(model, Some(&i), &p, result);
-                }
-            }
+            let model = self.private().data.borrow();
             let mut checked = Vec::new();
-            collect_checked(
-                &self.private().data.borrow(),
-                None,
-                &Vec::new(),
-                &mut checked,
-            );
+            let mut path = Vec::new();
+            model.traverse_all(&mut |event| match event {
+                TreeTraverseEvent::Start { iter, record } => {
+                    if model.is_selected(iter) {
+                        checked.push(((*record).clone(), path.clone()));
+                    }
+                    path.push(record.name());
+                }
+                TreeTraverseEvent::End { .. } => {
+                    path.pop();
+                }
+            });
             checked
         };
 
