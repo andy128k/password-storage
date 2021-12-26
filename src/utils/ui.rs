@@ -1,6 +1,12 @@
 use super::also::Also;
 use crate::gtk_prelude::*;
 
+pub fn remove_all_children<W: IsA<gtk::Container>>(widget: &W) {
+    for child in widget.children() {
+        widget.remove(&child);
+    }
+}
+
 pub fn scrolled<P: IsA<gtk::Widget>>(widget: &P) -> gtk::ScrolledWindow {
     gtk::ScrolledWindow::builder()
         .can_focus(true)

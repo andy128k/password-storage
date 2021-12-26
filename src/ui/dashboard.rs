@@ -1,6 +1,7 @@
 use crate::cache::Cache;
 use crate::gtk_prelude::*;
 use crate::markup_builder::bold;
+use crate::utils::ui::remove_all_children;
 use os_str_bytes::OsStrBytes;
 use std::path::{Path, PathBuf};
 
@@ -181,7 +182,7 @@ impl PSDashboard {
 
     pub fn update(&self, cache: &Cache) {
         self.listbox.hide();
-        self.remove_all();
+        remove_all_children(&self.listbox);
 
         self.listbox.add(&action_row(
             "app.new",
@@ -215,12 +216,6 @@ impl PSDashboard {
         if let Some(row) = first_row {
             self.listbox.select_row(Some(&row));
             row.grab_focus();
-        }
-    }
-
-    fn remove_all(&self) {
-        for row in self.listbox.children() {
-            self.listbox.remove(&row);
         }
     }
 
