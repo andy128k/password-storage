@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use super::also::Also;
 use crate::gtk_prelude::*;
 
@@ -5,6 +7,39 @@ pub fn remove_all_children<W: IsA<gtk::Container>>(widget: &W) {
     for child in widget.children() {
         widget.remove(&child);
     }
+}
+
+pub struct WidgetTraverseDepthFirstIter {
+    widgets: VecDeque<gtk::Widget>,
+}
+
+impl WidgetTraverseDepthFirstIter {
+    pub fn new(widget: gtk::Widget) -> Self {
+        let mut widgets = VecDeque::new();
+        widgets.push_front(widget);
+        Self { widgets }
+    }
+}
+
+impl Iterator for WidgetTraverseDepthFirstIter {
+    type Item = gtk::Widget;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let front = self.widgets.pop_front();
+        if let Some(container) = front
+            .as_ref()
+            .and_then(|widget| widget.clone().downcast::<gtk::Container>().ok())
+        {
+            for child in container.children().into_iter().rev() {
+                self.widgets.push_front(child);
+            }
+        }
+        front
+    }
+}
+
+pub fn traverse_depth_first(widget: &gtk::Widget) -> WidgetTraverseDepthFirstIter {
+    WidgetTraverseDepthFirstIter::new(widget.clone())
 }
 
 pub fn scrolled<P: IsA<gtk::Widget>>(widget: &P) -> gtk::ScrolledWindow {
