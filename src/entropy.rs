@@ -109,7 +109,7 @@ where
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum PasswordStrenth {
+pub enum PasswordStrength {
     VeryWeak,
     Weak,
     Reasonable,
@@ -117,18 +117,18 @@ pub enum PasswordStrenth {
     VeryStrong,
 }
 
-impl From<f32> for PasswordStrenth {
+impl From<f32> for PasswordStrength {
     fn from(entropy: f32) -> Self {
         if entropy < 28.0 {
-            PasswordStrenth::VeryWeak
+            PasswordStrength::VeryWeak
         } else if entropy < 36.0 {
-            PasswordStrenth::Weak
+            PasswordStrength::Weak
         } else if entropy < 60.0 {
-            PasswordStrenth::Reasonable
+            PasswordStrength::Reasonable
         } else if entropy < 128.0 {
-            PasswordStrenth::Strong
+            PasswordStrength::Strong
         } else {
-            PasswordStrenth::VeryStrong
+            PasswordStrength::VeryStrong
         }
     }
 }
@@ -159,49 +159,49 @@ mod test {
     #[test]
     fn test_entropy_1() {
         let classifier = AsciiClassifier;
-        let entropy: PasswordStrenth = password_entropy(&classifier, b"1").into();
-        assert_eq!(entropy, PasswordStrenth::VeryWeak);
+        let entropy: PasswordStrength = password_entropy(&classifier, b"1").into();
+        assert_eq!(entropy, PasswordStrength::VeryWeak);
     }
 
     #[test]
     fn test_entropy_123456() {
         let classifier = AsciiClassifier;
-        let entropy: PasswordStrenth = password_entropy(&classifier, b"123456").into();
-        assert_eq!(entropy, PasswordStrenth::VeryWeak);
+        let entropy: PasswordStrength = password_entropy(&classifier, b"123456").into();
+        assert_eq!(entropy, PasswordStrength::VeryWeak);
     }
 
     #[test]
     fn test_entropy_alphabet() {
         let classifier = AsciiClassifier;
-        let entropy: PasswordStrenth = password_entropy(&classifier, b"abcdef").into();
-        assert_eq!(entropy, PasswordStrenth::VeryWeak);
+        let entropy: PasswordStrength = password_entropy(&classifier, b"abcdef").into();
+        assert_eq!(entropy, PasswordStrength::VeryWeak);
     }
 
     #[test]
     fn test_entropy_qwerty() {
         let classifier = AsciiClassifier;
-        let entropy: PasswordStrenth = password_entropy(&classifier, b"QWERTY").into();
-        assert_eq!(entropy, PasswordStrenth::Weak);
+        let entropy: PasswordStrength = password_entropy(&classifier, b"QWERTY").into();
+        assert_eq!(entropy, PasswordStrength::Weak);
     }
 
     #[test]
     fn test_entropy_random_weak() {
         let classifier = AsciiClassifier;
-        let entropy: PasswordStrenth = password_entropy(&classifier, b"vsPi0v").into();
-        assert_eq!(entropy, PasswordStrenth::Weak);
+        let entropy: PasswordStrength = password_entropy(&classifier, b"vsPi0v").into();
+        assert_eq!(entropy, PasswordStrength::Weak);
     }
 
     #[test]
     fn test_entropy_random_reasonable() {
         let classifier = AsciiClassifier;
-        let entropy: PasswordStrenth = password_entropy(&classifier, b"vsPi0vQk").into();
-        assert_eq!(entropy, PasswordStrenth::Reasonable);
+        let entropy: PasswordStrength = password_entropy(&classifier, b"vsPi0vQk").into();
+        assert_eq!(entropy, PasswordStrength::Reasonable);
     }
 
     #[test]
     fn test_entropy_random_strong() {
         let classifier = AsciiClassifier;
-        let entropy: PasswordStrenth = password_entropy(&classifier, b"vsPi0vQk8J0KSHlG").into();
-        assert_eq!(entropy, PasswordStrenth::Strong);
+        let entropy: PasswordStrength = password_entropy(&classifier, b"vsPi0vQk8J0KSHlG").into();
+        assert_eq!(entropy, PasswordStrength::Strong);
     }
 }

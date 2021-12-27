@@ -4,7 +4,7 @@ use crate::include_css;
 use crate::password::generate_password;
 use crate::ui::dialogs::ask::confirm_unlikely;
 use crate::ui::forms::base::FormWidget;
-use crate::ui::password_strenth_bar::PasswordStrenthBar;
+use crate::ui::password_strength_bar::PasswordStrenthBar;
 use crate::utils::string::StringExt;
 
 pub struct PasswordEditor {
@@ -40,9 +40,9 @@ impl PasswordEditor {
             .hexpand(true)
             .build();
         entry.connect_changed(clone!(@weak level => move |e| {
-            let strenth = get_value(e)
+            let strength = get_value(e)
                 .map(|text| password_entropy(&AsciiClassifier, text.as_bytes()).into());
-            level.set_strenth(strenth);
+            level.set_strength(strength);
         }));
 
         let css_provider = include_css!("style.css");

@@ -200,11 +200,11 @@ impl PSStore {
         if let Some(password) = record.password() {
             let entropy = password_entropy(&AsciiClassifier, password.as_bytes());
             let strength_icon = match entropy.into() {
-                PasswordStrenth::VeryWeak => "strength-very-weak",
-                PasswordStrenth::Weak => "strength-weak",
-                PasswordStrenth::Reasonable => "strength-reasonable",
-                PasswordStrenth::Strong => "strength-strong",
-                PasswordStrenth::VeryStrong => "strength-very-strong",
+                PasswordStrength::VeryWeak => "strength-very-weak",
+                PasswordStrength::Weak => "strength-weak",
+                PasswordStrength::Reasonable => "strength-reasonable",
+                PasswordStrength::Strong => "strength-strong",
+                PasswordStrength::VeryStrong => "strength-very-strong",
             };
             self.model.set_value(
                 iter,

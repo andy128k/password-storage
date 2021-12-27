@@ -1,4 +1,4 @@
-use crate::entropy::PasswordStrenth;
+use crate::entropy::PasswordStrength;
 use crate::gtk_prelude::*;
 use crate::include_css;
 
@@ -30,14 +30,14 @@ impl PasswordStrenthBar {
         self.levelbar.clone().upcast()
     }
 
-    pub fn set_strenth(&self, strenth: Option<PasswordStrenth>) {
-        let value = match strenth {
+    pub fn set_strength(&self, strength: Option<PasswordStrength>) {
+        let value = match strength {
             None => 0.0,
-            Some(PasswordStrenth::VeryWeak) => 1.0,
-            Some(PasswordStrenth::Weak) => 2.0,
-            Some(PasswordStrenth::Reasonable) => 3.0,
-            Some(PasswordStrenth::Strong) => 4.0,
-            Some(PasswordStrenth::VeryStrong) => 5.0,
+            Some(PasswordStrength::VeryWeak) => 1.0,
+            Some(PasswordStrength::Weak) => 2.0,
+            Some(PasswordStrength::Reasonable) => 3.0,
+            Some(PasswordStrength::Strong) => 4.0,
+            Some(PasswordStrength::VeryStrong) => 5.0,
         };
         self.levelbar.set_value(value);
     }
