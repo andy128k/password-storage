@@ -1,20 +1,20 @@
-.filled.strength-very-weak {
+.password-strength-bar .filled.strength-very-weak {
   background-color: #ff0000;
   border-color: #f00000;
 }
-.filled.strength-weak {
+.password-strength-bar .filled.strength-weak {
   background-color: #ff8800;
   border-color: #f08000;
 }
-.filled.strength-reasonable {
+.password-strength-bar .filled.strength-reasonable {
   background-color: #ffff00;
   border-color: #f0f000;
 }
-.filled.strength-strong {
+.password-strength-bar .filled.strength-strong {
   background-color: #ccff00;
   border-color: #c0f000;
 }
-.filled.strength-very-strong {
+.password-strength-bar .filled.strength-very-strong {
   background-color: #008800;
   border-color: #008000;
 }

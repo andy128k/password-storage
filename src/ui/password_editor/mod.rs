@@ -1,11 +1,11 @@
 use crate::entropy::{password_entropy, AsciiClassifier};
 use crate::gtk_prelude::*;
-use crate::include_css;
 use crate::password::generate_password;
 use crate::ui::dialogs::ask::confirm_unlikely;
 use crate::ui::forms::base::FormWidget;
 use crate::ui::password_strength_bar::PasswordStrenthBar;
 use crate::utils::string::StringExt;
+use crate::utils::style::load_static_css;
 
 pub struct PasswordEditor {
     container: gtk::Grid,
@@ -45,8 +45,6 @@ impl PasswordEditor {
             level.set_strength(strength);
         }));
 
-        let css_provider = include_css!("style.css");
-
         let visibility_toggle = gtk::ToggleButton::builder()
             .image(&gtk::Image::from_icon_name(
                 Some("eye"),
@@ -55,9 +53,6 @@ impl PasswordEditor {
             .tooltip_text("Reveal password")
             .relief(gtk::ReliefStyle::None)
             .build();
-        visibility_toggle
-            .style_context()
-            .add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
         visibility_toggle.connect_clicked(clone!(@weak entry => move |t| {
             entry.set_visibility(t.is_active());
         }));
@@ -70,9 +65,6 @@ impl PasswordEditor {
             .tooltip_text("Generate password")
             .relief(gtk::ReliefStyle::None)
             .build();
-        generate_button
-            .style_context()
-            .add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
         generate_button.connect_clicked(clone!(@weak entry => move |_| {
             glib::MainContext::default().spawn_local(
                 generate_password_clicked(entry)
@@ -83,6 +75,8 @@ impl PasswordEditor {
             .row_spacing(5)
             .column_spacing(5)
             .build();
+        container.style_context().add_class("password-editor");
+        load_static_css(&container, include_bytes!("style.css"));
         container.attach(&entry, 0, 0, 1, 1);
         container.attach(&square(visibility_toggle), 1, 0, 1, 1);
         container.attach(&square(generate_button), 2, 0, 1, 1);

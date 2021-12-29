@@ -1,6 +1,6 @@
 use crate::entropy::PasswordStrength;
 use crate::gtk_prelude::*;
-use crate::include_css;
+use crate::utils::style::load_static_css;
 
 #[derive(Clone, glib::Downgrade)]
 pub struct PasswordStrenthBar {
@@ -14,10 +14,8 @@ impl PasswordStrenthBar {
             .min_value(0.0)
             .max_value(5.0)
             .build();
-        levelbar.style_context().add_provider(
-            &include_css!("style.css"),
-            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-        );
+        levelbar.style_context().add_class("password-strength-bar");
+        load_static_css(&levelbar, include_bytes!("style.css"));
         levelbar.add_offset_value("strength-very-weak", 1.0);
         levelbar.add_offset_value("strength-weak", 2.0);
         levelbar.add_offset_value("strength-reasonable", 3.0);
