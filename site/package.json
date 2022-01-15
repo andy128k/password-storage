@@ -1,6 +1,6 @@
 {
   "devDependencies": {
-    "@11ty/eleventy": "^0.12"
+    "@11ty/eleventy": "^1"
   },
   "scripts": {
     "build": "eleventy",
