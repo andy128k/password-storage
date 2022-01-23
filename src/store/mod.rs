@@ -17,6 +17,7 @@ pub enum TreeStoreColumn {
     SelectionVisible,
     Strength,
     ShareIcon,
+    Description,
 }
 
 impl TreeStoreColumn {
@@ -29,6 +30,7 @@ impl TreeStoreColumn {
             TreeStoreColumn::SelectionVisible => 5,
             TreeStoreColumn::Strength => 4,
             TreeStoreColumn::ShareIcon => 6,
+            TreeStoreColumn::Description => 7,
         }
     }
 }
@@ -77,6 +79,7 @@ impl PSStore {
             glib::Type::BOOL,
             glib::Type::STRING,
             glib::Type::BOOL,
+            glib::Type::STRING,
             glib::Type::STRING,
         ]);
         PSStore { model }
@@ -194,6 +197,16 @@ impl PSStore {
             iter,
             TreeStoreColumn::Name.into(),
             &glib::Value::from(&record.name()),
+        );
+        self.model.set_value(
+            iter,
+            TreeStoreColumn::Description.into(),
+            &record
+                .description()
+                .lines()
+                .next()
+                .unwrap_or_default()
+                .to_value(),
         );
         self.model.set_value(
             iter,

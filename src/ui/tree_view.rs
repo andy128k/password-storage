@@ -10,6 +10,7 @@ pub struct PSTreeView {
     column: gtk::TreeViewColumn,
     check_renderer: gtk::CellRendererToggle,
     url_column: gtk::TreeViewColumn,
+    description_column: gtk::TreeViewColumn,
 }
 
 fn get_real_iter(
@@ -69,6 +70,17 @@ impl PSTreeView {
 
         view.append_column(&column);
 
+        let description_column = gtk::TreeViewColumn::new();
+        let description_renderer = gtk::CellRendererText::new();
+        description_column.set_title("Description");
+        description_column.pack_start(&description_renderer, true);
+        description_column.add_attribute(
+            &description_renderer,
+            "text",
+            TreeStoreColumn::Description.into(),
+        );
+        view.append_column(&description_column);
+
         view.append_column(&{
             let column = gtk::TreeViewColumn::new();
             column.set_title("Strength");
@@ -101,6 +113,7 @@ impl PSTreeView {
             column,
             check_renderer,
             url_column,
+            description_column,
         }
     }
 

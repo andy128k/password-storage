@@ -290,6 +290,10 @@ impl Record {
         self.values.get("name").cloned().unwrap_or_default()
     }
 
+    pub fn description(&self) -> String {
+        self.values.get("description").cloned().unwrap_or_default()
+    }
+
     pub fn get_field(&self, field: &Field) -> &str {
         self.values
             .get(field.name)
