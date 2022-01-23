@@ -165,6 +165,6 @@ fn configure() -> Result<(), Box<dyn Error>> {
     settings.set_property(
         "gtk-decoration-layout",
         "close,minimize,maximize".to_value(),
-    )?;
+    );
     Ok(())
 }

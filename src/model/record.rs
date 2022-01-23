@@ -45,8 +45,8 @@ pub struct RecordType {
     password_field: Option<&'static str>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, glib::GBoxed)]
-#[gboxed(type_name = "PSRecord")]
+#[derive(Debug, Clone, PartialEq, Eq, glib::Boxed)]
+#[boxed_type(name = "PSRecord")]
 pub struct Record {
     pub record_type: &'static RecordType,
     pub values: HashMap<String, String>,

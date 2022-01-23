@@ -9,7 +9,7 @@ impl Iterator for TreeChildrenIter {
     type Item = gtk::TreeIter;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = self.iter.clone();
+        let result = self.iter;
 
         if let Some(iter) = self.iter.take() {
             if self.model.iter_next(&iter) {
@@ -39,7 +39,7 @@ pub fn flatten_tree(model: &gtk::TreeModel) -> Vec<gtk::TreeIter> {
         iters: &mut Vec<gtk::TreeIter>,
     ) {
         for i in tree_children_entries(model, parent_iter) {
-            iters.push(i.clone());
+            iters.push(i);
             traverse(model, Some(&i), iters);
         }
     }
