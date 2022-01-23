@@ -41,11 +41,12 @@ impl PSTreeView {
     pub fn new() -> Self {
         let view = gtk::TreeView::new();
         view.set_can_focus(true);
-        view.set_headers_visible(false);
+        view.set_headers_visible(true);
         view.set_reorderable(true);
         view.set_search_column(1);
 
         let column = gtk::TreeViewColumn::new();
+        column.set_title("Name");
         column.set_sizing(gtk::TreeViewColumnSizing::Autosize);
         column.set_expand(true);
         column.set_spacing(5);
@@ -70,6 +71,7 @@ impl PSTreeView {
 
         view.append_column(&{
             let column = gtk::TreeViewColumn::new();
+            column.set_title("Strength");
             column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
 
             let strength = gtk::CellRendererPixbuf::new();
@@ -85,6 +87,7 @@ impl PSTreeView {
         url_icon.set_property_stock_size(gtk::IconSize::Menu);
 
         let url_column = gtk::TreeViewColumn::new();
+        url_column.set_title("Actions");
         url_column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
         url_column.pack_start(&gtk::CellRendererText::new(), true);
         url_column.pack_start(&url_icon, false);
