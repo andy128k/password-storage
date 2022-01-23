@@ -9,6 +9,7 @@ use crate::model::record::FIELD_NAME;
 use crate::model::record::RECORD_TYPES;
 use crate::model::record::{FieldType, Record, RecordType};
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
+use guard::guard;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -87,6 +88,7 @@ pub struct RecordWidgetPrivate {
     icon: gtk::Image,
     type_label: gtk::Label,
     convert_button: gtk::MenuButton,
+    open_button: gtk::Button,
     form: RefCell<Option<RecordForm>>,
     names: Vec<String>,
     callback: RefCell<Box<dyn Fn(Option<&Record>)>>,
@@ -123,23 +125,34 @@ impl RecordWidget {
             .build();
         grid.attach(&convert_button, 0, 2, 1, 1);
 
+        let open_button = gtk::Button::builder()
+            .label("Open")
+            .no_show_all(true)
+            .build();
+        grid.attach(&open_button, 0, 3, 1, 1);
+
         let expander = gtk::Label::builder().vexpand(true).build();
-        grid.attach(&expander, 0, 3, 1, 1);
+        grid.attach(&expander, 0, 4, 1, 1);
 
         let separator = gtk::Separator::builder()
             .orientation(gtk::Orientation::Vertical)
             .build();
-        grid.attach(&separator, 1, 0, 1, 4);
+        grid.attach(&separator, 1, 0, 1, 5);
 
-        Self(Rc::new(RecordWidgetPrivate {
+        let widget = Self(Rc::new(RecordWidgetPrivate {
             grid,
             icon,
             type_label,
             convert_button,
+            open_button: open_button.clone(),
             form: RefCell::new(None),
             names,
             callback: RefCell::new(Box::new(no_op)),
-        }))
+        }));
+
+        open_button.connect_clicked(glib::clone!(@weak widget => move |_| widget.open()));
+
+        widget
     }
 
     fn set_record_type(&self, record_type: &'static RecordType) {
@@ -182,7 +195,7 @@ impl RecordWidget {
         let form_widget = form.get_widget();
         *self.0.form.borrow_mut() = Some(form);
 
-        self.0.grid.attach(&form_widget, 2, 0, 1, 4);
+        self.0.grid.attach(&form_widget, 2, 0, 1, 5);
         self.0.grid.show_all();
 
         self.0.grid.set_focus_child(Some(&form_widget));
@@ -201,6 +214,15 @@ impl RecordWidget {
         }
         self.set_value(Some(&new_record));
     }
+
+    fn open(&self) {
+        guard!(let Some(record) = self.get_value() else { return });
+        guard!(let Some(url) = record.url() else { return });
+        let window: Option<gtk::Window> = self.0.grid.toplevel().and_then(|w| w.downcast().ok());
+        if let Err(err) = gtk::show_uri_on_window(window.as_ref(), url, 0) {
+            eprintln!("Cannot open {}. {}", url, err);
+        }
+    }
 }
 
 impl FormWidget<Record> for RecordWidget {
@@ -215,6 +237,8 @@ impl FormWidget<Record> for RecordWidget {
     fn set_value(&self, value: Option<&Record>) {
         if let Some(value) = value {
             self.set_record_type(value.record_type);
+            let has_url = value.url().is_some();
+            self.0.open_button.set_visible(has_url);
         }
         self.0.form.borrow().as_ref().unwrap().set_value(value);
     }

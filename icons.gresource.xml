@@ -10,6 +10,7 @@
     <file alias="24x24/actions/merge-mode.png">icons/actions/24x24/merge-mode.png</file>
     <file alias="scalable/actions/random.svg">icons/actions/scalable/random.svg</file>
     <file alias="scalable/actions/eye.svg">icons/actions/scalable/eye.svg</file>
+    <file alias="scalable/actions/share.svg">icons/actions/scalable/share.svg</file>
 
     <file alias="entry-generic.svg">icons/entries/generic.svg</file>
     <file alias="entry-creditcard.svg">icons/entries/creditcard.svg</file>

@@ -288,6 +288,18 @@ impl ObjectImpl for PSMainWindowInner {
                 });
             }));
 
+        win.private()
+            .view
+            .connect_url_clicked(clone!(@weak win => move |iter| {
+                glib::MainContext::default().spawn_local(async move {
+                    guard!(let Some(record) = win.private().data.borrow().get(&iter) else { return });
+                    guard!(let Some(url) = record.url() else { return });
+                    if let Err(err) = gtk::show_uri_on_window(Some(&win), url, 0) {
+                        eprintln!("Cannot open {}. {}", url, err);
+                    }
+                });
+            }));
+
         let popup = ui::menu::create_tree_popup();
         win.private().view.set_popup(&popup);
     }

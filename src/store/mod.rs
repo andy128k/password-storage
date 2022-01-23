@@ -16,6 +16,7 @@ pub enum TreeStoreColumn {
     Selection,
     SelectionVisible,
     Strength,
+    ShareIcon,
 }
 
 impl TreeStoreColumn {
@@ -27,6 +28,7 @@ impl TreeStoreColumn {
             TreeStoreColumn::Selection => 3,
             TreeStoreColumn::SelectionVisible => 5,
             TreeStoreColumn::Strength => 4,
+            TreeStoreColumn::ShareIcon => 6,
         }
     }
 }
@@ -75,6 +77,7 @@ impl PSStore {
             glib::Type::BOOL,
             glib::Type::STRING,
             glib::Type::BOOL,
+            glib::Type::STRING,
         ]);
         PSStore { model }
     }
@@ -223,6 +226,12 @@ impl PSStore {
             iter,
             TreeStoreColumn::SelectionVisible.into(),
             &glib::Value::from(&!record.record_type.is_group),
+        );
+
+        self.model.set_value(
+            iter,
+            TreeStoreColumn::ShareIcon.into(),
+            &if record.url().is_some() { "share" } else { "" }.to_value(),
         );
     }
 

@@ -4,11 +4,12 @@ use guard::guard;
 
 const GDK_BUTTON_SECONDARY: u32 = 3;
 
-#[derive(Clone)]
+#[derive(Clone, glib::Downgrade)]
 pub struct PSTreeView {
     pub view: gtk::TreeView,
     column: gtk::TreeViewColumn,
     check_renderer: gtk::CellRendererToggle,
+    url_column: gtk::TreeViewColumn,
 }
 
 fn get_real_iter(
@@ -80,11 +81,61 @@ impl PSTreeView {
             column
         });
 
+        let url_icon = gtk::CellRendererPixbuf::new();
+        url_icon.set_property_stock_size(gtk::IconSize::Menu);
+
+        let url_column = gtk::TreeViewColumn::new();
+        url_column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
+        url_column.pack_start(&gtk::CellRendererText::new(), true);
+        url_column.pack_start(&url_icon, false);
+        url_column.pack_start(&gtk::CellRendererText::new(), true);
+        url_column.add_attribute(&url_icon, "icon-name", TreeStoreColumn::ShareIcon.into());
+
+        view.append_column(&url_column);
+
         Self {
             view,
             column,
             check_renderer,
+            url_column,
         }
+    }
+
+    fn iter_of_clicked_url(&self, event: &gdk::EventButton) -> Option<gtk::TreeIter> {
+        let (x, y) = event.coords()?;
+        let (path, col, cell_x, _cell_y) = self.view.path_at_pos(x as i32, y as i32)?;
+        let path = path?;
+        let col = col?;
+        if col != self.url_column {
+            return None;
+        }
+
+        let clicked_icon = self
+            .url_column
+            .cells()
+            .into_iter()
+            .filter(|cell| cell.downcast_ref::<gtk::CellRendererPixbuf>().is_some())
+            .filter_map(|cell| self.url_column.cell_get_position(&cell))
+            .filter(|(cell_pos, cell_width)| *cell_pos <= cell_x && cell_x <= cell_pos + cell_width)
+            .next()
+            .is_some();
+
+        if clicked_icon {
+            let (_model, iter) = get_real_iter(&self.view, &path)?;
+            return Some(iter);
+        }
+        None
+    }
+
+    pub fn connect_url_clicked<F: Fn(gtk::TreeIter) + 'static>(&self, handler: F) {
+        self.view.connect_button_release_event(
+            clone!(@weak self as this => @default-return glib::signal::Inhibit(false), move |_view, event| {
+                if let Some(iter) = this.iter_of_clicked_url(event) {
+                    handler(iter);
+                }
+                glib::signal::Inhibit(false)
+            }),
+        );
     }
 
     pub fn connect_drop<F: Fn(gtk::TreeIter) -> bool + 'static>(&self, is_group: F) {

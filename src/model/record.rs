@@ -314,6 +314,15 @@ impl Record {
             .map(|value| value.as_str())
     }
 
+    pub fn url(&self) -> Option<&str> {
+        self.record_type
+            .fields
+            .iter()
+            .find(|f| f.name == "url")
+            .map(|field| self.get_field(field).trim())
+            .filter(|value| !value.is_empty())
+    }
+
     pub fn has_text(&self, text: &str, look_at_secrets: bool) -> bool {
         let needle = text.to_lowercase();
         for field in &self.record_type.fields {
