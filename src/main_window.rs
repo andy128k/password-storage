@@ -16,7 +16,6 @@ use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
 use crate::ui::merge_bar::create_merge_bar;
-use crate::ui::preview_panel::PSPreviewPanel;
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
 use crate::ui::search::{PSSearchBar, SearchEvent, SearchEventType};
 use crate::ui::toast::Toast;
@@ -49,7 +48,6 @@ struct PSMainWindowPrivate {
     dashboard: PSDashboard,
     data: RefCell<PSStore>,
     view: PSTreeView,
-    preview: PSPreviewPanel,
 
     doc_actions: gio::SimpleActionGroup,
     file_actions: gio::SimpleActionGroup,
@@ -131,7 +129,6 @@ impl ObjectImpl for PSMainWindowInner {
 
         let data = PSStore::new();
         let view = PSTreeView::new();
-        let preview = PSPreviewPanel::new();
         let toast = Toast::new();
 
         let dashboard = PSDashboard::new();
@@ -179,13 +176,7 @@ impl ObjectImpl for PSMainWindowInner {
 
         let stack = gtk::Stack::new()
             .named("dashboard", &dashboard.get_widget())
-            .named(
-                "file",
-                &overlayed(
-                    &paned(&tree_container, &preview.get_widget()),
-                    &toast.as_widget(),
-                ),
-            );
+            .named("file", &overlayed(&tree_container, &toast.as_widget()));
         grid.attach(&stack, 0, 3, 1, 1);
 
         win.add(&grid);
@@ -216,7 +207,6 @@ impl ObjectImpl for PSMainWindowInner {
             data: RefCell::new(data),
             view,
             search_bar,
-            preview,
             merge_bar,
             toast,
 
@@ -378,8 +368,6 @@ impl PSMainWindow {
         entry_actions
             .simple_action("convert-to")
             .set_enabled(record.as_ref().map_or(false, |r| !r.record_type.is_group));
-
-        self.private().preview.update_record(record);
     }
 
     fn search(&self, event: &SearchEvent) {
@@ -652,14 +640,10 @@ impl PSMainWindow {
         win.private().dashboard.update(cache);
 
         let config = config_service.get();
-        win.private()
-            .preview
-            .update_config(config.show_secrets_on_preview);
         win.private().search_bar.configure(config.search_in_secrets);
         config_service
             .on_change
             .subscribe(glib::clone!(@weak win => move |new_config| {
-                win.private().preview.update_config(new_config.show_secrets_on_preview);
                 win.private().search_bar.configure(new_config.search_in_secrets);
             }));
 

@@ -45,6 +45,7 @@ impl PSTreeView {
         view.set_headers_visible(true);
         view.set_reorderable(true);
         view.set_search_column(1);
+        view.set_grid_lines(gtk::TreeViewGridLines::Horizontal);
 
         let column = gtk::TreeViewColumn::new();
         column.set_title("Name");
@@ -60,6 +61,7 @@ impl PSTreeView {
         column.pack_start(&check_renderer, false);
 
         let icon = gtk::CellRendererPixbuf::new();
+        icon.set_padding(0, 4);
         icon.set_property_stock_size(gtk::IconSize::LargeToolbar);
         column.pack_start(&icon, false);
         column.add_attribute(&icon, "icon-name", TreeStoreColumn::TypeIcon.into());
@@ -73,6 +75,7 @@ impl PSTreeView {
         let description_column = gtk::TreeViewColumn::new();
         let description_renderer = gtk::CellRendererText::new();
         description_column.set_title("Description");
+        description_column.set_expand(true);
         description_column.pack_start(&description_renderer, true);
         description_column.add_attribute(
             &description_renderer,

@@ -10,7 +10,6 @@ use std::path::{Path, PathBuf};
 #[derive(Serialize, Deserialize, Default, Clone, Copy)]
 pub struct Config {
     pub search_in_secrets: bool,
-    pub show_secrets_on_preview: bool,
 }
 
 impl Config {
