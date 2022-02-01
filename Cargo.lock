@@ -424,9 +424,9 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.15.2"
+version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30a3e6b2e5ef2ecfb10c1e083074a81160b8f6408fcc08195c872e9de37a361b"
+checksum = "e385b6c17a1add7d0fbc64d38e2e742346d3e8b22e5fa3734e5cdca2be24028d"
 dependencies = [
  "bitflags",
  "futures-channel",
@@ -480,9 +480,9 @@ dependencies = [
 
 [[package]]
 name = "gtk"
-version = "0.15.2"
+version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22fa27087b0773dbf10d4d434fc38261f2df9a606571462fc13e61bea7bf2b8e"
+checksum = "c7978eaec05bea63947c801d29a21372f2ed39aec0bf56bf7725d3599094675e"
 dependencies = [
  "atk",
  "bitflags",
