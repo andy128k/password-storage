@@ -38,8 +38,40 @@ impl Iterator for WidgetTraverseDepthFirstIter {
     }
 }
 
-pub fn traverse_depth_first(widget: &gtk::Widget) -> WidgetTraverseDepthFirstIter {
-    WidgetTraverseDepthFirstIter::new(widget.clone())
+pub trait PSWidgetExt {
+    fn traverse(&self) -> WidgetTraverseDepthFirstIter;
+}
+
+impl<P: IsA<gtk::Widget>> PSWidgetExt for P {
+    fn traverse(&self) -> WidgetTraverseDepthFirstIter {
+        WidgetTraverseDepthFirstIter::new(self.clone().upcast())
+    }
+}
+pub trait PSWidgetLookupExt {
+    fn of_type<W: IsA<gtk::Widget>>(&self) -> Option<W>;
+    fn of_type_and_name<W: IsA<gtk::Widget>>(&self, name: &str) -> Option<W>;
+}
+
+impl PSWidgetLookupExt for gtk::Widget {
+    fn of_type<W: IsA<gtk::Widget>>(&self) -> Option<W> {
+        self.traverse().find_map(|ch| ch.downcast::<W>().ok())
+    }
+
+    fn of_type_and_name<W: IsA<gtk::Widget>>(&self, name: &str) -> Option<W> {
+        self.traverse()
+            .filter(|ch| ch.widget_name() == name)
+            .find_map(|ch| ch.downcast::<W>().ok())
+    }
+}
+
+impl PSWidgetLookupExt for Option<gtk::Widget> {
+    fn of_type<W: IsA<gtk::Widget>>(&self) -> Option<W> {
+        self.as_ref().and_then(|w| w.of_type::<W>())
+    }
+
+    fn of_type_and_name<W: IsA<gtk::Widget>>(&self, name: &str) -> Option<W> {
+        self.as_ref().and_then(|w| w.of_type_and_name::<W>(name))
+    }
 }
 
 pub fn scrolled<P: IsA<gtk::Widget>>(widget: &P) -> gtk::ScrolledWindow {
