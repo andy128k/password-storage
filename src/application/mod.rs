@@ -27,9 +27,7 @@ impl Default for PSApplication {
 
 impl PSApplication {
     fn on_startup(&self) {
-        let private = implementation::PSApplication::from_instance(self);
-
-        private.cache.load();
+        self.imp().cache.load();
 
         if let Err(error) = configure() {
             eprintln!("Failed to configure global settings: {}.", error);
@@ -51,8 +49,7 @@ impl PSApplication {
     }
 
     fn on_shutdown(&self) {
-        let private = implementation::PSApplication::from_instance(self);
-        private.cache.save().unwrap();
+        self.imp().cache.save().unwrap();
     }
 
     fn active_main_window(&self) -> Option<PSMainWindow> {
@@ -69,7 +66,7 @@ impl PSApplication {
     }
 
     fn new_window(&self) -> PSMainWindow {
-        let private = implementation::PSApplication::from_instance(self);
+        let private = self.imp();
         PSMainWindow::new(&self.clone().upcast(), &private.config, &private.cache)
     }
 
@@ -98,10 +95,9 @@ impl PSApplication {
 
     async fn preferences(&self) {
         let win = self.activate_main_window();
-        let private = implementation::PSApplication::from_instance(self);
-        let config = private.config.get();
+        let config = self.imp().config.get();
         if let Some(new_config) = preferences(&win.clone().upcast(), &config).await {
-            private.config.set(new_config);
+            self.imp().config.set(new_config);
         }
     }
 

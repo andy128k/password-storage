@@ -312,7 +312,7 @@ impl PSMainWindow {
     }
 
     fn private(&self) -> &PSMainWindowPrivate {
-        let private = PSMainWindowInner::from_instance(self);
+        let private = self.imp();
         private.private.get().unwrap()
     }
 
@@ -620,8 +620,7 @@ impl PSMainWindow {
         if self.ensure_data_is_saved().await {
             get_clipboard().clear();
 
-            let private = PSMainWindowInner::from_instance(self);
-            if let Some(handler) = private.delete_handler.take() {
+            if let Some(handler) = self.imp().delete_handler.take() {
                 self.disconnect(handler);
             }
             self.close();
