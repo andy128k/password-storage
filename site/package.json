@@ -1,4 +1,5 @@
 {
+  "private": true,
   "devDependencies": {
     "@11ty/eleventy": "^1"
   },
