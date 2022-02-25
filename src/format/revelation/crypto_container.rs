@@ -28,7 +28,7 @@ pub fn decrypt(source: &mut dyn Read, password: &str) -> Result<Vec<u8>> {
     let decrypted = cbc::Decryptor::<Aes256>::new(&password, &iv)
         .decrypt_padded_mut::<Pkcs7>(&mut encrypted_content)
         .map_err(|_| "File cannot be decrypted")?;
-    let data = inflate_bytes_zlib(&decrypted).map_err(|e| format!("Corrupted file: {}", e))?;
+    let data = inflate_bytes_zlib(decrypted).map_err(|e| format!("Corrupted file: {}", e))?;
     Ok(data)
 }
 
@@ -44,7 +44,7 @@ pub fn encrypt(writer: &mut dyn Write, data: &[u8], password: &str) -> Result<()
         .map_err(|_| "File cannot be encrypted")?;
     Aes256::new(&password).encrypt_block(&mut iv);
     writer.write_all(&iv)?;
-    writer.write_all(&encrypted)?;
+    writer.write_all(encrypted)?;
     Ok(())
 }
 
