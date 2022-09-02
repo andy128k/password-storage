@@ -15,7 +15,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .status()?;
 
     #[cfg(target_os = "windows")]
-    embed_resource::compile("./icons.rc");
+    winres::WindowsResource::new()
+        .set_icon("icons/app-icon/password-storage.ico")
+        .compile()?;
 
     println!("cargo:rustc-env=PATH_MAIN_SEPARATOR={}", MAIN_SEPARATOR);
 
