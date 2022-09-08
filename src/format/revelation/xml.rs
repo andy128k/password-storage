@@ -20,17 +20,21 @@ fn read_document<R: BufRead>(reader: &mut Reader<R>) -> Result<RecordTree> {
     let mut record_tree = None;
     loop {
         buf.clear();
-        match reader.read_event(&mut buf)? {
+        match reader.read_event_into(&mut buf)? {
             Event::Decl(..) => {}
-            Event::Start(ref e) if record_tree.is_none() && e.name() == b"revelationdata" => {
+            Event::Start(ref e)
+                if record_tree.is_none() && e.name().as_ref() == b"revelationdata" =>
+            {
                 record_tree = Some(read_revelationdata(reader, &mut e.attributes())?);
             }
-            Event::Empty(ref e) if record_tree.is_none() && e.name() == b"revelationdata" => {
+            Event::Empty(ref e)
+                if record_tree.is_none() && e.name().as_ref() == b"revelationdata" =>
+            {
                 record_tree = Some(vec![]);
             }
-            Event::Text(element) if element.unescape_and_decode(reader)?.trim().is_empty() => {}
+            Event::Text(element) if element.unescape()?.trim().is_empty() => {}
             Event::Eof => break,
-            e => return Err(format!("Unexpected XML event {:?}.", e).into()),
+            e => return Err(format!("1 Unexpected XML event {:?}.", e).into()),
         }
     }
 
@@ -58,18 +62,18 @@ fn read_revelationdata<R: BufRead>(
     let mut buf = Vec::new();
     loop {
         buf.clear();
-        match reader.read_event(&mut buf)? {
-            Event::Start(ref e) if e.name() == b"entry" => {
+        match reader.read_event_into(&mut buf)? {
+            Event::Start(ref e) if e.name().as_ref() == b"entry" => {
                 let record_node = read_record_node(reader, &mut e.attributes())?;
                 records.push(record_node);
             }
-            Event::Empty(ref e) if e.name() == b"entry" => {
+            Event::Empty(ref e) if e.name().as_ref() == b"entry" => {
                 let record_node = read_empty_record_node(reader, &mut e.attributes())?;
                 records.push(record_node);
             }
-            Event::Text(element) if element.unescape_and_decode(reader)?.trim().is_empty() => {}
-            Event::End(ref e) if e.name() == b"revelationdata" => break,
-            e => return Err(format!("Unexpected XML event {:?}.", e).into()),
+            Event::Text(element) if element.unescape()?.trim().is_empty() => {}
+            Event::End(ref e) if e.name().as_ref() == b"revelationdata" => break,
+            e => return Err(format!("3 Unexpected XML event {:?}.", e).into()),
         }
     }
     Ok(records)
@@ -93,16 +97,14 @@ fn read_record_node<R: BufRead>(
     let mut buf = Vec::new();
     loop {
         buf.clear();
-        match reader.read_event(&mut buf)? {
-            Event::Start(ref e) => match e.name() {
+        match reader.read_event_into(&mut buf)? {
+            Event::Start(ref e) => match e.name().as_ref() {
                 b"name" => {
-                    let value = expect_text(reader)?;
-                    expect_end(reader, b"name")?;
+                    let value = expect_text(reader, b"name")?;
                     record.values.insert("name".to_string(), value);
                 }
                 b"description" => {
-                    let value = expect_text(reader)?;
-                    expect_end(reader, b"description")?;
+                    let value = expect_text(reader, b"description")?;
                     record.values.insert("description".to_string(), value);
                 }
                 b"field" => {
@@ -124,8 +126,7 @@ fn read_record_node<R: BufRead>(
                                 id, xml_type
                             )
                         })?;
-                    let value = expect_text(reader)?;
-                    expect_end(reader, b"field")?;
+                    let value = expect_text(reader, b"field")?;
                     record.values.insert(field_name.to_string(), value);
                 }
                 b"entry" if is_group => {
@@ -134,7 +135,7 @@ fn read_record_node<R: BufRead>(
                 }
                 e => return Err(format!("Unexpected element {:?}.", e).into()),
             },
-            Event::Empty(ref e) => match e.name() {
+            Event::Empty(ref e) => match e.name().as_ref() {
                 b"name" | b"description" | b"field" => {}
                 b"entry" if is_group => {
                     let child = read_empty_record_node(reader, &mut e.attributes())?;
@@ -142,9 +143,9 @@ fn read_record_node<R: BufRead>(
                 }
                 e => return Err(format!("Unexpected element {:?}.", e).into()),
             },
-            Event::Text(element) if element.unescape_and_decode(reader)?.trim().is_empty() => {}
-            Event::End(ref e) if e.name() == b"entry" => break,
-            e => return Err(format!("Unexpected XML event {:?}.", e).into()),
+            Event::Text(element) if element.unescape()?.trim().is_empty() => {}
+            Event::End(ref e) if e.name().as_ref() == b"entry" => break,
+            e => return Err(format!(" 5 Unexpected XML event {:?} {:?}.", e, record).into()),
         }
     }
 
@@ -175,23 +176,18 @@ fn read_empty_record_node<R: BufRead>(
     }
 }
 
-fn expect_text<R: BufRead>(reader: &mut Reader<R>) -> Result<String> {
+fn expect_text<R: BufRead>(reader: &mut Reader<R>, end_name: &[u8]) -> Result<String> {
+    let mut result = String::new();
     let mut buf = Vec::new();
-    match reader.read_event(&mut buf)? {
-        Event::Text(element) => {
-            let content = element.unescape_and_decode(reader)?;
-            Ok(content)
+    loop {
+        buf.clear();
+        match reader.read_event_into(&mut buf)? {
+            Event::Text(text) => result.push_str(&text.unescape()?),
+            Event::End(end) if end.name().as_ref() == end_name => break,
+            e => return Err(format!("Unexpected XML event {:?}.", e).into()),
         }
-        e => Err(format!("Unexpected XML event {:?}.", e).into()),
     }
-}
-
-fn expect_end<R: BufRead>(reader: &mut Reader<R>, name: &[u8]) -> Result<()> {
-    let mut buf = Vec::new();
-    match reader.read_event(&mut buf)? {
-        Event::End(e) if e.name() == name => Ok(()),
-        e => Err(format!("Unexpected XML event {:?}.", e).into()),
-    }
+    Ok(result)
 }
 
 fn read_attribute<R: BufRead>(
@@ -201,8 +197,8 @@ fn read_attribute<R: BufRead>(
 ) -> Result<Option<String>> {
     for attr in atts.with_checks(false) {
         let attr = attr?;
-        if attr.key == name {
-            let value = attr.unescape_and_decode_value(reader)?;
+        if attr.key.as_ref() == name {
+            let value = attr.decode_and_unescape_value(reader)?.to_string();
             return Ok(Some(value));
         }
     }
@@ -223,9 +219,9 @@ pub fn record_tree_to_xml(tree: &RecordTree, app_version: Version) -> Result<Vec
     let mut buffer = Vec::new();
     let mut writer = Writer::new(&mut buffer);
 
-    writer.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"utf-8"), None)))?;
+    writer.write_event(Event::Decl(BytesDecl::new("1.0", Some("utf-8"), None)))?;
     writer.write_event(Event::Start({
-        let mut element = BytesStart::borrowed_name(b"revelationdata");
+        let mut element = BytesStart::new("revelationdata");
         element.push_attribute(("version", app_version.to_string().as_str()));
         element.push_attribute(("dataversion", "1"));
         element
@@ -235,7 +231,7 @@ pub fn record_tree_to_xml(tree: &RecordTree, app_version: Version) -> Result<Vec
         write_record_node(&mut writer, node)?;
     }
 
-    writer.write_event(Event::End(BytesEnd::borrowed(b"revelationdata")))?;
+    writer.write_event(Event::End(BytesEnd::new("revelationdata")))?;
 
     Ok(buffer)
 }
@@ -249,13 +245,13 @@ fn write_record_node<W: Write>(writer: &mut Writer<W>, record_node: &RecordNode)
         .unwrap();
 
     writer.write_event(Event::Start({
-        let mut element = BytesStart::borrowed_name(b"entry");
+        let mut element = BytesStart::new("entry");
         element.push_attribute(("type", mapping.xml_type_name));
         element
     }))?;
 
-    write_field(writer, b"name", record.get_field(&FIELD_NAME))?;
-    write_field(writer, b"description", record.get_field(&FIELD_DESCRIPTION))?;
+    write_field(writer, "name", record.get_field(&FIELD_NAME))?;
+    write_field(writer, "description", record.get_field(&FIELD_DESCRIPTION))?;
     for &(field, id) in mapping.fields {
         let value: &str = record.values.get(field).map_or("", |v| &**v);
         write_generic_field(writer, id, value)?;
@@ -265,25 +261,25 @@ fn write_record_node<W: Write>(writer: &mut Writer<W>, record_node: &RecordNode)
         write_record_node(writer, child_node)?;
     }
 
-    writer.write_event(Event::End(BytesEnd::borrowed(b"entry")))?;
+    writer.write_event(Event::End(BytesEnd::new("entry")))?;
     Ok(())
 }
 
-fn write_field<W: Write>(writer: &mut Writer<W>, name: &[u8], value: &str) -> Result<()> {
-    writer.write_event(Event::Start(BytesStart::borrowed_name(name)))?;
-    writer.write_event(Event::Text(BytesText::from_plain_str(value)))?;
-    writer.write_event(Event::End(BytesEnd::borrowed(name)))?;
+fn write_field<W: Write>(writer: &mut Writer<W>, name: &str, value: &str) -> Result<()> {
+    writer.write_event(Event::Start(BytesStart::new(name)))?;
+    writer.write_event(Event::Text(BytesText::new(value)))?;
+    writer.write_event(Event::End(BytesEnd::new(name)))?;
     Ok(())
 }
 
 fn write_generic_field<W: Write>(writer: &mut Writer<W>, id: &str, value: &str) -> Result<()> {
     writer.write_event(Event::Start({
-        let mut element = BytesStart::borrowed_name(b"field");
+        let mut element = BytesStart::new("field");
         element.push_attribute(("id", id));
         element
     }))?;
-    writer.write_event(Event::Text(BytesText::from_plain_str(value)))?;
-    writer.write_event(Event::End(BytesEnd::borrowed(b"field")))?;
+    writer.write_event(Event::Text(BytesText::new(value)))?;
+    writer.write_event(Event::End(BytesEnd::new("field")))?;
     Ok(())
 }
 

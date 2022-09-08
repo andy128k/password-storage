@@ -118,13 +118,9 @@ impl PSApplication {
 
     #[action(name = "open-file")]
     async fn open_file_by_name(&self, buffer: Vec<u8>) {
-        match PathBuf::from_raw_vec(buffer) {
-            Ok(filename) => {
-                let win = self.activate_main_window();
-                win.do_open_file(&filename).await;
-            }
-            Err(error) => eprintln!("open-file: {}", error),
-        }
+        let filename = PathBuf::assert_from_raw_vec(buffer);
+        let win = self.activate_main_window();
+        win.do_open_file(&filename).await;
     }
 
     #[action(name = "shortcuts")]
