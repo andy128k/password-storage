@@ -80,8 +80,10 @@ impl ObjectSubclass for PSMainWindowInner {
 }
 
 impl ObjectImpl for PSMainWindowInner {
-    fn constructed(&self, win: &Self::Type) {
-        self.parent_constructed(win);
+    fn constructed(&self) {
+        self.parent_constructed();
+
+        let win = self.obj();
 
         win.set_title(WINDOW_TITLE);
         win.set_icon_name(Some("password-storage"));
@@ -628,7 +630,7 @@ impl PSMainWindow {
     }
 
     pub fn new(app: &gtk::Application, config_service: &Rc<ConfigService>, cache: &Cache) -> Self {
-        let win: Self = glib::Object::new(&[("application", app)]).expect("MainWindow is created");
+        let win: Self = glib::Object::builder().property("application", app).build();
 
         win.private()
             .config_service
@@ -648,7 +650,7 @@ impl PSMainWindow {
 
         win.show_all();
         win.set_mode(AppMode::Initial);
-        if let Some(screen) = win.screen() {
+        if let Some(screen) = WidgetExt::screen(&win) {
             crate::css::load_css(&screen);
         }
         win

@@ -17,8 +17,9 @@ impl ObjectSubclass for PSApplication {
 }
 
 impl ObjectImpl for PSApplication {
-    fn constructed(&self, app: &Self::Type) {
-        self.parent_constructed(app);
+    fn constructed(&self) {
+        self.parent_constructed();
+        let app = self.obj();
         app.connect_startup(|app| app.on_startup());
         app.connect_activate(|app| app.on_activate());
         app.connect_shutdown(|app| app.on_shutdown());
@@ -30,7 +31,7 @@ impl ObjectImpl for PSApplication {
                 app.on_open(&files, &hint).await;
             });
         });
-        app.register_actions(app);
+        app.register_actions(&*app);
     }
 }
 

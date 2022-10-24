@@ -58,17 +58,22 @@ impl PSTreeView {
         check_renderer.connect_toggled(clone!(@weak view => move |_renderer, path| {
             selection_toggled(&view, &path)
         }));
-        column.pack_start(&check_renderer, false);
+        CellLayoutExt::pack_start(&column, &check_renderer, false);
 
         let icon = gtk::CellRendererPixbuf::new();
         icon.set_padding(0, 4);
-        icon.set_property_stock_size(gtk::IconSize::LargeToolbar);
-        column.pack_start(&icon, false);
-        column.add_attribute(&icon, "icon-name", TreeStoreColumn::TypeIcon.into());
+        icon.set_stock_size(gtk::IconSize::LargeToolbar);
+        CellLayoutExt::pack_start(&column, &icon, false);
+        TreeViewColumnExt::add_attribute(
+            &column,
+            &icon,
+            "icon-name",
+            TreeStoreColumn::TypeIcon.into(),
+        );
 
         let text = gtk::CellRendererText::new();
-        column.pack_start(&text, true);
-        column.add_attribute(&text, "text", TreeStoreColumn::Name.into());
+        CellLayoutExt::pack_start(&column, &text, true);
+        TreeViewColumnExt::add_attribute(&column, &text, "text", TreeStoreColumn::Name.into());
 
         view.append_column(&column);
 
@@ -76,8 +81,9 @@ impl PSTreeView {
         let description_renderer = gtk::CellRendererText::new();
         description_column.set_title("Description");
         description_column.set_expand(true);
-        description_column.pack_start(&description_renderer, true);
-        description_column.add_attribute(
+        CellLayoutExt::pack_start(&description_column, &description_renderer, true);
+        TreeViewColumnExt::add_attribute(
+            &description_column,
             &description_renderer,
             "text",
             TreeStoreColumn::Description.into(),
@@ -90,24 +96,34 @@ impl PSTreeView {
             column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
 
             let strength = gtk::CellRendererPixbuf::new();
-            strength.set_property_stock_size(gtk::IconSize::Menu);
+            strength.set_stock_size(gtk::IconSize::Menu);
             strength.set_padding(16, 0);
-            column.pack_start(&strength, false);
-            column.add_attribute(&strength, "icon-name", TreeStoreColumn::Strength.into());
+            CellLayoutExt::pack_start(&column, &strength, false);
+            TreeViewColumnExt::add_attribute(
+                &column,
+                &strength,
+                "icon-name",
+                TreeStoreColumn::Strength.into(),
+            );
 
             column
         });
 
         let url_icon = gtk::CellRendererPixbuf::new();
-        url_icon.set_property_stock_size(gtk::IconSize::Menu);
+        url_icon.set_stock_size(gtk::IconSize::Menu);
 
         let url_column = gtk::TreeViewColumn::new();
         url_column.set_title("Actions");
         url_column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
-        url_column.pack_start(&gtk::CellRendererText::new(), true);
-        url_column.pack_start(&url_icon, false);
-        url_column.pack_start(&gtk::CellRendererText::new(), true);
-        url_column.add_attribute(&url_icon, "icon-name", TreeStoreColumn::ShareIcon.into());
+        CellLayoutExt::pack_start(&url_column, &gtk::CellRendererText::new(), true);
+        CellLayoutExt::pack_start(&url_column, &url_icon, false);
+        CellLayoutExt::pack_start(&url_column, &gtk::CellRendererText::new(), true);
+        TreeViewColumnExt::add_attribute(
+            &url_column,
+            &url_icon,
+            "icon-name",
+            TreeStoreColumn::ShareIcon.into(),
+        );
 
         view.append_column(&url_column);
 
@@ -253,18 +269,20 @@ impl PSTreeView {
 
     pub fn set_selection_mode(&self, selection: bool) {
         if selection {
-            self.column.add_attribute(
+            TreeViewColumnExt::add_attribute(
+                &self.column,
                 &self.check_renderer,
                 "visible",
                 TreeStoreColumn::SelectionVisible.into(),
             );
-            self.column.add_attribute(
+            TreeViewColumnExt::add_attribute(
+                &self.column,
                 &self.check_renderer,
                 "active",
                 TreeStoreColumn::Selection.into(),
             );
         } else {
-            self.column.clear_attributes(&self.check_renderer);
+            TreeViewColumnExt::clear_attributes(&self.column, &self.check_renderer);
             self.check_renderer.set_visible(false);
         }
         self.column.queue_resize();
