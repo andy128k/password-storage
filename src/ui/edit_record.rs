@@ -9,7 +9,6 @@ use crate::model::record::FIELD_NAME;
 use crate::model::record::RECORD_TYPES;
 use crate::model::record::{FieldType, Record, RecordType};
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
-use guard::guard;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -216,8 +215,8 @@ impl RecordWidget {
     }
 
     fn open(&self) {
-        guard!(let Some(record) = self.get_value() else { return });
-        guard!(let Some(url) = record.url() else { return });
+        let Some(record) = self.get_value() else { return };
+        let Some(url) = record.url() else { return };
         let window: Option<gtk::Window> = self.0.grid.toplevel().and_then(|w| w.downcast().ok());
         if let Err(err) = gtk::show_uri_on_window(window.as_ref(), url, 0) {
             eprintln!("Cannot open {}. {}", url, err);

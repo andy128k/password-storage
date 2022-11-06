@@ -2,7 +2,6 @@ use crate::entropy::*;
 use crate::gtk_prelude::*;
 use crate::model::record::Record;
 use crate::model::tree::{RecordNode, RecordTree};
-use guard::guard;
 
 #[derive(Clone)]
 pub struct PSStore {
@@ -139,7 +138,7 @@ impl PSStore {
     ) -> std::ops::ControlFlow<B> {
         let model = self.as_model();
         for iter in crate::utils::tree::tree_children_entries(&model, parent_iter) {
-            guard!(let Some(record) = self.get(&iter) else { continue; });
+            let Some(record) = self.get(&iter) else { continue; };
 
             (func)(&TreeTraverseEvent::Start {
                 iter: &iter,

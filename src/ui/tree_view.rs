@@ -1,6 +1,5 @@
 use crate::gtk_prelude::*;
 use crate::store::TreeStoreColumn;
-use guard::guard;
 
 const GDK_BUTTON_SECONDARY: u32 = 3;
 
@@ -29,8 +28,8 @@ pub fn get_selected_iter(view: &gtk::TreeView) -> Option<(gtk::TreeIter, gtk::Tr
 }
 
 pub fn select_iter(view: &gtk::TreeView, iter: &gtk::TreeIter) {
-    guard!(let Some(current_model) = view.model() else { return });
-    guard!(let Some(path) = current_model.path(iter) else { return });
+    let Some(current_model) = view.model() else { return };
+    let Some(path) = current_model.path(iter) else { return };
 
     view.expand_to_path(&path);
     view.scroll_to_cell(Some(&path), None::<&gtk::TreeViewColumn>, true, 0.5, 0.0);

@@ -23,7 +23,6 @@ use crate::ui::tree_view::PSTreeView;
 use crate::utils::clipboard::get_clipboard;
 use crate::utils::tree::flatten_tree;
 use crate::utils::ui::*;
-use guard::guard;
 use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
@@ -284,8 +283,8 @@ impl ObjectImpl for PSMainWindowInner {
             .view
             .connect_url_clicked(clone!(@weak win => move |iter| {
                 glib::MainContext::default().spawn_local(async move {
-                    guard!(let Some(record) = win.private().data.borrow().get(&iter) else { return });
-                    guard!(let Some(url) = record.url() else { return });
+                    let Some(record) = win.private().data.borrow().get(&iter) else { return };
+                    let Some(url) = record.url() else { return };
                     if let Err(err) = gtk::show_uri_on_window(Some(&win), url, 0) {
                         eprintln!("Cannot open {}. {}", url, err);
                     }
@@ -413,8 +412,8 @@ impl PSMainWindow {
     fn get_usernames(&self) -> Vec<String> {
         let mut result = BTreeSet::new();
         self.private().data.borrow().traverse_all(&mut |event| {
-            guard!(let TreeTraverseEvent::Start { record, .. } = event else { return; });
-            guard!(let Some(username) = record.username() else { return; });
+            let TreeTraverseEvent::Start { record, .. } = event else { return; };
+            let Some(username) = record.username() else { return; };
             if !username.is_empty() && !result.contains(username) {
                 result.insert(username.to_string());
             }
@@ -877,7 +876,7 @@ impl PSMainWindow {
 
     #[action(name = "delete")]
     async fn action_delele(&self) {
-        guard!(let Some(selection) = self.private().view.get_selected_iter() else { return });
+        let Some(selection) = self.private().view.get_selected_iter() else { return };
         let confirmed = confirm_unlikely(
             &self.clone().upcast(),
             "Do you really want to delete selected entry?",
@@ -892,15 +891,15 @@ impl PSMainWindow {
 
     #[action(name = "convert-to")]
     fn action_convert(&self, dest_record_type_name: String) {
-        guard!(let Some(selection) = self.private().view.get_selected_iter() else { return; });
+        let Some(selection) = self.private().view.get_selected_iter() else { return; };
         let selection_iter = selection.0;
-        guard!(let Some(record) = self.private().data.borrow().get(&selection_iter) else { return; });
+        let Some(record) = self.private().data.borrow().get(&selection_iter) else { return; };
         if record.record_type.is_group {
             return;
         }
 
-        guard!(let Some(dest_record_type) = RecordType::find(&dest_record_type_name)
-            .filter(|rt| !rt.is_group && !rt.ref_eq(record.record_type)) else { return; });
+        let Some(dest_record_type) = RecordType::find(&dest_record_type_name)
+            .filter(|rt| !rt.is_group && !rt.ref_eq(record.record_type)) else { return; };
 
         let new_record = {
             let mut new_record = dest_record_type.new_record();
