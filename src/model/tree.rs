@@ -1,28 +1,59 @@
-use super::record::Record;
+use crate::gtk_prelude::*;
+use crate::model::record::Record;
+use crate::utils::typed_list_store::TypedListStore;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RecordNode {
-    Group(Record, Vec<RecordNode>),
-    Leaf(Record),
+mod imp {
+    use once_cell::sync::OnceCell;
+
+    use super::*;
+
+    #[derive(Default)]
+    pub struct RecordNode {
+        pub record: OnceCell<Record>,
+        pub children: OnceCell<TypedListStore<super::RecordNode>>,
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for RecordNode {
+        const NAME: &'static str = "PSRecordNode";
+        type Type = super::RecordNode;
+    }
+
+    impl ObjectImpl for RecordNode {}
+}
+
+glib::wrapper! {
+    pub struct RecordNode(ObjectSubclass<imp::RecordNode>);
 }
 
 impl RecordNode {
-    pub fn record(&self) -> &Record {
-        match self {
-            Self::Group(ref record, ..) => record,
-            Self::Leaf(ref record) => record,
-        }
+    pub fn leaf(record: Record) -> Self {
+        let this: Self = glib::Object::builder().build();
+        this.imp().record.set(record).unwrap();
+        this
     }
 
-    pub fn children(&self) -> &[Self] {
-        match self {
-            Self::Group(.., ref nodes) => nodes,
-            Self::Leaf(..) => &[],
-        }
+    pub fn group(record: Record, children: &TypedListStore<RecordNode>) -> Self {
+        let this: Self = glib::Object::builder().build();
+        this.imp().record.set(record).unwrap();
+        this.imp().children.set(children.clone()).unwrap();
+        this
+    }
+
+    pub fn record(&self) -> &Record {
+        self.imp().record.get().expect("RecordNode is initialized")
+    }
+
+    pub fn children(&self) -> Option<&TypedListStore<RecordNode>> {
+        self.imp().children.get()
+    }
+
+    pub fn is_group(&self) -> bool {
+        self.children().is_some()
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct RecordTree {
-    pub records: Vec<RecordNode>,
+    pub records: TypedListStore<RecordNode>,
 }

@@ -1,6 +1,7 @@
 use crate::error::Result;
 use crate::model::record::*;
 use crate::model::tree::{RecordNode, RecordTree};
+use crate::utils::typed_list_store::TypedListStore;
 use crate::version::Version;
 use lazy_static::lazy_static;
 use quick_xml::{
@@ -30,7 +31,7 @@ fn read_document<R: BufRead>(reader: &mut Reader<R>) -> Result<RecordTree> {
             Event::Empty(ref e)
                 if record_tree.is_none() && e.name().as_ref() == b"revelationdata" =>
             {
-                record_tree = Some(vec![]);
+                record_tree = Some(Default::default());
             }
             Event::Text(element) if element.unescape()?.trim().is_empty() => {}
             Event::Eof => break,
@@ -50,7 +51,7 @@ fn read_document<R: BufRead>(reader: &mut Reader<R>) -> Result<RecordTree> {
 fn read_revelationdata<R: BufRead>(
     reader: &mut Reader<R>,
     atts: &mut Attributes,
-) -> Result<Vec<RecordNode>> {
+) -> Result<TypedListStore<RecordNode>> {
     let _version: Option<Version> = read_attribute(reader, atts, b"version")?
         .map(|s| s.parse())
         .transpose()?;
@@ -58,18 +59,18 @@ fn read_revelationdata<R: BufRead>(
         .map(|s| s.parse())
         .transpose()?;
 
-    let mut records = Vec::new();
+    let records = TypedListStore::<RecordNode>::default();
     let mut buf = Vec::new();
     loop {
         buf.clear();
         match reader.read_event_into(&mut buf)? {
             Event::Start(ref e) if e.name().as_ref() == b"entry" => {
                 let record_node = read_record_node(reader, &mut e.attributes())?;
-                records.push(record_node);
+                records.append(&record_node);
             }
             Event::Empty(ref e) if e.name().as_ref() == b"entry" => {
                 let record_node = read_empty_record_node(reader, &mut e.attributes())?;
-                records.push(record_node);
+                records.append(&record_node);
             }
             Event::Text(element) if element.unescape()?.trim().is_empty() => {}
             Event::End(ref e) if e.name().as_ref() == b"revelationdata" => break,
@@ -93,7 +94,7 @@ fn read_record_node<R: BufRead>(
     let is_group = xml_type == "folder";
 
     let mut record = mapping.record_type.new_record();
-    let mut children = Vec::new();
+    let children = TypedListStore::<RecordNode>::default();
     let mut buf = Vec::new();
     loop {
         buf.clear();
@@ -131,7 +132,7 @@ fn read_record_node<R: BufRead>(
                 }
                 b"entry" if is_group => {
                     let child = read_record_node(reader, &mut e.attributes())?;
-                    children.push(child);
+                    children.append(&child);
                 }
                 e => return Err(format!("Unexpected element {:?}.", e).into()),
             },
@@ -139,7 +140,7 @@ fn read_record_node<R: BufRead>(
                 b"name" | b"description" | b"field" => {}
                 b"entry" if is_group => {
                     let child = read_empty_record_node(reader, &mut e.attributes())?;
-                    children.push(child);
+                    children.append(&child);
                 }
                 e => return Err(format!("Unexpected element {:?}.", e).into()),
             },
@@ -150,9 +151,9 @@ fn read_record_node<R: BufRead>(
     }
 
     if is_group {
-        Ok(RecordNode::Group(record, children))
+        Ok(RecordNode::group(record, &children))
     } else {
-        Ok(RecordNode::Leaf(record))
+        Ok(RecordNode::leaf(record))
     }
 }
 
@@ -170,9 +171,9 @@ fn read_empty_record_node<R: BufRead>(
     let is_group = xml_type == "folder";
     let record = mapping.record_type.new_record();
     if is_group {
-        Ok(RecordNode::Group(record, vec![]))
+        Ok(RecordNode::group(record, &Default::default()))
     } else {
-        Ok(RecordNode::Leaf(record))
+        Ok(RecordNode::leaf(record))
     }
 }
 
@@ -228,7 +229,7 @@ pub fn record_tree_to_xml(tree: &RecordTree, app_version: Version) -> Result<Vec
     }))?;
 
     for node in &tree.records {
-        write_record_node(&mut writer, node)?;
+        write_record_node(&mut writer, &node)?;
     }
 
     writer.write_event(Event::End(BytesEnd::new("revelationdata")))?;
@@ -257,8 +258,10 @@ fn write_record_node<W: Write>(writer: &mut Writer<W>, record_node: &RecordNode)
         write_generic_field(writer, id, value)?;
     }
 
-    for child_node in record_node.children() {
-        write_record_node(writer, child_node)?;
+    if let Some(children) = record_node.children() {
+        for child_node in children {
+            write_record_node(writer, &child_node)?;
+        }
     }
 
     writer.write_event(Event::End(BytesEnd::new("entry")))?;
@@ -408,78 +411,88 @@ mod test {
     fn test_tree() -> RecordTree {
         RecordTree {
             records: vec![
-                RecordNode::Group(
+                RecordNode::group(
                     RECORD_TYPE_GROUP.new_record().set(&FIELD_NAME, "Group 1"),
-                    vec![
-                        RecordNode::Leaf(
+                    &vec![
+                        RecordNode::leaf(
                             RECORD_TYPE_WEBSITE
                                 .new_record()
                                 .set(&FIELD_NAME, "website 1")
                                 .set(&FIELD_PASSWORD, "letmein"),
                         ),
-                        RecordNode::Leaf(
+                        RecordNode::leaf(
                             RECORD_TYPE_WEBSITE
                                 .new_record()
                                 .set(&FIELD_NAME, "website 2")
                                 .set(&FIELD_PASSWORD, "secret"),
                         ),
-                    ],
+                    ]
+                    .into_iter()
+                    .collect(),
                 ),
-                RecordNode::Group(
+                RecordNode::group(
                     RECORD_TYPE_GROUP.new_record().set(&FIELD_NAME, "Group 2"),
-                    vec![
-                        RecordNode::Group(
+                    &vec![
+                        RecordNode::group(
                             RECORD_TYPE_GROUP
                                 .new_record()
                                 .set(&FIELD_NAME, "Subgroup 1"),
-                            vec![
-                                RecordNode::Leaf(
+                            &vec![
+                                RecordNode::leaf(
                                     RECORD_TYPE_WEBSITE
                                         .new_record()
                                         .set(&FIELD_NAME, "website 3"),
                                 ),
-                                RecordNode::Leaf(
+                                RecordNode::leaf(
                                     RECORD_TYPE_WEBSITE
                                         .new_record()
                                         .set(&FIELD_NAME, "website 4"),
                                 ),
-                            ],
+                            ]
+                            .into_iter()
+                            .collect(),
                         ),
-                        RecordNode::Group(
+                        RecordNode::group(
                             RECORD_TYPE_GROUP
                                 .new_record()
                                 .set(&FIELD_NAME, "Subgroup 2"),
-                            vec![
-                                RecordNode::Leaf(
+                            &vec![
+                                RecordNode::leaf(
                                     RECORD_TYPE_WEBSITE
                                         .new_record()
                                         .set(&FIELD_NAME, "website 5"),
                                 ),
-                                RecordNode::Leaf(
+                                RecordNode::leaf(
                                     RECORD_TYPE_WEBSITE
                                         .new_record()
                                         .set(&FIELD_NAME, "website 6"),
                                 ),
-                            ],
+                            ]
+                            .into_iter()
+                            .collect(),
                         ),
-                    ],
+                    ]
+                    .into_iter()
+                    .collect(),
                 ),
-                RecordNode::Leaf(
+                RecordNode::leaf(
                     RECORD_TYPE_GENERIC
                         .new_record()
                         .set(&FIELD_NAME, "generic entry"),
                 ),
-                RecordNode::Leaf(
+                RecordNode::leaf(
                     RECORD_TYPE_WEBSITE
                         .new_record()
                         .set(&FIELD_NAME, "website 7"),
                 ),
-                RecordNode::Leaf(
+                RecordNode::leaf(
                     RECORD_TYPE_WEBSITE
                         .new_record()
                         .set(&FIELD_NAME, "website 8"),
                 ),
-            ],
+            ]
+            .into_iter()
+            .collect(),
         }
     }
 
@@ -527,7 +540,9 @@ mod test {
             minor: 4,
             patch: 11,
         };
-        let empty_tree = RecordTree { records: vec![] };
+        let empty_tree = RecordTree {
+            records: Default::default(),
+        };
         let data = record_tree_to_xml(&empty_tree, app_version).unwrap();
         assert_eq!(
             std::str::from_utf8(&data).unwrap(),
@@ -535,10 +550,29 @@ mod test {
         );
     }
 
+    fn records_equal(
+        tree1: &TypedListStore<RecordNode>,
+        tree2: &TypedListStore<RecordNode>,
+    ) -> bool {
+        if tree1.len() != tree2.len() {
+            return false;
+        }
+        tree1.iter().zip(tree2.iter()).all(|(n1, n2)| {
+            if n1.record() != n2.record() {
+                return false;
+            }
+            match (n1.children(), n2.children()) {
+                (None, None) => true,
+                (Some(ch1), Some(ch2)) => records_equal(ch1, ch2),
+                _ => false,
+            }
+        })
+    }
+
     #[test]
     fn test_read_tree() {
         let tree = record_tree_from_xml(test_xml().as_bytes()).unwrap();
-        assert_eq!(tree, test_tree());
+        assert!(records_equal(&tree.records, &test_tree().records));
     }
 
     #[test]

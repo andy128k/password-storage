@@ -2,6 +2,7 @@ use crate::entropy::*;
 use crate::gtk_prelude::*;
 use crate::model::record::Record;
 use crate::model::tree::{RecordNode, RecordTree};
+use crate::utils::typed_list_store::TypedListStore;
 
 #[derive(Clone)]
 pub struct PSStore {
@@ -86,20 +87,19 @@ impl PSStore {
 
     pub fn from_tree(tree: &RecordTree) -> Self {
         fn add_record(node: &RecordNode, store: &PSStore, parent_iter: Option<&gtk::TreeIter>) {
-            match *node {
-                RecordNode::Group(ref record, ref nodes) => {
-                    let iter = store.append(parent_iter, record);
-                    add_records(nodes, store, Some(&iter));
-                }
-                RecordNode::Leaf(ref record) => {
-                    store.append(parent_iter, record);
-                }
+            let iter = store.append(parent_iter, node.record());
+            if let Some(children) = node.children() {
+                add_records(children, store, Some(&iter));
             }
         }
 
-        fn add_records(tree: &[RecordNode], store: &PSStore, parent_iter: Option<&gtk::TreeIter>) {
+        fn add_records(
+            tree: &TypedListStore<RecordNode>,
+            store: &PSStore,
+            parent_iter: Option<&gtk::TreeIter>,
+        ) {
             for node in tree {
-                add_record(node, store, parent_iter);
+                add_record(&node, store, parent_iter);
             }
         }
 
@@ -109,14 +109,17 @@ impl PSStore {
     }
 
     pub fn to_tree(&self) -> RecordTree {
-        fn traverse(store: &PSStore, parent_iter: Option<&gtk::TreeIter>) -> Vec<RecordNode> {
-            let mut records = Vec::new();
+        fn traverse(
+            store: &PSStore,
+            parent_iter: Option<&gtk::TreeIter>,
+        ) -> TypedListStore<RecordNode> {
+            let records = TypedListStore::<RecordNode>::default();
             for (i, record) in store.children(parent_iter) {
                 if record.record_type.is_group {
                     let children = traverse(store, Some(&i));
-                    records.push(RecordNode::Group(record, children));
+                    records.append(&RecordNode::group(record, &children));
                 } else {
-                    records.push(RecordNode::Leaf(record));
+                    records.append(&RecordNode::leaf(record));
                 }
             }
             records

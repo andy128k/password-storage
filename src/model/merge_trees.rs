@@ -1,75 +1,74 @@
+use crate::utils::typed_list_store::TypedListStore;
+
 use super::record::*;
 use super::tree::*;
 
-fn record_exists<P: Fn(&Record) -> bool>(tree: &[RecordNode], predicate: &P) -> bool {
+fn record_exists<P: Fn(&Record) -> bool>(tree: &TypedListStore<RecordNode>, predicate: &P) -> bool {
     for node in tree {
-        match *node {
-            RecordNode::Group(ref record, ref subtree) => {
-                if predicate(record) || record_exists(subtree, predicate) {
-                    return true;
-                }
-            }
-            RecordNode::Leaf(ref record) => {
-                if predicate(record) {
-                    return true;
-                }
+        if predicate(node.record()) {
+            return true;
+        }
+        if let Some(children) = node.children() {
+            if record_exists(children, predicate) {
+                return true;
             }
         }
     }
     false
 }
 
-fn filter_tree<P: Fn(&Record) -> bool>(tree: &[RecordNode], predicate: &P) -> Vec<RecordNode> {
-    let mut nodes = Vec::new();
-    for node in tree {
-        match *node {
-            RecordNode::Group(ref record, ref subtree) => {
-                if predicate(record) {
-                    nodes.push(RecordNode::Group(
-                        record.clone(),
-                        filter_tree(subtree, predicate),
-                    ));
-                }
-            }
-            RecordNode::Leaf(ref record) => {
-                if predicate(record) {
-                    nodes.push(RecordNode::Leaf(record.clone()));
-                }
-            }
-        }
-    }
+fn filter_tree<P: Fn(&Record) -> bool>(
+    nodes: &TypedListStore<RecordNode>,
+    predicate: &P,
+) -> TypedListStore<RecordNode> {
     nodes
+        .iter()
+        .filter(|node| predicate(node.record()))
+        .map(|node| {
+            if let Some(children) = node.children() {
+                RecordNode::group(node.record().clone(), &filter_tree(children, predicate))
+            } else {
+                node
+            }
+        })
+        .collect()
 }
 
-fn merge_subtries(tree1: &mut Vec<RecordNode>, tree2: &[RecordNode]) {
-    for node in tree2 {
-        match node {
-            &RecordNode::Group(ref group, ref subtree) => {
-                let mut found = false;
-                for t1_node in tree1.iter_mut() {
-                    if let RecordNode::Group(ref mut dst_group, ref mut dst_subtree) = *t1_node {
-                        if dst_group.name() == group.name() {
-                            dst_group.join(group);
-                            merge_subtries(dst_subtree, subtree);
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                if !found {
-                    tree1.push(RecordNode::Group(group.clone(), subtree.clone()));
-                }
+fn merge_subtries(
+    tree1: &TypedListStore<RecordNode>,
+    tree2: &TypedListStore<RecordNode>,
+) -> TypedListStore<RecordNode> {
+    let result: TypedListStore<RecordNode> = Default::default();
+    for node in tree1 {
+        if let Some(children) = node.children() {
+            let name = node.record().name();
+
+            if let Some(node2) = tree2.take_if(|n| n.is_group() && n.record().name() == name) {
+                let mut group = node.record().clone();
+                group.join(node2.record());
+
+                result.append(&RecordNode::group(
+                    group,
+                    &merge_subtries(children, node2.children().unwrap()),
+                ));
+            } else {
+                result.append(&node);
             }
-            leaf @ &RecordNode::Leaf(_) => {
-                tree1.push(leaf.clone());
-            }
+        } else {
+            result.append(&node);
         }
     }
+    for node in tree2 {
+        result.append(&node);
+    }
+    result
 }
 
-pub fn merge_trees(tree1: &mut RecordTree, tree2: &RecordTree) {
+pub fn merge_trees(tree1: &RecordTree, tree2: &RecordTree) -> RecordTree {
     let without_duplicates = filter_tree(&tree2.records, &|record2| {
         !record_exists(&tree1.records, &|record1| record1 == record2)
     });
-    merge_subtries(&mut tree1.records, &without_duplicates);
+    RecordTree {
+        records: merge_subtries(&tree1.records, &without_duplicates),
+    }
 }

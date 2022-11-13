@@ -90,14 +90,14 @@ mod test {
 
     fn empty_tree() -> RecordTree {
         RecordTree {
-            records: Vec::new(),
+            records: Default::default(),
         }
     }
 
     #[test]
     fn test_decrypt() {
         let buf = load_revelation_file(&mut Cursor::new(EMPTY_RVL), "secr3t").unwrap();
-        assert_eq!(buf, empty_tree());
+        assert!(buf.records.is_empty());
     }
 
     #[test]
@@ -116,6 +116,6 @@ mod test {
         assert!(encrypted.len() > 12);
         assert_eq!(encrypted[0], b'r');
         let decrypted = load_revelation_file(&mut Cursor::new(&encrypted), password).unwrap();
-        assert_eq!(decrypted, empty_tree());
+        assert!(decrypted.records.is_empty());
     }
 }

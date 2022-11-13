@@ -5,4 +5,5 @@ pub mod run_once;
 pub mod string;
 pub mod style;
 pub mod tree;
+pub mod typed_list_store;
 pub mod ui;

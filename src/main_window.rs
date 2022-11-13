@@ -702,10 +702,11 @@ impl PSMainWindow {
         let window = self.clone().upcast();
         if let Some(filename) = open_file(&window).await {
             if let Some((extra_records, _password)) = load_data(filename, &window).await {
-                let mut records_tree = self.private().data.borrow().to_tree();
-                crate::model::merge_trees::merge_trees(&mut records_tree, &extra_records);
+                let records_tree = self.private().data.borrow().to_tree();
+                let merged_tree =
+                    crate::model::merge_trees::merge_trees(&records_tree, &extra_records);
 
-                let data = PSStore::from_tree(&records_tree);
+                let data = PSStore::from_tree(&merged_tree);
                 *self.private().data.borrow_mut() = data.clone();
                 self.private().view.set_model(&data.as_model());
 
