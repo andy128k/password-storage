@@ -38,5 +38,7 @@ impl PasswordStrenthBar {
             Some(PasswordStrength::VeryStrong) => 5.0,
         };
         self.levelbar.set_value(value);
+        self.levelbar
+            .set_tooltip_text(strength.map(PasswordStrength::display));
     }
 }

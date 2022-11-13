@@ -108,13 +108,25 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PasswordStrength {
     VeryWeak,
     Weak,
     Reasonable,
     Strong,
     VeryStrong,
+}
+
+impl PasswordStrength {
+    pub fn display(self) -> &'static str {
+        match self {
+            PasswordStrength::VeryWeak => "Very weak",
+            PasswordStrength::Weak => "Weak",
+            PasswordStrength::Reasonable => "Reasonable",
+            PasswordStrength::Strong => "Strong",
+            PasswordStrength::VeryStrong => "Very strong",
+        }
+    }
 }
 
 impl From<f32> for PasswordStrength {
