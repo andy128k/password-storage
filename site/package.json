@@ -3,6 +3,9 @@
   "devDependencies": {
     "@11ty/eleventy": "^1"
   },
+  "resolutions": {
+    "qs": "^6.2.3"
+  },
   "scripts": {
     "build": "eleventy",
     "start": "eleventy --serve"
