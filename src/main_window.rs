@@ -129,7 +129,7 @@ impl ObjectImpl for PSMainWindowInner {
         header_bar.pack_end(&save_box);
 
         let data = PSStore::new();
-        let view = PSTreeView::new();
+        let view = PSTreeView::default();
         let toast = Toast::new();
 
         let dashboard = PSDashboard::new();
@@ -143,7 +143,7 @@ impl ObjectImpl for PSMainWindowInner {
         grid.attach(&search_bar.get_widget(), 0, 2, 1, 1);
 
         let tree_container = gtk::Grid::new();
-        tree_container.attach(&scrolled(&view.get_widget()), 0, 0, 1, 1);
+        tree_container.attach(&scrolled(&view), 0, 0, 1, 1);
         let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
         tree_action_bar.pack_start(&action_popover_button(
             &RecordTypePopoverBuilder::default()
@@ -182,7 +182,7 @@ impl ObjectImpl for PSMainWindowInner {
 
         win.add(&grid);
 
-        view.set_model(&data.as_model());
+        view.set_model(Some(&data.as_model()));
 
         let doc_actions = gio::SimpleActionGroup::new();
         win.register_doc_actions(&doc_actions);
@@ -257,7 +257,7 @@ impl ObjectImpl for PSMainWindowInner {
 
         win.private()
             .view
-            .connect_cursor_changed(clone!(@weak win => move |selection| {
+            .connect_cursor_changed_iter(clone!(@weak win => move |selection| {
                 let record = selection.and_then(|(iter, _path)| {
                     win.private().data.borrow().get(&iter)
                 });
@@ -273,7 +273,7 @@ impl ObjectImpl for PSMainWindowInner {
 
         win.private()
             .view
-            .connect_row_activated(clone!(@weak win => move |selection| {
+            .connect_row_activated_iter(clone!(@weak win => move |selection| {
                 glib::MainContext::default().spawn_local(async move {
                     win.on_row_activated(selection).await;
                 });
@@ -474,7 +474,7 @@ impl PSMainWindow {
         if self.ensure_data_is_saved().await {
             let data = PSStore::new();
             *self.private().data.borrow_mut() = data.clone();
-            self.private().view.set_model(&data.as_model());
+            self.private().view.set_model(Some(&data.as_model()));
 
             *self.private().filename.borrow_mut() = None;
             *self.private().password.borrow_mut() = None;
@@ -495,7 +495,7 @@ impl PSMainWindow {
 
             let data = PSStore::from_tree(&entries);
             *self.private().data.borrow_mut() = data.clone();
-            self.private().view.set_model(&data.as_model());
+            self.private().view.set_model(Some(&data.as_model()));
 
             *self.private().filename.borrow_mut() = Some(filename.to_owned());
             *self.private().password.borrow_mut() = Some(password);
@@ -503,7 +503,7 @@ impl PSMainWindow {
             self.set_mode(AppMode::FileOpened);
             self.set_changed(false);
             self.listview_cursor_changed(None);
-            self.private().view.get_widget().grab_focus();
+            self.private().view.grab_focus();
         }
     }
 
@@ -674,7 +674,7 @@ impl PSMainWindow {
 
             let data = PSStore::new();
             *self.private().data.borrow_mut() = data.clone();
-            self.private().view.set_model(&data.as_model());
+            self.private().view.set_model(Some(&data.as_model()));
 
             *self.private().filename.borrow_mut() = None;
             *self.private().password.borrow_mut() = None;
@@ -708,7 +708,7 @@ impl PSMainWindow {
 
                 let data = PSStore::from_tree(&merged_tree);
                 *self.private().data.borrow_mut() = data.clone();
-                self.private().view.set_model(&data.as_model());
+                self.private().view.set_model(Some(&data.as_model()));
 
                 self.set_changed(true);
             }
