@@ -12,6 +12,7 @@ use std::io::{BufRead, Write};
 
 pub fn record_tree_from_xml(data: &[u8]) -> Result<RecordTree> {
     let mut reader = Reader::from_reader(data);
+    reader.expand_empty_elements(true);
     let record_tree = read_document(&mut reader)?;
     Ok(record_tree)
 }
@@ -412,7 +413,10 @@ mod test {
         RecordTree {
             records: vec![
                 RecordNode::group(
-                    RECORD_TYPE_GROUP.new_record().set(&FIELD_NAME, "Group 1"),
+                    RECORD_TYPE_GROUP
+                        .new_record()
+                        .set(&FIELD_NAME, "Group 1")
+                        .set(&FIELD_DESCRIPTION, "websites & other secrets"),
                     &vec![
                         RecordNode::leaf(
                             RECORD_TYPE_WEBSITE
@@ -436,7 +440,7 @@ mod test {
                         RecordNode::group(
                             RECORD_TYPE_GROUP
                                 .new_record()
-                                .set(&FIELD_NAME, "Subgroup 1"),
+                                .set(&FIELD_NAME, r#"Subgroup 1 ("The First")"#),
                             &vec![
                                 RecordNode::leaf(
                                     RECORD_TYPE_WEBSITE
@@ -501,7 +505,7 @@ mod test {
         <revelationdata version="0.4.11" dataversion="1">
             <entry type="folder">
                 <name>Group 1</name>
-                <description></description>
+                <description>websites &amp; other secrets</description>
                 <entry type="website"><name>website 1</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password">letmein</field></entry>
                 <entry type="website"><name>website 2</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password">secret</field></entry>
             </entry>
@@ -509,7 +513,7 @@ mod test {
                 <name>Group 2</name>
                 <description></description>
                 <entry type="folder">
-                    <name>Subgroup 1</name>
+                    <name>Subgroup 1 (&quot;The First&quot;)</name>
                     <description></description>
                     <entry type="website"><name>website 3</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password"></field></entry>
                     <entry type="website"><name>website 4</name><description></description><field id="generic-url"></field><field id="generic-username"></field><field id="generic-password"></field></entry>
