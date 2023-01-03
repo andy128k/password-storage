@@ -136,12 +136,12 @@ impl PSApplication {
                     .title(shortcut.title)
                     .build();
                 s.set_action_name(shortcut.action);
-                group.add(&s);
+                group.append(&s);
             }
-            section.add(&group);
+            section.append(&group);
         }
-        window.add(&section);
-        window.show_all();
+        window.set_child(Some(&section));
+        window.show();
     }
 }
 

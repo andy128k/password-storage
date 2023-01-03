@@ -17,8 +17,9 @@ impl Toast {
             .valign(gtk::Align::Start)
             .build();
 
-        let image = gtk::Image::from_icon_name(Some("window-close-symbolic"), gtk::IconSize::Menu);
-        let close_button = gtk::Button::builder().image(&image).build();
+        let close_button = gtk::Button::builder()
+            .icon_name("window-close-symbolic")
+            .build();
         close_button.style_context().add_class("close-button");
 
         let label = gtk::Label::builder().build();
@@ -27,16 +28,13 @@ impl Toast {
         grid.attach(&close_button, 0, 0, 1, 1);
         grid.attach(&label, 1, 0, 1, 1);
 
-        let frame = gtk::Frame::builder().build();
+        let event_controller = gtk::EventControllerMotion::builder().build();
+
+        let frame = gtk::Frame::builder().child(&grid).build();
         frame.style_context().add_class("app-notification");
-        frame.add(&grid);
+        frame.add_controller(&event_controller);
 
-        let event_box = gtk::EventBox::builder()
-            .events(gdk::EventMask::ENTER_NOTIFY_MASK | gdk::EventMask::LEAVE_NOTIFY_MASK)
-            .build();
-        event_box.add(&frame);
-
-        revealer.add(&event_box);
+        revealer.set_child(Some(&frame));
 
         let toast = Self {
             revealer,
@@ -44,19 +42,13 @@ impl Toast {
             close_at: Rc::new(Cell::new(past())),
         };
 
-        event_box.connect_enter_notify_event(
-            glib::clone!(@weak toast => @default-return glib::signal::Inhibit(false), move |_, _| {
-                toast.close_at.set(far_future());
-                glib::signal::Inhibit(false)
-            }),
-        );
+        event_controller.connect_enter(glib::clone!(@weak toast => move |_, _, _| {
+            toast.close_at.set(far_future());
+        }));
 
-        event_box.connect_leave_notify_event(
-            glib::clone!(@weak toast => @default-return glib::signal::Inhibit(false), move |_, _| {
-                toast.close_at.set(future());
-                glib::signal::Inhibit(false)
-            }),
-        );
+        event_controller.connect_leave(glib::clone!(@weak toast => move |_| {
+            toast.close_at.set(future());
+        }));
 
         close_button.connect_clicked(glib::clone!(@weak toast => move |_| {
             toast.close_at.set(past());

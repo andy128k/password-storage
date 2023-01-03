@@ -36,16 +36,16 @@ impl PSSearchBar {
             .build();
 
         let (entry_box, entry) = create_search_entry_box();
-        bx.add(&entry_box);
+        bx.append(&entry_box);
 
         let search_in_secrets = gtk::CheckButton::builder()
             .label("Search in secrets (passwords)")
             .can_focus(true)
             .build();
-        bx.add(&search_in_secrets);
+        bx.append(&search_in_secrets);
 
         let bar = gtk::SearchBar::builder().show_close_button(true).build();
-        bar.add(&bx);
+        bar.set_child(Some(&bx));
         bar.connect_entry(&entry);
 
         let this = Self {
@@ -68,7 +68,7 @@ impl PSSearchBar {
             let search_in_secrets = this.search_in_secrets.is_active();
             this.on_search.emit(SearchEvent { event_type: SearchEventType::Prev, query: entry.text(), search_in_secrets });
         }));
-        search_in_secrets.connect_clicked(clone!(@weak this => move |b| {
+        search_in_secrets.connect_toggled(clone!(@weak this => move |b| {
             this.on_configure.emit(SearchConfig { search_in_secrets:  b.is_active() });
         }));
 
@@ -102,27 +102,25 @@ fn create_search_entry_box() -> (gtk::Box, gtk::SearchEntry) {
     bx.style_context().add_class("linked");
 
     let entry = gtk::SearchEntry::builder().width_request(300).build();
-    bx.add(&entry);
+    bx.append(&entry);
 
     let next = create_button("go-down-symbolic");
     next.connect_clicked(clone!(@weak entry => move |_| {
         entry.emit_next_match();
     }));
-    bx.add(&next);
+    bx.append(&next);
 
     let prev = create_button("go-up-symbolic");
     prev.connect_clicked(clone!(@weak entry => move |_| {
         entry.emit_previous_match();
     }));
-    bx.add(&prev);
+    bx.append(&prev);
 
     (bx, entry)
 }
 
 fn create_button(icon: &str) -> gtk::Button {
-    let btn = gtk::Button::builder()
-        .image(&gtk::Image::from_icon_name(Some(icon), gtk::IconSize::Menu))
-        .build();
+    let btn = gtk::Button::builder().icon_name(icon).build();
     btn.style_context().add_class("image-button");
     btn
 }

@@ -4,7 +4,6 @@ async fn say(parent_window: &gtk::Window, message_type: gtk::MessageType, messag
     let dlg = gtk::MessageDialog::builder()
         .modal(true)
         .transient_for(parent_window)
-        .window_position(gtk::WindowPosition::CenterOnParent)
         .message_type(message_type)
         .title("Password Storage")
         .icon_name("password-storage")

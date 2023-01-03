@@ -1,11 +1,28 @@
 use std::collections::VecDeque;
 
-use super::also::Also;
 use crate::gtk_prelude::*;
 
-pub fn remove_all_children<W: IsA<gtk::Container>>(widget: &W) {
-    for child in widget.children() {
-        widget.remove(&child);
+pub struct WidgetChildrenIter(Option<gtk::Widget>);
+
+impl Iterator for WidgetChildrenIter {
+    type Item = gtk::Widget;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self.0.take()?;
+        self.0 = current.next_sibling();
+        Some(current)
+    }
+}
+
+pub struct WidgetChildrenRevIter(Option<gtk::Widget>);
+
+impl Iterator for WidgetChildrenRevIter {
+    type Item = gtk::Widget;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self.0.take()?;
+        self.0 = current.prev_sibling();
+        Some(current)
     }
 }
 
@@ -26,11 +43,8 @@ impl Iterator for WidgetTraverseDepthFirstIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         let front = self.widgets.pop_front();
-        if let Some(container) = front
-            .as_ref()
-            .and_then(|widget| widget.clone().downcast::<gtk::Container>().ok())
-        {
-            for child in container.children().into_iter().rev() {
+        if let Some(ref container) = front {
+            for child in container.children_rev() {
                 self.widgets.push_front(child);
             }
         }
@@ -39,10 +53,20 @@ impl Iterator for WidgetTraverseDepthFirstIter {
 }
 
 pub trait PSWidgetExt {
+    fn children(&self) -> WidgetChildrenIter;
+    fn children_rev(&self) -> WidgetChildrenRevIter;
     fn traverse(&self) -> WidgetTraverseDepthFirstIter;
 }
 
 impl<P: IsA<gtk::Widget>> PSWidgetExt for P {
+    fn children(&self) -> WidgetChildrenIter {
+        WidgetChildrenIter(self.first_child())
+    }
+
+    fn children_rev(&self) -> WidgetChildrenRevIter {
+        WidgetChildrenRevIter(self.last_child())
+    }
+
     fn traverse(&self) -> WidgetTraverseDepthFirstIter {
         WidgetTraverseDepthFirstIter::new(self.clone().upcast())
     }
@@ -79,11 +103,11 @@ pub fn scrolled<P: IsA<gtk::Widget>>(widget: &P) -> gtk::ScrolledWindow {
         .can_focus(true)
         .hscrollbar_policy(gtk::PolicyType::Automatic)
         .vscrollbar_policy(gtk::PolicyType::Automatic)
-        .shadow_type(gtk::ShadowType::In)
+        .has_frame(true)
         .hexpand(true)
         .vexpand(true)
+        .child(widget)
         .build()
-        .also(|sw| sw.add(widget))
 }
 
 pub fn paned<P1: IsA<gtk::Widget>, P2: IsA<gtk::Widget>>(pane1: &P1, pane2: &P2) -> gtk::Paned {
@@ -91,20 +115,22 @@ pub fn paned<P1: IsA<gtk::Widget>, P2: IsA<gtk::Widget>>(pane1: &P1, pane2: &P2)
         .orientation(gtk::Orientation::Horizontal)
         .hexpand(true)
         .vexpand(true)
+        .start_child(pane1)
+        .resize_start_child(true)
+        .shrink_start_child(false)
+        .end_child(pane2)
+        .resize_end_child(false)
+        .shrink_end_child(false)
         .build()
-        .also(|paned| paned.pack1(pane1, true, false))
-        .also(|paned| paned.pack2(pane2, false, false))
-        .also(|paned| paned.set_focus_chain(&[pane1.clone().upcast(), pane2.clone().upcast()]))
 }
 
 pub fn overlayed<P1: IsA<gtk::Widget>, P2: IsA<gtk::Widget>>(
     widget: &P1,
     overlay: &P2,
 ) -> gtk::Overlay {
-    gtk::Overlay::builder().build().also(|o| {
-        o.add(widget);
-        o.add_overlay(overlay);
-    })
+    let overlay_container = gtk::Overlay::builder().child(widget).build();
+    overlay_container.add_overlay(overlay);
+    overlay_container
 }
 
 pub trait PSStackExt {
@@ -113,7 +139,7 @@ pub trait PSStackExt {
 
 impl PSStackExt for gtk::Stack {
     fn named<P: IsA<gtk::Widget>>(self, name: &str, child: &P) -> Self {
-        self.add_named(child, name);
+        self.add_named(child, Some(name));
         self
     }
 }
@@ -148,25 +174,21 @@ impl PSSimpleActionGroupExt for gio::SimpleActionGroup {
 pub fn action_button(action: &str, icon: &str, title: &str) -> gtk::Button {
     gtk::Button::builder()
         .action_name(action)
-        .image(&tool_icon(icon))
+        .icon_name(icon)
         .has_tooltip(true)
         .tooltip_text(title)
-        .relief(gtk::ReliefStyle::None)
+        .has_frame(false)
         .build()
 }
 
 pub fn action_popover_button(popover: &gtk::Popover, icon: &str, title: &str) -> gtk::MenuButton {
     gtk::MenuButton::builder()
         .popover(popover)
-        .image(&tool_icon(icon))
+        .icon_name(icon)
         .has_tooltip(true)
         .tooltip_text(title)
-        .relief(gtk::ReliefStyle::None)
+        .has_frame(false)
         .build()
-}
-
-pub fn tool_icon(icon: &str) -> gtk::Image {
-    gtk::Image::from_icon_name(Some(icon), gtk::IconSize::SmallToolbar)
 }
 
 pub fn linked_button_box() -> gtk::Box {
@@ -175,4 +197,28 @@ pub fn linked_button_box() -> gtk::Box {
         .build();
     bbox.style_context().add_class("linked");
     bbox
+}
+
+fn title_label(label: &str, class: &str) -> gtk::Label {
+    let label = gtk::Label::builder()
+        .label(label)
+        .single_line_mode(true)
+        .ellipsize(pango::EllipsizeMode::End)
+        .build();
+    label.add_css_class(class);
+    label
+}
+
+pub fn title(title: &str) -> gtk::Widget {
+    title_label(title, "title").upcast()
+}
+
+pub fn title_and_subtitle(title: &str, subtitle: &str) -> gtk::Widget {
+    let vbox = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .valign(gtk::Align::Center)
+        .build();
+    vbox.append(&title_label(title, "title"));
+    vbox.append(&title_label(subtitle, "subtitle"));
+    vbox.upcast()
 }

@@ -62,8 +62,7 @@ impl<'b> RecordTypePopoverBuilder<'b> {
             })
             .collect();
         let grid = flow_grid(3, &buttons);
-        grid.show_all();
-        popover.add(&grid);
+        popover.set_child(Some(&grid));
         popover
     }
 }

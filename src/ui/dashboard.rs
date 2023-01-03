@@ -1,7 +1,7 @@
 use crate::cache::Cache;
 use crate::gtk_prelude::*;
 use crate::markup_builder::bold;
-use crate::utils::ui::remove_all_children;
+use crate::utils::ui::PSWidgetExt;
 use os_str_bytes::OsStrBytes;
 use std::path::{Path, PathBuf};
 
@@ -21,8 +21,8 @@ fn centered<W: IsA<gtk::Widget> + WidgetExt>(widget: &W) -> gtk::Widget {
 }
 
 fn accel_label(accel: &str) -> Option<glib::GString> {
-    let (key, mode) = gtk::accelerator_parse(accel);
-    gtk::accelerator_get_label(key, mode)
+    let (key, mode) = gtk::accelerator_parse(accel)?;
+    Some(gtk::accelerator_get_label(key, mode))
 }
 
 pub fn action_row(action: &str, label: &str, icon: &str, accel: Option<&str>) -> gtk::ListBoxRow {
@@ -34,7 +34,7 @@ pub fn action_row(action: &str, label: &str, icon: &str, accel: Option<&str>) ->
         .column_spacing(10)
         .build();
 
-    let image = gtk::Image::from_icon_name(Some(icon), gtk::IconSize::LargeToolbar);
+    let image = gtk::Image::from_icon_name(icon);
     grid.attach(&image, 0, 0, 1, 2);
 
     let label1 = gtk::Label::builder()
@@ -55,7 +55,7 @@ pub fn action_row(action: &str, label: &str, icon: &str, accel: Option<&str>) ->
     }
 
     let row = gtk::ListBoxRow::builder().action_name(action).build();
-    row.add(&grid);
+    row.set_child(Some(&grid));
 
     row.style_context().add_class("frame");
 
@@ -86,12 +86,13 @@ pub fn file_row(
         .build();
     grid.attach(&label1, 0, 0, 1, 1);
 
-    let remove_button =
-        gtk::Button::from_icon_name(Some("window-close"), gtk::IconSize::SmallToolbar);
-    remove_button.set_tooltip_text(Some("Forget this file."));
-    remove_button.set_relief(gtk::ReliefStyle::None);
-    remove_button.set_vexpand(false);
-    remove_button.set_hexpand(false);
+    let remove_button = gtk::Button::builder()
+        .icon_name("window-close")
+        .tooltip_text("Forget this file.")
+        .has_frame(false)
+        .vexpand(false)
+        .hexpand(false)
+        .build();
     grid.attach(&remove_button, 1, 0, 1, 1);
 
     let label2 = gtk::Label::builder()
@@ -105,7 +106,7 @@ pub fn file_row(
     grid.attach(&label2, 0, 1, 2, 1);
 
     let row = gtk::ListBoxRow::builder().build();
-    row.add(&grid);
+    row.set_child(Some(&grid));
 
     row.set_action_name(Some("app.open-file"));
     row.set_action_target_value(Some(&glib::Variant::from_bytes::<Vec<u8>>(
@@ -153,7 +154,7 @@ fn header(label: &str) -> gtk::Widget {
 
     grid.attach(&label, 0, 0, 1, 1);
 
-    grid.show_all();
+    grid.show();
     grid.upcast()
 }
 
@@ -164,7 +165,7 @@ impl PSDashboard {
             .hexpand(true)
             .build();
 
-        listbox.set_header_func(Some(Box::new(|row, row_before| {
+        listbox.set_header_func(|row, row_before| {
             let group_before = row_before.and_then(get_group_title);
             let group = get_group_title(row).filter(|group| Some(group) != group_before.as_ref());
             if let Some(header_text) = group {
@@ -172,7 +173,7 @@ impl PSDashboard {
             } else {
                 row.set_header(None::<&gtk::Widget>);
             }
-        })));
+        });
 
         Self {
             container: centered(&listbox),
@@ -182,15 +183,17 @@ impl PSDashboard {
 
     pub fn update(&self, cache: &Cache) {
         self.listbox.hide();
-        remove_all_children(&self.listbox);
+        for child in self.listbox.children() {
+            self.listbox.remove(&child);
+        }
 
-        self.listbox.add(&action_row(
+        self.listbox.append(&action_row(
             "app.new",
             "New file",
             "document-new",
             Some("<Primary>n"),
         ));
-        self.listbox.add(&action_row(
+        self.listbox.append(&action_row(
             "app.open",
             "Open...",
             "document-open",
@@ -206,13 +209,13 @@ impl PSDashboard {
                     listbox.remove(row);
                 }),
             ) {
-                self.listbox.add(&row);
+                self.listbox.append(&row);
                 if first_row.is_none() {
                     first_row = Some(row);
                 }
             }
         }
-        self.listbox.show_all();
+        self.listbox.show();
         if let Some(row) = first_row {
             self.listbox.select_row(Some(&row));
             row.grab_focus();

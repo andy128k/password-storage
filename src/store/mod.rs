@@ -48,10 +48,7 @@ impl From<TreeStoreColumn> for i32 {
 }
 
 fn is_selected(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> bool {
-    model
-        .value(iter, TreeStoreColumn::Selection.into())
-        .get()
-        .unwrap_or(false)
+    model.get::<bool>(iter, TreeStoreColumn::Selection.into())
 }
 
 fn delete_checked(model: &gtk::TreeStore, parent: Option<&gtk::TreeIter>) {
@@ -141,7 +138,7 @@ impl PSStore {
     ) -> std::ops::ControlFlow<B> {
         let model = self.as_model();
         for iter in crate::utils::tree::tree_children_entries(&model, parent_iter) {
-            let Some(record) = self.get(&iter) else { continue; };
+            let record = self.get(&iter);
 
             (func)(&TreeTraverseEvent::Start {
                 iter: &iter,
@@ -185,9 +182,8 @@ impl PSStore {
         let model = self.as_model();
         let mut result = Vec::new();
         for i in crate::utils::tree::tree_children_entries(&model, iter) {
-            if let Some(record) = self.get(&i) {
-                result.push((i, record));
-            }
+            let record = self.get(&i);
+            result.push((i, record));
         }
         result
     }
@@ -256,12 +252,9 @@ impl PSStore {
         iter
     }
 
-    pub fn get(&self, iter: &gtk::TreeIter) -> Option<Record> {
+    pub fn get(&self, iter: &gtk::TreeIter) -> Record {
         self.model
-            .value(iter, TreeStoreColumn::Record.into())
-            .get::<&Record>()
-            .ok()
-            .cloned()
+            .get::<Record>(iter, TreeStoreColumn::Record.into())
     }
 
     pub fn delete(&self, iter: &gtk::TreeIter) {

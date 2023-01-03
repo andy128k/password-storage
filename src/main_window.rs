@@ -20,7 +20,6 @@ use crate::ui::record_type_popover::RecordTypePopoverBuilder;
 use crate::ui::search::{PSSearchBar, SearchEvent, SearchEventType};
 use crate::ui::toast::Toast;
 use crate::ui::tree_view::PSTreeView;
-use crate::utils::clipboard::get_clipboard;
 use crate::utils::tree::flatten_tree;
 use crate::utils::ui::*;
 use once_cell::unsync::OnceCell;
@@ -84,15 +83,14 @@ impl ObjectImpl for PSMainWindowInner {
 
         let win = self.obj();
 
-        win.set_title(WINDOW_TITLE);
         win.set_icon_name(Some("password-storage"));
-        win.set_window_position(gtk::WindowPosition::Center);
+
         win.set_default_width(1000);
         win.set_default_height(800);
 
         let header_bar = gtk::HeaderBar::builder()
-            .show_close_button(true)
-            .title(WINDOW_TITLE)
+            .show_title_buttons(true)
+            .title_widget(&crate::utils::ui::title(WINDOW_TITLE))
             .build();
         win.set_titlebar(Some(&header_bar));
 
@@ -103,13 +101,13 @@ impl ObjectImpl for PSMainWindowInner {
         header_bar.pack_start(&open_button);
         let new_button = gtk::Button::builder()
             .tooltip_text("New file")
-            .image(&tool_icon("document-new-symbolic"))
+            .icon_name("document-new-symbolic")
             .action_name("app.new")
             .build();
         header_bar.pack_start(&new_button);
 
         let menu = gtk::MenuButton::builder()
-            .image(&tool_icon("open-menu-symbolic"))
+            .icon_name("open-menu-symbolic")
             .menu_model(&crate::ui::menu::create_main_menu())
             .build();
         header_bar.pack_end(&menu);
@@ -119,13 +117,13 @@ impl ObjectImpl for PSMainWindowInner {
             .label("Save")
             .action_name("file.save")
             .build();
-        save_box.pack_start(&save_button, false, false, 0);
+        save_box.append(&save_button);
         let save_as_button = gtk::Button::builder()
             .tooltip_text("Save file as...")
-            .image(&tool_icon("document-save-as-symbolic"))
+            .icon_name("document-save-as-symbolic")
             .action_name("file.save-as")
             .build();
-        save_box.pack_start(&save_as_button, false, false, 0);
+        save_box.append(&save_as_button);
         header_bar.pack_end(&save_box);
 
         let data = PSStore::new();
@@ -180,7 +178,7 @@ impl ObjectImpl for PSMainWindowInner {
             .named("file", &overlayed(&tree_container, &toast.as_widget()));
         grid.attach(&stack, 0, 3, 1, 1);
 
-        win.add(&grid);
+        win.set_child(Some(&grid));
 
         view.set_model(Some(&data.as_model()));
 
@@ -229,14 +227,14 @@ impl ObjectImpl for PSMainWindowInner {
             .ok()
             .expect("private is set only once");
 
-        let delete_handler = win.connect_delete_event(
-            clone!(@weak win => @default-return gtk::Inhibit(false), move |_win, _event| {
-                glib::MainContext::default().spawn_local(async move {
-                    win.on_close().await;
-                });
-                gtk::Inhibit(true)
-            }),
-        );
+        let delete_handler = win.connect_close_request(move |win| {
+            let win = win.clone();
+            glib::MainContext::default().spawn_local(async move {
+                win.on_close().await;
+            });
+            glib::signal::Inhibit(true)
+        });
+
         *self.delete_handler.borrow_mut() = Some(delete_handler);
 
         win.private()
@@ -258,7 +256,7 @@ impl ObjectImpl for PSMainWindowInner {
         win.private()
             .view
             .connect_cursor_changed_iter(clone!(@weak win => move |selection| {
-                let record = selection.and_then(|(iter, _path)| {
+                let record = selection.map(|(iter, _path)| {
                     win.private().data.borrow().get(&iter)
                 });
                 win.listview_cursor_changed(record);
@@ -267,8 +265,8 @@ impl ObjectImpl for PSMainWindowInner {
         win.private()
             .view
             .connect_drop(clone!(@weak win => @default-return false, move |iter| {
-                let record_opt = win.private().data.borrow().get(&iter);
-                record_opt.map_or(false, |record| record.record_type.is_group)
+                let record = win.private().data.borrow().get(&iter);
+                record.record_type.is_group
             }));
 
         win.private()
@@ -283,10 +281,9 @@ impl ObjectImpl for PSMainWindowInner {
             .view
             .connect_url_clicked(clone!(@weak win => move |iter| {
                 glib::MainContext::default().spawn_local(async move {
-                    let Some(record) = win.private().data.borrow().get(&iter) else { return };
-                    let Some(url) = record.url() else { return };
-                    if let Err(err) = gtk::show_uri_on_window(Some(&win), url, 0) {
-                        eprintln!("Cannot open {}. {}", url, err);
+                    let record = win.private().data.borrow().get(&iter);
+                    if let Some(url) = record.url() {
+                        gtk::show_uri(Some(&win), url, 0);
                     }
                 });
             }));
@@ -297,14 +294,12 @@ impl ObjectImpl for PSMainWindowInner {
 }
 
 impl WidgetImpl for PSMainWindowInner {}
-impl ContainerImpl for PSMainWindowInner {}
-impl BinImpl for PSMainWindowInner {}
 impl WindowImpl for PSMainWindowInner {}
 impl ApplicationWindowImpl for PSMainWindowInner {}
 
 glib::wrapper! {
     pub struct PSMainWindow(ObjectSubclass<PSMainWindowInner>)
-        @extends gtk::ApplicationWindow, gtk::Window, gtk::Bin, gtk::Container, gtk::Widget, @implements gio::ActionMap;
+        @extends gtk::ApplicationWindow, gtk::Window, gtk::Widget, @implements gio::ActionMap;
 }
 
 impl PSMainWindow {
@@ -343,7 +338,7 @@ impl PSMainWindow {
         let (iter, _path) = self.private().view.get_selected_iter()?;
         let model = &self.private().data.borrow();
 
-        let selected_record = model.get(&iter)?;
+        let selected_record = model.get(&iter);
         if selected_record.record_type.is_group {
             return Some(iter);
         }
@@ -385,10 +380,8 @@ impl PSMainWindow {
             SearchEventType::Prev => Box::new(iters.iter().rev()),
         };
         if let Some((_selection_iter, selection_path)) = private.view.get_selected_iter() {
-            search_iter = Box::new(
-                search_iter
-                    .skip_while(move |iter| model.path(iter).as_ref() != Some(&selection_path)),
-            );
+            search_iter =
+                Box::new(search_iter.skip_while(move |iter| model.path(iter) != selection_path));
         }
         match event.event_type {
             SearchEventType::Change => {}
@@ -398,7 +391,7 @@ impl PSMainWindow {
         };
 
         let next_match = search_iter
-            .filter_map(|iter| private.data.borrow().get(iter).map(|record| (iter, record)))
+            .map(|iter| (iter, private.data.borrow().get(iter)))
             .find(|(_iter, record)| record.has_text(&event.query, event.search_in_secrets));
 
         if let Some(next_match) = next_match {
@@ -433,8 +426,7 @@ impl PSMainWindow {
         let header_bar = &private.header_bar;
         match private.mode.get() {
             AppMode::Initial => {
-                header_bar.set_subtitle(None);
-                header_bar.set_has_subtitle(false);
+                header_bar.set_title_widget(Some(&crate::utils::ui::title(WINDOW_TITLE)));
             }
             _ => {
                 let mut display_filename = private
@@ -448,8 +440,11 @@ impl PSMainWindow {
                 if private.changed.get() {
                     display_filename += " \u{23FA}";
                 }
-                header_bar.set_subtitle(Some(&display_filename));
-                header_bar.set_has_subtitle(true);
+
+                header_bar.set_title_widget(Some(&crate::utils::ui::title_and_subtitle(
+                    WINDOW_TITLE,
+                    &display_filename,
+                )));
             }
         }
     }
@@ -542,13 +537,11 @@ impl PSMainWindow {
 
     async fn on_row_activated(&self, selection: Option<(gtk::TreeIter, gtk::TreePath)>) {
         if let Some((iter, path)) = selection {
-            let record_opt = self.private().data.borrow().get(&iter);
-            if let Some(record) = record_opt {
-                if record.record_type.is_group {
-                    self.private().view.toggle_group(&path);
-                } else {
-                    self.action_edit().await;
-                }
+            let record = self.private().data.borrow().get(&iter);
+            if record.record_type.is_group {
+                self.private().view.toggle_group(&path);
+            } else {
+                self.action_edit().await;
             }
         }
     }
@@ -619,7 +612,7 @@ impl PSMainWindow {
 
     async fn on_close(&self) {
         if self.ensure_data_is_saved().await {
-            get_clipboard().clear();
+            self.clipboard().set_text(""); // clear
 
             if let Some(handler) = self.imp().delete_handler.take() {
                 self.disconnect(handler);
@@ -647,11 +640,9 @@ impl PSMainWindow {
                 win.private().search_bar.configure(new_config.search_in_secrets);
             }));
 
-        win.show_all();
+        win.show();
         win.set_mode(AppMode::Initial);
-        if let Some(screen) = WidgetExt::screen(&win) {
-            crate::css::load_css(&screen);
-        }
+        crate::css::load_css(&win.display());
         win
     }
 }
@@ -830,11 +821,10 @@ impl PSMainWindow {
     #[action(name = "copy-name")]
     fn action_copy_name(&self) {
         if let Some((iter, _path)) = self.private().view.get_selected_iter() {
-            if let Some(record) = self.private().data.borrow().get(&iter) {
-                if let Some(username) = record.username() {
-                    get_clipboard().set_text(username);
-                    self.private().toast.notify("Name is copied to clipboard");
-                }
+            let record = self.private().data.borrow().get(&iter);
+            if let Some(username) = record.username() {
+                self.clipboard().set_text(username);
+                self.private().toast.notify("Name is copied to clipboard");
             }
         }
     }
@@ -842,13 +832,12 @@ impl PSMainWindow {
     #[action(name = "copy-password")]
     fn action_copy_password(&self) {
         if let Some((iter, _path)) = self.private().view.get_selected_iter() {
-            if let Some(record) = self.private().data.borrow().get(&iter) {
-                if let Some(password) = record.password() {
-                    get_clipboard().set_text(password);
-                    self.private()
-                        .toast
-                        .notify("Secret (password) is copied to clipboard");
-                }
+            let record = self.private().data.borrow().get(&iter);
+            if let Some(password) = record.password() {
+                self.clipboard().set_text(password);
+                self.private()
+                    .toast
+                    .notify("Secret (password) is copied to clipboard");
             }
         }
     }
@@ -857,20 +846,18 @@ impl PSMainWindow {
     async fn action_edit(&self) {
         let selection = self.private().view.get_selected_iter();
         if let Some((iter, _path)) = selection {
-            let record_opt = self.private().data.borrow().get(&iter);
-            if let Some(record) = record_opt {
-                if let Some(new_record) = edit_record(
-                    &record,
-                    &self.clone().upcast(),
-                    "Edit record",
-                    self.get_usernames(),
-                )
-                .await
-                {
-                    self.private().data.borrow().update(&iter, &new_record);
-                    self.listview_cursor_changed(Some(new_record));
-                    self.set_changed(true);
-                }
+            let record = self.private().data.borrow().get(&iter);
+            if let Some(new_record) = edit_record(
+                &record,
+                &self.clone().upcast(),
+                "Edit record",
+                self.get_usernames(),
+            )
+            .await
+            {
+                self.private().data.borrow().update(&iter, &new_record);
+                self.listview_cursor_changed(Some(new_record));
+                self.set_changed(true);
             }
         }
     }
@@ -894,7 +881,7 @@ impl PSMainWindow {
     fn action_convert(&self, dest_record_type_name: String) {
         let Some(selection) = self.private().view.get_selected_iter() else { return; };
         let selection_iter = selection.0;
-        let Some(record) = self.private().data.borrow().get(&selection_iter) else { return; };
+        let record = self.private().data.borrow().get(&selection_iter);
         if record.record_type.is_group {
             return;
         }
