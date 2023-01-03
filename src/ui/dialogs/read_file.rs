@@ -17,10 +17,6 @@ where
         .title("Enter password")
         .icon_name("password-storage")
         .resizable(false)
-        .type_hint(gdk::WindowTypeHint::Dialog)
-        .gravity(gdk::Gravity::Center)
-        .skip_taskbar_hint(true)
-        .skip_pager_hint(true)
         .build();
     dlg.add_button("_Cancel", gtk::ResponseType::Cancel);
     dlg.add_button("_Open file", gtk::ResponseType::Accept);
@@ -53,31 +49,30 @@ where
     grid.attach(&label, 0, 1, 1, 1);
     grid.attach(&entry, 1, 1, 1, 1);
 
-    dlg.content_area().add(&grid);
+    dlg.content_area().append(&grid);
     dlg.content_area().set_spacing(8);
 
     entry.connect_changed(clone!(@weak dlg => move |e| {
         dlg.set_response_sensitive(
             gtk::ResponseType::Accept,
-            e.chars(0, -1).map_or(0, |t| t.len()) > 0,
+            e.chars(0, -1).len() > 0,
         );
     }));
 
     dlg.set_response_sensitive(gtk::ResponseType::Accept, false);
-    dlg.show_all();
 
     loop {
         let button = dlg.run_future().await;
 
         if button != gtk::ResponseType::Accept {
-            dlg.close();
+            dlg.hide();
             return None;
         }
 
         let password = entry.text();
         match read_file_callback(&password) {
             Ok(document) => {
-                dlg.close();
+                dlg.hide();
                 return Some((document, password.into()));
             }
             Err(e) => {

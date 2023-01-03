@@ -13,7 +13,7 @@ pub struct PasswordEditor {
 }
 
 async fn confirm_password_overwrite<P: WidgetExt>(widget: &P) -> bool {
-    if let Some(window) = widget.toplevel().and_then(|w| w.downcast().ok()) {
+    if let Some(window) = widget.root().and_then(|w| w.downcast().ok()) {
         confirm_unlikely(&window, "Do you want to overwrite current password?").await
     } else {
         false
@@ -46,24 +46,18 @@ impl PasswordEditor {
         }));
 
         let visibility_toggle = gtk::ToggleButton::builder()
-            .image(&gtk::Image::from_icon_name(
-                Some("eye"),
-                gtk::IconSize::LargeToolbar,
-            ))
+            .icon_name("eye")
             .tooltip_text("Reveal password")
-            .relief(gtk::ReliefStyle::None)
+            .has_frame(false)
             .build();
         visibility_toggle.connect_clicked(clone!(@weak entry => move |t| {
             entry.set_visibility(t.is_active());
         }));
 
         let generate_button = gtk::Button::builder()
-            .image(&gtk::Image::from_icon_name(
-                Some("random"),
-                gtk::IconSize::LargeToolbar,
-            ))
+            .icon_name("random")
             .tooltip_text("Generate password")
-            .relief(gtk::ReliefStyle::None)
+            .has_frame(false)
             .build();
         generate_button.connect_clicked(clone!(@weak entry => move |_| {
             glib::MainContext::default().spawn_local(
@@ -113,12 +107,11 @@ fn get_value(entry: &gtk::Entry) -> Option<String> {
 }
 
 fn square(widget: impl IsA<gtk::Widget>) -> gtk::Widget {
-    let af = gtk::AspectFrame::builder()
+    gtk::AspectFrame::builder()
         .ratio(1.0)
-        .shadow_type(gtk::ShadowType::None)
-        .build();
-    af.add(&widget);
-    af.upcast()
+        .child(&widget)
+        .build()
+        .upcast()
 }
 
 #[cfg(test)]

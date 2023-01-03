@@ -4,7 +4,6 @@ async fn confirm(parent_window: &gtk::Window, message: &str, default: gtk::Respo
     let dlg = gtk::MessageDialog::builder()
         .modal(true)
         .transient_for(parent_window)
-        .window_position(gtk::WindowPosition::CenterOnParent)
         .title("Password Storage")
         .icon_name("password-storage")
         .message_type(gtk::MessageType::Warning)

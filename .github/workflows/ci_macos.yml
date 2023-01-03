@@ -12,7 +12,7 @@ jobs:
           toolchain: stable
           override: true
       - name: Install dependencies
-        run: brew install pkg-config gtk+3 librsvg
+        run: brew install pkg-config gtk4 librsvg
       - name: Build
         run: cargo build --verbose
       - name: Run tests

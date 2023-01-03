@@ -15,7 +15,7 @@ async fn choose_file(
     let answer = dlg.run_future().await;
     dlg.hide();
     if answer == gtk::ResponseType::Accept {
-        dlg.filename()
+        dlg.file().and_then(|f| f.path())
     } else {
         None
     }

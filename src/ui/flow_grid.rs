@@ -2,7 +2,10 @@ use crate::gtk_prelude::*;
 
 pub fn flow_grid(columns: usize, widgets: &[gtk::Widget]) -> gtk::Grid {
     let grid = gtk::Grid::builder()
-        .margin(10)
+        .margin_top(10)
+        .margin_bottom(10)
+        .margin_start(10)
+        .margin_end(10)
         .row_spacing(5)
         .column_spacing(5)
         .row_homogeneous(true)

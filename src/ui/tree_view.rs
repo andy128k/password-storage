@@ -1,17 +1,20 @@
 use crate::gtk_prelude::*;
 use crate::store::TreeStoreColumn;
-
-const GDK_BUTTON_SECONDARY: u32 = 3;
+use gdk::ffi::{GDK_BUTTON_PRIMARY, GDK_BUTTON_SECONDARY};
 
 mod imp {
     use super::*;
+    use crate::utils::ui::PSWidgetExt;
 
     #[derive(Default)]
     pub struct PSTreeView {
         pub column: gtk::TreeViewColumn,
         pub check_renderer: gtk::CellRendererToggle,
         pub url_column: gtk::TreeViewColumn,
+        pub url_icon_renderer: gtk::CellRendererPixbuf,
         pub description_column: gtk::TreeViewColumn,
+        pub url_click: gtk::GestureClick,
+        pub popup_click: gtk::GestureClick,
     }
 
     #[glib::object_subclass]
@@ -28,7 +31,8 @@ mod imp {
             let view = self.obj();
             view.set_can_focus(true);
             view.set_headers_visible(true);
-            view.set_reorderable(true);
+            // FIXME: reordering in GTK4 does not allow to control drop destination (e.g. move into group only)
+            // view.set_reorderable(true);
             view.set_search_column(1);
             view.set_grid_lines(gtk::TreeViewGridLines::Horizontal);
 
@@ -43,36 +47,28 @@ mod imp {
                     imp.selection_toggled(&path)
                 }),
             );
-            CellLayoutExt::pack_start(&self.column, &self.check_renderer, false);
+            self.column.pack_start(&self.check_renderer, false);
 
             let icon = gtk::CellRendererPixbuf::new();
             icon.set_padding(0, 4);
-            icon.set_stock_size(gtk::IconSize::LargeToolbar);
-            CellLayoutExt::pack_start(&self.column, &icon, false);
-            TreeViewColumnExt::add_attribute(
-                &self.column,
-                &icon,
-                "icon-name",
-                TreeStoreColumn::TypeIcon.into(),
-            );
+            icon.set_icon_size(gtk::IconSize::Large);
+            self.column.pack_start(&icon, false);
+            self.column
+                .add_attribute(&icon, "icon-name", TreeStoreColumn::TypeIcon.into());
 
             let text = gtk::CellRendererText::new();
-            CellLayoutExt::pack_start(&self.column, &text, true);
-            TreeViewColumnExt::add_attribute(
-                &self.column,
-                &text,
-                "text",
-                TreeStoreColumn::Name.into(),
-            );
+            self.column.pack_start(&text, true);
+            self.column
+                .add_attribute(&text, "text", TreeStoreColumn::Name.into());
 
             view.append_column(&self.column);
 
             let description_renderer = gtk::CellRendererText::new();
             self.description_column.set_title("Description");
             self.description_column.set_expand(true);
-            CellLayoutExt::pack_start(&self.description_column, &description_renderer, true);
-            TreeViewColumnExt::add_attribute(
-                &self.description_column,
+            self.description_column
+                .pack_start(&description_renderer, true);
+            self.description_column.add_attribute(
                 &description_renderer,
                 "text",
                 TreeStoreColumn::Description.into(),
@@ -85,35 +81,36 @@ mod imp {
                 column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
 
                 let strength = gtk::CellRendererPixbuf::new();
-                strength.set_stock_size(gtk::IconSize::Menu);
+                strength.set_icon_size(gtk::IconSize::Normal);
                 strength.set_padding(16, 0);
-                CellLayoutExt::pack_start(&column, &strength, false);
-                TreeViewColumnExt::add_attribute(
-                    &column,
-                    &strength,
-                    "icon-name",
-                    TreeStoreColumn::Strength.into(),
-                );
+                column.pack_start(&strength, false);
+                column.add_attribute(&strength, "icon-name", TreeStoreColumn::Strength.into());
 
                 column
             });
 
-            let url_icon = gtk::CellRendererPixbuf::new();
-            url_icon.set_stock_size(gtk::IconSize::Menu);
+            self.url_icon_renderer.set_icon_size(gtk::IconSize::Normal);
 
             self.url_column.set_title("Actions");
             self.url_column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
-            CellLayoutExt::pack_start(&self.url_column, &gtk::CellRendererText::new(), true);
-            CellLayoutExt::pack_start(&self.url_column, &url_icon, false);
-            CellLayoutExt::pack_start(&self.url_column, &gtk::CellRendererText::new(), true);
-            TreeViewColumnExt::add_attribute(
-                &self.url_column,
-                &url_icon,
+            self.url_column
+                .pack_start(&gtk::CellRendererText::new(), true);
+            self.url_column.pack_start(&self.url_icon_renderer, false);
+            self.url_column
+                .pack_start(&gtk::CellRendererText::new(), true);
+            self.url_column.add_attribute(
+                &self.url_icon_renderer,
                 "icon-name",
                 TreeStoreColumn::ShareIcon.into(),
             );
 
             view.append_column(&self.url_column);
+
+            self.url_click.set_button(GDK_BUTTON_PRIMARY as u32);
+            view.add_controller(&self.url_click);
+
+            self.popup_click.set_button(GDK_BUTTON_SECONDARY as u32);
+            view.add_controller(&self.popup_click);
         }
 
         fn dispose(&self) {
@@ -124,7 +121,6 @@ mod imp {
     }
 
     impl WidgetImpl for PSTreeView {}
-    impl ContainerImpl for PSTreeView {}
     impl TreeViewImpl for PSTreeView {}
 
     impl PSTreeView {
@@ -132,10 +128,7 @@ mod imp {
             let view = self.obj();
             if let Some((model, iter)) = get_real_iter(&*view, path) {
                 if let Ok(store) = model.downcast::<gtk::TreeStore>() {
-                    let selected: bool = store
-                        .value(&iter, TreeStoreColumn::Selection.into())
-                        .get()
-                        .unwrap_or(false);
+                    let selected = store.get::<bool>(&iter, TreeStoreColumn::Selection.into());
                     store.set_value(
                         &iter,
                         TreeStoreColumn::Selection.into(),
@@ -149,7 +142,7 @@ mod imp {
 
 glib::wrapper! {
     pub struct PSTreeView(ObjectSubclass<imp::PSTreeView>)
-        @extends gtk::TreeView, gtk::Container, gtk::Widget;
+        @extends gtk::TreeView, gtk::Widget;
 }
 
 impl Default for PSTreeView {
@@ -168,77 +161,82 @@ fn get_real_iter(
 }
 
 fn get_selected_iter(view: &PSTreeView) -> Option<(gtk::TreeIter, gtk::TreePath)> {
+    // Workaround. See https://github.com/gtk-rs/gtk4-rs/issues/584
+    unsafe {
+        use gtk::glib::translate::ToGlibPtr;
+        if gtk::ffi::gtk_tree_view_get_selection(
+            view.upcast_ref::<gtk::TreeView>().to_glib_none().0,
+        )
+        .is_null()
+        {
+            return None;
+        }
+    }
+
     let (current_model, iter) = view.selection().selected()?;
-    let path = current_model.path(&iter)?;
+    let path = current_model.path(&iter);
     Some((iter, path))
 }
 
 fn select_iter(view: &PSTreeView, iter: &gtk::TreeIter) {
     let Some(current_model) = view.model() else { return };
-    let Some(path) = current_model.path(iter) else { return };
+    let path = current_model.path(iter);
 
     view.expand_to_path(&path);
     view.scroll_to_cell(Some(&path), None::<&gtk::TreeViewColumn>, true, 0.5, 0.0);
-    view.set_cursor(&path, None::<&gtk::TreeViewColumn>, false);
+    gtk::prelude::TreeViewExt::set_cursor(view, &path, None::<&gtk::TreeViewColumn>, false);
     view.selection().select_path(&path);
 }
 
 impl PSTreeView {
-    fn iter_of_clicked_url(&self, event: &gdk::EventButton) -> Option<gtk::TreeIter> {
-        let (x, y) = event.coords()?;
-        let (path, col, cell_x, _cell_y) = self.path_at_pos(x as i32, y as i32)?;
+    fn iter_of_clicked_url(&self, event_x: f64, event_y: f64) -> Option<gtk::TreeIter> {
+        let (x, y) = self.convert_widget_to_bin_window_coords(event_x as i32, event_y as i32);
+        let (path, col, cell_x, _cell_y) = self.path_at_pos(x, y)?;
         let path = path?;
         let col = col?;
         if col != self.imp().url_column {
             return None;
         }
 
-        let clicked_icon = self
+        let (cell_pos, cell_width) = self
             .imp()
             .url_column
-            .cells()
-            .into_iter()
-            .filter(|cell| cell.downcast_ref::<gtk::CellRendererPixbuf>().is_some())
-            .filter_map(|cell| self.imp().url_column.cell_get_position(&cell))
-            .filter(|(cell_pos, cell_width)| *cell_pos <= cell_x && cell_x <= cell_pos + cell_width)
-            .next()
-            .is_some();
-
-        if clicked_icon {
-            let (_model, iter) = get_real_iter(&self, &path)?;
+            .cell_get_position(&self.imp().url_icon_renderer)?;
+        if cell_pos <= cell_x && cell_x <= cell_pos + cell_width {
+            let (_model, iter) = get_real_iter(self, &path)?;
             return Some(iter);
         }
         None
     }
 
     pub fn connect_url_clicked<F: Fn(gtk::TreeIter) + 'static>(&self, handler: F) {
-        self.connect_button_release_event(
-            clone!(@weak self as this => @default-return glib::signal::Inhibit(false), move |_view, event| {
-                if let Some(iter) = this.iter_of_clicked_url(event) {
+        self.imp().url_click.connect_pressed(
+            clone!(@weak self as this => move |_gesture, _n, x, y| {
+                if let Some(iter) = this.iter_of_clicked_url(x, y) {
                     handler(iter);
                 }
-                glib::signal::Inhibit(false)
             }),
         );
     }
 
     pub fn connect_drop<F: Fn(gtk::TreeIter) -> bool + 'static>(&self, is_group: F) {
-        self.connect_drag_motion(move |view, drag_context, x, y, time| {
-            if let Some((Some(path), pos)) = view.dest_row_at_pos(x, y) {
-                if pos == gtk::TreeViewDropPosition::IntoOrBefore
-                    || pos == gtk::TreeViewDropPosition::IntoOrAfter
-                {
-                    if let Some((_model, iter)) = get_real_iter(view, &path) {
-                        if !is_group(iter) {
-                            drag_context.drag_status(gdk::DragAction::empty(), time); // deny
-                            return true; // stop propagation
-                        }
-                    }
-                }
-            }
-            drag_context.drag_status(gdk::DragAction::MOVE, time);
-            false
-        });
+        // self.view
+        //     .connect_drag_motion(move |view, drag_context, x, y, time| {
+        //         if let Some((Some(path), pos)) = view.dest_row_at_pos(x, y) {
+        //             if pos == gtk::TreeViewDropPosition::IntoOrBefore
+        //                 || pos == gtk::TreeViewDropPosition::IntoOrAfter
+        //             {
+        //                 if let Some((_model, iter)) = get_real_iter(view, &path) {
+        //                     if !is_group(iter) {
+        //                         drag_context.drag_status(gdk::DragAction::empty(), time); // deny
+        //                         return true; // stop propagation
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //         drag_context.drag_status(gdk::DragAction::MOVE, time);
+        //         false
+        //     });
     }
 
     pub fn connect_cursor_changed_iter<F: Fn(Option<(gtk::TreeIter, gtk::TreePath)>) + 'static>(
@@ -260,34 +258,37 @@ impl PSTreeView {
     }
 
     pub fn set_popup(&self, popup_model: &gio::MenuModel) {
-        let popup = gtk::Menu::from_model(popup_model);
-        popup.set_attach_widget(Some(self));
+        let context_menu = gtk::PopoverMenu::builder()
+            .autohide(true)
+            .menu_model(popup_model)
+            .build();
+        context_menu.set_parent(self);
 
-        self.connect_button_press_event(
-            clone!(@weak popup => @default-return Inhibit(false), move |view, event| {
-                let button = event.button();
-                if button == GDK_BUTTON_SECONDARY {
-                    view.grab_focus();
+        self.imp().popup_click.connect_pressed(
+            clone!(@weak self as view, @strong context_menu => move |_gesture, _n, x, y| {
+                view.grab_focus();
+                if let Some((Some(path), _, _, _)) = view.path_at_pos(x as i32, y as i32) {
+                    gtk::prelude::TreeViewExt::set_cursor(&view, &path, None::<&gtk::TreeViewColumn>, false);
 
-                    let (x, y) = event.position();
-                    if let Some((Some(path), _, _, _)) = view.path_at_pos(x as i32, y as i32) {
-                        view.set_cursor(&path, None::<&gtk::TreeViewColumn>, false);
-                    }
+                    let row_rect = view.cell_area(Some(&path), None);
 
-                    popup.popup_at_pointer(Some(&*event));
-
-                    Inhibit(true)
+                    context_menu.set_pointing_to(Some(&gdk::Rectangle::new(
+                        x as i32,
+                        row_rect.y(),
+                        0,
+                        row_rect.height(),
+                    )));
                 } else {
-                    Inhibit(false)
+                    context_menu.set_pointing_to(Some(&gdk::Rectangle::new(
+                        x as i32,
+                        y as i32,
+                        0,
+                        0,
+                    )));
                 }
+                context_menu.popup();
             }),
         );
-
-        self.connect_popup_menu(clone!(@weak popup => @default-return false, move |view| {
-            view.grab_focus();
-            popup.popup_at_widget(view, gdk::Gravity::Center, gdk::Gravity::Center, None);
-            true
-        }));
     }
 
     pub fn toggle_group(&self, path: &gtk::TreePath) {
@@ -308,20 +309,20 @@ impl PSTreeView {
 
     pub fn set_selection_mode(&self, selection: bool) {
         if selection {
-            TreeViewColumnExt::add_attribute(
-                &self.imp().column,
+            self.imp().column.add_attribute(
                 &self.imp().check_renderer,
                 "visible",
                 TreeStoreColumn::SelectionVisible.into(),
             );
-            TreeViewColumnExt::add_attribute(
-                &self.imp().column,
+            self.imp().column.add_attribute(
                 &self.imp().check_renderer,
                 "active",
                 TreeStoreColumn::Selection.into(),
             );
         } else {
-            TreeViewColumnExt::clear_attributes(&self.imp().column, &self.imp().check_renderer);
+            self.imp()
+                .column
+                .clear_attributes(&self.imp().check_renderer);
             self.imp().check_renderer.set_visible(false);
         }
         self.imp().column.queue_resize();

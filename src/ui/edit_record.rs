@@ -105,7 +105,7 @@ impl RecordWidget {
             .build();
 
         let icon = gtk::Image::builder()
-            .icon_size(gtk::IconSize::Dialog)
+            .icon_size(gtk::IconSize::Large)
             .margin_start(16)
             .margin_end(16)
             .margin_top(16)
@@ -120,14 +120,11 @@ impl RecordWidget {
 
         let convert_button = gtk::MenuButton::builder()
             .label("Convert to...")
-            .no_show_all(true)
+            .visible(false)
             .build();
         grid.attach(&convert_button, 0, 2, 1, 1);
 
-        let open_button = gtk::Button::builder()
-            .label("Open")
-            .no_show_all(true)
-            .build();
+        let open_button = gtk::Button::builder().label("Open").visible(false).build();
         grid.attach(&open_button, 0, 3, 1, 1);
 
         let expander = gtk::Label::builder().vexpand(true).build();
@@ -195,7 +192,6 @@ impl RecordWidget {
         *self.0.form.borrow_mut() = Some(form);
 
         self.0.grid.attach(&form_widget, 2, 0, 1, 5);
-        self.0.grid.show_all();
 
         self.0.grid.set_focus_child(Some(&form_widget));
     }
@@ -217,10 +213,8 @@ impl RecordWidget {
     fn open(&self) {
         let Some(record) = self.get_value() else { return };
         let Some(url) = record.url() else { return };
-        let window: Option<gtk::Window> = self.0.grid.toplevel().and_then(|w| w.downcast().ok());
-        if let Err(err) = gtk::show_uri_on_window(window.as_ref(), url, 0) {
-            eprintln!("Cannot open {}. {}", url, err);
-        }
+        let window: Option<gtk::Window> = self.0.grid.root().and_then(|w| w.downcast().ok());
+        gtk::show_uri(window.as_ref(), url, 0);
     }
 }
 
