@@ -1,6 +1,7 @@
 use crate::cache::Cache;
 use crate::gtk_prelude::*;
 use crate::markup_builder::bold;
+use crate::utils::ui::centered;
 use crate::utils::ui::PSWidgetExt;
 use os_str_bytes::OsStrBytes;
 use std::path::{Path, PathBuf};
@@ -9,15 +10,6 @@ use std::path::{Path, PathBuf};
 pub struct PSDashboard {
     container: gtk::Widget,
     listbox: gtk::ListBox,
-}
-
-fn centered<W: IsA<gtk::Widget> + WidgetExt>(widget: &W) -> gtk::Widget {
-    widget.set_hexpand(true);
-    widget.set_halign(gtk::Align::Center);
-
-    let grid = gtk::Grid::new();
-    grid.attach(widget, 0, 0, 1, 1);
-    grid.upcast()
 }
 
 fn accel_label(accel: &str) -> Option<glib::GString> {

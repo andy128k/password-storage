@@ -98,6 +98,15 @@ impl PSWidgetLookupExt for Option<gtk::Widget> {
     }
 }
 
+pub fn centered<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
+    widget.set_hexpand(true);
+    widget.set_halign(gtk::Align::Center);
+
+    let grid = gtk::Grid::new();
+    grid.attach(widget, 0, 0, 1, 1);
+    grid.upcast()
+}
+
 pub fn scrolled<P: IsA<gtk::Widget>>(widget: &P) -> gtk::ScrolledWindow {
     gtk::ScrolledWindow::builder()
         .can_focus(true)
