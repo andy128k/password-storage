@@ -117,22 +117,17 @@ fn square(widget: impl IsA<gtk::Widget>) -> gtk::Widget {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::test_gtk_init;
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    #[test]
+    #[gtk::test]
     fn test_open_password() {
-        test_gtk_init();
-
         let w = PasswordEditor::new();
         w.get_widget(); // ensure get_widget doesn't panic
     }
 
-    #[test]
+    #[gtk::test]
     fn test_open_password_value() {
-        test_gtk_init();
-
         let w = PasswordEditor::new();
         assert_eq!(w.get_value(), None);
 
@@ -144,10 +139,8 @@ mod test {
         assert_eq!(w.get_value(), None);
     }
 
-    #[test]
+    #[gtk::test]
     fn test_open_password_event() {
-        test_gtk_init();
-
         let value = Rc::new(RefCell::new(None));
 
         let mut w = PasswordEditor::new();

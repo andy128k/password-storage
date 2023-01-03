@@ -1,8 +1,8 @@
 test:
-	cargo test -- --nocapture --test-threads 1
+	cargo test -- --nocapture
 
 coverage:
-	cargo tarpaulin --forward --timeout 5 --out Xml --verbose -- --nocapture --test-threads=1
+	cargo tarpaulin --forward --timeout 5 --out Xml --verbose -- --nocapture
 
 flatpak:
 	flatpak-builder build-dir --user --install-deps-from=flathub --force-clean build-flatpak/dev.andy128k.password-storage.yml
