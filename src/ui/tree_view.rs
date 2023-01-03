@@ -4,10 +4,11 @@ use gdk::ffi::{GDK_BUTTON_PRIMARY, GDK_BUTTON_SECONDARY};
 
 mod imp {
     use super::*;
-    use crate::utils::ui::PSWidgetExt;
+    use crate::utils::ui::{scrolled, PSWidgetExt};
 
     #[derive(Default)]
     pub struct PSTreeView {
+        pub view: gtk::TreeView,
         pub column: gtk::TreeViewColumn,
         pub check_renderer: gtk::CellRendererToggle,
         pub url_column: gtk::TreeViewColumn,
@@ -21,20 +22,23 @@ mod imp {
     impl ObjectSubclass for PSTreeView {
         const NAME: &'static str = "PSTreeView";
         type Type = super::PSTreeView;
-        type ParentType = gtk::TreeView;
+        type ParentType = gtk::Widget;
     }
 
     impl ObjectImpl for PSTreeView {
         fn constructed(&self) {
             self.parent_constructed();
 
-            let view = self.obj();
-            view.set_can_focus(true);
-            view.set_headers_visible(true);
+            let obj = self.obj();
+            obj.set_layout_manager(Some(&gtk::BinLayout::new()));
+
+            self.view.set_can_focus(true);
+            self.view.set_headers_visible(true);
             // FIXME: reordering in GTK4 does not allow to control drop destination (e.g. move into group only)
-            // view.set_reorderable(true);
-            view.set_search_column(1);
-            view.set_grid_lines(gtk::TreeViewGridLines::Horizontal);
+            // self.view.set_reorderable(true);
+            self.view.set_search_column(1);
+            self.view.set_grid_lines(gtk::TreeViewGridLines::Horizontal);
+            scrolled(&self.view).set_parent(&*obj);
 
             self.column.set_title("Name");
             self.column.set_sizing(gtk::TreeViewColumnSizing::Autosize);
@@ -61,7 +65,7 @@ mod imp {
             self.column
                 .add_attribute(&text, "text", TreeStoreColumn::Name.into());
 
-            view.append_column(&self.column);
+            self.view.append_column(&self.column);
 
             let description_renderer = gtk::CellRendererText::new();
             self.description_column.set_title("Description");
@@ -73,9 +77,9 @@ mod imp {
                 "text",
                 TreeStoreColumn::Description.into(),
             );
-            view.append_column(&self.description_column);
+            self.view.append_column(&self.description_column);
 
-            view.append_column(&{
+            self.view.append_column(&{
                 let column = gtk::TreeViewColumn::new();
                 column.set_title("Strength");
                 column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
@@ -104,13 +108,13 @@ mod imp {
                 TreeStoreColumn::ShareIcon.into(),
             );
 
-            view.append_column(&self.url_column);
+            self.view.append_column(&self.url_column);
 
             self.url_click.set_button(GDK_BUTTON_PRIMARY as u32);
-            view.add_controller(&self.url_click);
+            self.view.add_controller(&self.url_click);
 
             self.popup_click.set_button(GDK_BUTTON_SECONDARY as u32);
-            view.add_controller(&self.popup_click);
+            self.view.add_controller(&self.popup_click);
         }
 
         fn dispose(&self) {
@@ -121,7 +125,6 @@ mod imp {
     }
 
     impl WidgetImpl for PSTreeView {}
-    impl TreeViewImpl for PSTreeView {}
 
     impl PSTreeView {
         fn selection_toggled(&self, path: &gtk::TreePath) {
@@ -142,7 +145,7 @@ mod imp {
 
 glib::wrapper! {
     pub struct PSTreeView(ObjectSubclass<imp::PSTreeView>)
-        @extends gtk::TreeView, gtk::Widget;
+        @extends gtk::Widget;
 }
 
 impl Default for PSTreeView {
@@ -155,12 +158,12 @@ fn get_real_iter(
     view: &PSTreeView,
     path: &gtk::TreePath,
 ) -> Option<(gtk::TreeModel, gtk::TreeIter)> {
-    let model = view.model()?;
+    let model = view.imp().view.model()?;
     let iter = model.iter(path)?;
     Some((model, iter))
 }
 
-fn get_selected_iter(view: &PSTreeView) -> Option<(gtk::TreeIter, gtk::TreePath)> {
+fn get_selected_iter(view: &gtk::TreeView) -> Option<(gtk::TreeIter, gtk::TreePath)> {
     // Workaround. See https://github.com/gtk-rs/gtk4-rs/issues/584
     unsafe {
         use gtk::glib::translate::ToGlibPtr;
@@ -178,7 +181,7 @@ fn get_selected_iter(view: &PSTreeView) -> Option<(gtk::TreeIter, gtk::TreePath)
     Some((iter, path))
 }
 
-fn select_iter(view: &PSTreeView, iter: &gtk::TreeIter) {
+fn select_iter(view: &gtk::TreeView, iter: &gtk::TreeIter) {
     let Some(current_model) = view.model() else { return };
     let path = current_model.path(iter);
 
@@ -189,9 +192,16 @@ fn select_iter(view: &PSTreeView, iter: &gtk::TreeIter) {
 }
 
 impl PSTreeView {
+    pub fn set_model(&self, model: Option<&gtk::TreeModel>) {
+        self.imp().view.set_model(model);
+    }
+
     fn iter_of_clicked_url(&self, event_x: f64, event_y: f64) -> Option<gtk::TreeIter> {
-        let (x, y) = self.convert_widget_to_bin_window_coords(event_x as i32, event_y as i32);
-        let (path, col, cell_x, _cell_y) = self.path_at_pos(x, y)?;
+        let (x, y) = self
+            .imp()
+            .view
+            .convert_widget_to_bin_window_coords(event_x as i32, event_y as i32);
+        let (path, col, cell_x, _cell_y) = self.imp().view.path_at_pos(x, y)?;
         let path = path?;
         let col = col?;
         if col != self.imp().url_column {
@@ -243,7 +253,8 @@ impl PSTreeView {
         &self,
         changed: F,
     ) {
-        self.connect_cursor_changed(move |view| {
+        let view = &self.imp().view;
+        view.connect_cursor_changed(move |view| {
             changed(get_selected_iter(view));
         });
     }
@@ -252,7 +263,8 @@ impl PSTreeView {
         &self,
         activated: F,
     ) {
-        self.connect_row_activated(move |view, _iter, _col| {
+        let view = &self.imp().view;
+        view.connect_row_activated(move |view, _iter, _col| {
             activated(get_selected_iter(view));
         });
     }
@@ -264,8 +276,9 @@ impl PSTreeView {
             .build();
         context_menu.set_parent(self);
 
+        let view = self.imp().view.clone();
         self.imp().popup_click.connect_pressed(
-            clone!(@weak self as view, @strong context_menu => move |_gesture, _n, x, y| {
+            clone!(@weak view, @strong context_menu => move |_gesture, _n, x, y| {
                 view.grab_focus();
                 if let Some((Some(path), _, _, _)) = view.path_at_pos(x as i32, y as i32) {
                     gtk::prelude::TreeViewExt::set_cursor(&view, &path, None::<&gtk::TreeViewColumn>, false);
@@ -292,19 +305,19 @@ impl PSTreeView {
     }
 
     pub fn toggle_group(&self, path: &gtk::TreePath) {
-        if self.row_expanded(path) {
-            self.collapse_row(path);
+        if self.imp().view.row_expanded(path) {
+            self.imp().view.collapse_row(path);
         } else {
-            self.expand_row(path, false);
+            self.imp().view.expand_row(path, false);
         }
     }
 
     pub fn get_selected_iter(&self) -> Option<(gtk::TreeIter, gtk::TreePath)> {
-        get_selected_iter(&self)
+        get_selected_iter(&self.imp().view)
     }
 
     pub fn select_iter(&self, iter: &gtk::TreeIter) {
-        select_iter(&self, iter);
+        select_iter(&self.imp().view, iter);
     }
 
     pub fn set_selection_mode(&self, selection: bool) {

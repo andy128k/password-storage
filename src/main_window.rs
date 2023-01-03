@@ -141,7 +141,8 @@ impl ObjectImpl for PSMainWindowInner {
         grid.attach(&search_bar.get_widget(), 0, 2, 1, 1);
 
         let tree_container = gtk::Grid::new();
-        tree_container.attach(&scrolled(&view), 0, 0, 1, 1);
+        view.set_vexpand(true);
+        tree_container.attach(&view, 0, 0, 1, 1);
         let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
         tree_action_bar.pack_start(&action_popover_button(
             &RecordTypePopoverBuilder::default()
