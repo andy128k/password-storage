@@ -1,4 +1,5 @@
 use crate::gtk_prelude::*;
+use crate::model::record::Record;
 use crate::store::TreeStoreColumn;
 use gdk::ffi::{GDK_BUTTON_PRIMARY, GDK_BUTTON_SECONDARY};
 
@@ -163,7 +164,7 @@ fn get_real_iter(
     Some((model, iter))
 }
 
-fn get_selected_iter(view: &gtk::TreeView) -> Option<(gtk::TreeIter, gtk::TreePath)> {
+fn view_selection(view: &gtk::TreeView) -> Option<gtk::TreeSelection> {
     // Workaround. See https://github.com/gtk-rs/gtk4-rs/issues/584
     unsafe {
         use gtk::glib::translate::ToGlibPtr;
@@ -175,10 +176,14 @@ fn get_selected_iter(view: &gtk::TreeView) -> Option<(gtk::TreeIter, gtk::TreePa
             return None;
         }
     }
+    Some(view.selection())
+}
 
-    let (current_model, iter) = view.selection().selected()?;
-    let path = current_model.path(&iter);
-    Some((iter, path))
+fn get_selected_iter(view: &gtk::TreeView) -> Option<(Record, gtk::TreeIter, gtk::TreePath)> {
+    let (model, iter) = view_selection(view)?.selected()?;
+    let record = model.get::<Record>(&iter, TreeStoreColumn::Record.into());
+    let path = model.path(&iter);
+    Some((record, iter, path))
 }
 
 fn select_iter(view: &gtk::TreeView, iter: &gtk::TreeIter) {
@@ -196,7 +201,7 @@ impl PSTreeView {
         self.imp().view.set_model(model);
     }
 
-    fn iter_of_clicked_url(&self, event_x: f64, event_y: f64) -> Option<gtk::TreeIter> {
+    fn record_of_clicked_url(&self, event_x: f64, event_y: f64) -> Option<Record> {
         let (x, y) = self
             .imp()
             .view
@@ -213,59 +218,50 @@ impl PSTreeView {
             .url_column
             .cell_get_position(&self.imp().url_icon_renderer)?;
         if cell_pos <= cell_x && cell_x <= cell_pos + cell_width {
-            let (_model, iter) = get_real_iter(self, &path)?;
-            return Some(iter);
+            let (model, iter) = get_real_iter(self, &path)?;
+            let record = model.get::<Record>(&iter, TreeStoreColumn::Record.into());
+            return Some(record);
         }
         None
     }
 
-    pub fn connect_url_clicked<F: Fn(gtk::TreeIter) + 'static>(&self, handler: F) {
+    pub fn connect_url_clicked<F: Fn(Record) + 'static>(&self, handler: F) {
         self.imp().url_click.connect_pressed(
             clone!(@weak self as this => move |_gesture, _n, x, y| {
-                if let Some(iter) = this.iter_of_clicked_url(x, y) {
-                    handler(iter);
+                if let Some(record) = this.record_of_clicked_url(x, y) {
+                    handler(record);
                 }
             }),
         );
     }
 
-    pub fn connect_drop<F: Fn(gtk::TreeIter) -> bool + 'static>(&self, is_group: F) {
-        // self.view
-        //     .connect_drag_motion(move |view, drag_context, x, y, time| {
-        //         if let Some((Some(path), pos)) = view.dest_row_at_pos(x, y) {
-        //             if pos == gtk::TreeViewDropPosition::IntoOrBefore
-        //                 || pos == gtk::TreeViewDropPosition::IntoOrAfter
-        //             {
-        //                 if let Some((_model, iter)) = get_real_iter(view, &path) {
-        //                     if !is_group(iter) {
-        //                         drag_context.drag_status(gdk::DragAction::empty(), time); // deny
-        //                         return true; // stop propagation
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //         drag_context.drag_status(gdk::DragAction::MOVE, time);
-        //         false
-        //     });
+    pub fn get_selected_record(&self) -> Option<(Record, gtk::TreeIter)> {
+        let (record, iter, _path) = get_selected_iter(&self.imp().view)?;
+        Some((record, iter))
     }
 
-    pub fn connect_cursor_changed_iter<F: Fn(Option<(gtk::TreeIter, gtk::TreePath)>) + 'static>(
-        &self,
-        changed: F,
-    ) {
+    pub fn connect_record_changed<F: Fn(Option<Record>) + 'static>(&self, changed: F) {
         let view = &self.imp().view;
         view.connect_cursor_changed(move |view| {
-            changed(get_selected_iter(view));
+            let record = get_selected_iter(view).map(|(record, _iter, _path)| record);
+            changed(record);
         });
     }
 
-    pub fn connect_row_activated_iter<F: Fn(Option<(gtk::TreeIter, gtk::TreePath)>) + 'static>(
-        &self,
-        activated: F,
-    ) {
+    pub fn connect_record_activated<F: Fn(Record, gtk::TreeIter) + 'static>(&self, activated: F) {
         let view = &self.imp().view;
         view.connect_row_activated(move |view, _iter, _col| {
-            activated(get_selected_iter(view));
+            let Some((record, iter, path)) = get_selected_iter(view) else { return };
+            if record.record_type.is_group {
+                // toggle group
+                if view.row_expanded(&path) {
+                    view.collapse_row(&path);
+                } else {
+                    view.expand_row(&path, false);
+                }
+            } else {
+                activated(record, iter);
+            }
         });
     }
 
@@ -310,10 +306,6 @@ impl PSTreeView {
         } else {
             self.imp().view.expand_row(path, false);
         }
-    }
-
-    pub fn get_selected_iter(&self) -> Option<(gtk::TreeIter, gtk::TreePath)> {
-        get_selected_iter(&self.imp().view)
     }
 
     pub fn select_iter(&self, iter: &gtk::TreeIter) {

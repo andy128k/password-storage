@@ -256,33 +256,22 @@ impl ObjectImpl for PSMainWindowInner {
 
         win.private()
             .view
-            .connect_cursor_changed_iter(clone!(@weak win => move |selection| {
-                let record = selection.map(|(iter, _path)| {
-                    win.private().data.borrow().get(&iter)
-                });
-                win.listview_cursor_changed(record);
+            .connect_record_changed(clone!(@weak win => move |selected_record| {
+                win.listview_cursor_changed(selected_record);
             }));
 
         win.private()
             .view
-            .connect_drop(clone!(@weak win => @default-return false, move |iter| {
-                let record = win.private().data.borrow().get(&iter);
-                record.record_type.is_group
-            }));
-
-        win.private()
-            .view
-            .connect_row_activated_iter(clone!(@weak win => move |selection| {
+            .connect_record_activated(clone!(@weak win => move |_record, _iter| {
                 glib::MainContext::default().spawn_local(async move {
-                    win.on_row_activated(selection).await;
+                    win.action_edit().await;
                 });
             }));
 
         win.private()
             .view
-            .connect_url_clicked(clone!(@weak win => move |iter| {
+            .connect_url_clicked(clone!(@weak win => move |record| {
                 glib::MainContext::default().spawn_local(async move {
-                    let record = win.private().data.borrow().get(&iter);
                     if let Some(url) = record.url() {
                         gtk::show_uri(Some(&win), url, 0);
                     }
@@ -336,10 +325,8 @@ impl PSMainWindow {
     }
 
     fn get_selected_group_iter(&self) -> Option<gtk::TreeIter> {
-        let (iter, _path) = self.private().view.get_selected_iter()?;
+        let (selected_record, iter) = self.private().view.get_selected_record()?;
         let model = &self.private().data.borrow();
-
-        let selected_record = model.get(&iter);
         if selected_record.record_type.is_group {
             return Some(iter);
         }
@@ -380,9 +367,10 @@ impl PSMainWindow {
             SearchEventType::Change | SearchEventType::Next => Box::new(iters.iter()),
             SearchEventType::Prev => Box::new(iters.iter().rev()),
         };
-        if let Some((_selection_iter, selection_path)) = private.view.get_selected_iter() {
-            search_iter =
-                Box::new(search_iter.skip_while(move |iter| model.path(iter) != selection_path));
+        if let Some((_selection_record, selection_iter)) = private.view.get_selected_record() {
+            search_iter = Box::new(
+                search_iter.skip_while(move |iter| model.path(iter) != model.path(&selection_iter)),
+            );
         }
         match event.event_type {
             SearchEventType::Change => {}
@@ -533,17 +521,6 @@ impl PSMainWindow {
             true
         } else {
             self.cb_save_as().await
-        }
-    }
-
-    async fn on_row_activated(&self, selection: Option<(gtk::TreeIter, gtk::TreePath)>) {
-        if let Some((iter, path)) = selection {
-            let record = self.private().data.borrow().get(&iter);
-            if record.record_type.is_group {
-                self.private().view.toggle_group(&path);
-            } else {
-                self.action_edit().await;
-            }
         }
     }
 
@@ -821,8 +798,7 @@ impl PSMainWindow {
 impl PSMainWindow {
     #[action(name = "copy-name")]
     fn action_copy_name(&self) {
-        if let Some((iter, _path)) = self.private().view.get_selected_iter() {
-            let record = self.private().data.borrow().get(&iter);
+        if let Some((record, _iter)) = self.private().view.get_selected_record() {
             if let Some(username) = record.username() {
                 self.clipboard().set_text(username);
                 self.private().toast.notify("Name is copied to clipboard");
@@ -832,8 +808,7 @@ impl PSMainWindow {
 
     #[action(name = "copy-password")]
     fn action_copy_password(&self) {
-        if let Some((iter, _path)) = self.private().view.get_selected_iter() {
-            let record = self.private().data.borrow().get(&iter);
+        if let Some((record, _iter)) = self.private().view.get_selected_record() {
             if let Some(password) = record.password() {
                 self.clipboard().set_text(password);
                 self.private()
@@ -845,9 +820,7 @@ impl PSMainWindow {
 
     #[action(name = "edit")]
     async fn action_edit(&self) {
-        let selection = self.private().view.get_selected_iter();
-        if let Some((iter, _path)) = selection {
-            let record = self.private().data.borrow().get(&iter);
+        if let Some((record, iter)) = self.private().view.get_selected_record() {
             if let Some(new_record) = edit_record(
                 &record,
                 &self.clone().upcast(),
@@ -865,14 +838,14 @@ impl PSMainWindow {
 
     #[action(name = "delete")]
     async fn action_delele(&self) {
-        let Some(selection) = self.private().view.get_selected_iter() else { return };
+        let Some((_record, iter)) = self.private().view.get_selected_record() else { return };
         let confirmed = confirm_unlikely(
             &self.clone().upcast(),
             "Do you really want to delete selected entry?",
         )
         .await;
         if confirmed {
-            self.private().data.borrow().delete(&selection.0);
+            self.private().data.borrow().delete(&iter);
             self.listview_cursor_changed(None);
             self.set_changed(true);
         }
@@ -880,9 +853,7 @@ impl PSMainWindow {
 
     #[action(name = "convert-to")]
     fn action_convert(&self, dest_record_type_name: String) {
-        let Some(selection) = self.private().view.get_selected_iter() else { return; };
-        let selection_iter = selection.0;
-        let record = self.private().data.borrow().get(&selection_iter);
+        let Some((record, selection_iter)) = self.private().view.get_selected_record() else { return; };
         if record.record_type.is_group {
             return;
         }
