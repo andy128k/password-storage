@@ -15,7 +15,6 @@ use crate::ui::dialogs::file_chooser::{open_file, save_file};
 use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
-use crate::ui::merge_bar::create_merge_bar;
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
 use crate::ui::search::{PSSearchBar, SearchEvent, SearchEventType};
 use crate::ui::toast::Toast;
@@ -25,7 +24,6 @@ use crate::utils::ui::*;
 use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
-use std::convert::Into;
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -36,7 +34,6 @@ const WINDOW_TITLE: &str = "Password Storage";
 enum AppMode {
     Initial,
     FileOpened,
-    MergeMode,
 }
 
 struct PSMainWindowPrivate {
@@ -47,13 +44,10 @@ struct PSMainWindowPrivate {
     data: RefCell<PSStore>,
     view: PSTreeView,
 
-    doc_actions: gio::SimpleActionGroup,
     file_actions: gio::SimpleActionGroup,
-    merge_actions: gio::SimpleActionGroup,
     entry_actions: gio::SimpleActionGroup,
 
     search_bar: PSSearchBar,
-    merge_bar: gtk::InfoBar,
     toast: Toast,
 
     filename: RefCell<Option<PathBuf>>,
@@ -134,9 +128,6 @@ impl ObjectImpl for PSMainWindowInner {
 
         let grid = gtk::Grid::new();
 
-        let merge_bar = create_merge_bar();
-        grid.attach(&merge_bar, 0, 1, 1, 1);
-
         let search_bar = PSSearchBar::new();
         grid.attach(&search_bar.get_widget(), 0, 2, 1, 1);
 
@@ -162,6 +153,11 @@ impl ObjectImpl for PSMainWindowInner {
             "document-edit-symbolic",
             "Edit record",
         ));
+        tree_action_bar.pack_start(&action_button(
+            "file.merge",
+            "merge",
+            "Merge selected records",
+        ));
         tree_action_bar.pack_end(&action_button(
             "entry.copy-password",
             "dialog-password-symbolic",
@@ -183,17 +179,9 @@ impl ObjectImpl for PSMainWindowInner {
 
         view.set_model(Some(&data.as_model()));
 
-        let doc_actions = gio::SimpleActionGroup::new();
-        win.register_doc_actions(&doc_actions);
-        win.insert_action_group("doc", Some(&doc_actions));
-
         let file_actions = gio::SimpleActionGroup::new();
         win.register_file_actions(&file_actions);
         win.insert_action_group("file", Some(&file_actions));
-
-        let merge_actions = gio::SimpleActionGroup::new();
-        win.register_merge_actions(&merge_actions);
-        win.insert_action_group("merge", Some(&merge_actions));
 
         let entry_actions = gio::SimpleActionGroup::new();
         win.register_entry_actions(&entry_actions);
@@ -207,12 +195,9 @@ impl ObjectImpl for PSMainWindowInner {
             data: RefCell::new(data),
             view,
             search_bar,
-            merge_bar,
             toast,
 
-            doc_actions,
             file_actions,
-            merge_actions,
             entry_actions,
 
             filename: RefCell::new(None),
@@ -256,8 +241,8 @@ impl ObjectImpl for PSMainWindowInner {
 
         win.private()
             .view
-            .connect_record_changed(clone!(@weak win => move |selected_record| {
-                win.listview_cursor_changed(selected_record);
+            .connect_record_changed(clone!(@weak win => move |selected_records| {
+                win.listview_cursor_changed(selected_records);
             }));
 
         win.private()
@@ -333,16 +318,16 @@ impl PSMainWindow {
         model.parent(&iter)
     }
 
-    fn listview_cursor_changed(&self, record: Option<Record>) {
+    fn listview_cursor_changed(&self, records: &[Record]) {
         let entry_actions = &self.private().entry_actions;
-        let is_selected_record = record.is_some();
+        let is_selected_record = records.len() == 1;
 
         entry_actions
             .simple_action("copy-name")
             .set_enabled(is_selected_record);
         entry_actions
             .simple_action("copy-password")
-            .set_enabled(record.as_ref().and_then(|e| e.password()).is_some());
+            .set_enabled(is_selected_record && records[0].password().is_some());
         entry_actions
             .simple_action("edit")
             .set_enabled(is_selected_record);
@@ -351,7 +336,12 @@ impl PSMainWindow {
             .set_enabled(is_selected_record);
         entry_actions
             .simple_action("convert-to")
-            .set_enabled(record.as_ref().map_or(false, |r| !r.record_type.is_group));
+            .set_enabled(is_selected_record && !records[0].record_type.is_group);
+
+        self.private()
+            .file_actions
+            .simple_action("merge")
+            .set_enabled(records.len() > 1);
     }
 
     fn search(&self, event: &SearchEvent) {
@@ -385,7 +375,7 @@ impl PSMainWindow {
 
         if let Some(next_match) = next_match {
             private.view.select_iter(next_match.0);
-            self.listview_cursor_changed(Some(next_match.1));
+            self.listview_cursor_changed(&[next_match.1]);
         } else {
             self.error_bell();
         }
@@ -466,7 +456,7 @@ impl PSMainWindow {
 
             self.set_mode(AppMode::FileOpened);
             self.set_changed(false);
-            self.listview_cursor_changed(None);
+            self.listview_cursor_changed(&[]);
         }
     }
 
@@ -486,7 +476,7 @@ impl PSMainWindow {
 
             self.set_mode(AppMode::FileOpened);
             self.set_changed(false);
-            self.listview_cursor_changed(None);
+            self.listview_cursor_changed(&[]);
             self.private().view.grab_focus();
         }
     }
@@ -528,64 +518,23 @@ impl PSMainWindow {
         let private = self.private();
         match mode {
             AppMode::Initial => {
-                private.doc_actions.set_enabled(false);
                 private.file_actions.set_enabled(false);
-                private.merge_actions.set_enabled(false);
                 private.entry_actions.set_enabled(false);
 
-                private
-                    .doc_actions
-                    .simple_action("merge-mode")
-                    .set_state(&false.to_variant());
-
-                private.merge_bar.hide();
-                private.view.set_selection_mode(false);
                 private.stack.set_visible_child_name("dashboard");
                 if let Some(cache) = self.private().cache.get() {
                     self.private().dashboard.update(cache);
                 }
             }
             AppMode::FileOpened => {
-                private.doc_actions.set_enabled(true);
                 private.file_actions.set_enabled(true);
-                private.merge_actions.set_enabled(false);
                 private.entry_actions.set_enabled(true);
 
-                private
-                    .doc_actions
-                    .simple_action("merge-mode")
-                    .set_state(&false.to_variant());
-
-                private.merge_bar.hide();
-                private.view.set_selection_mode(false);
-                private.stack.set_visible_child_name("file");
-            }
-            AppMode::MergeMode => {
-                private.doc_actions.set_enabled(true);
-                private.file_actions.set_enabled(false);
-                private.merge_actions.set_enabled(true);
-                private.entry_actions.set_enabled(false);
-
-                private
-                    .doc_actions
-                    .simple_action("merge-mode")
-                    .set_state(&true.to_variant());
-
-                private.merge_bar.show();
-                private.view.set_selection_mode(true);
                 private.stack.set_visible_child_name("file");
             }
         }
         private.search_bar.set_search_mode(false);
         self.private().mode.set(mode);
-    }
-
-    fn set_merge_mode(&self, merge: bool) {
-        self.set_mode(if merge {
-            AppMode::MergeMode
-        } else {
-            AppMode::FileOpened
-        });
     }
 
     async fn on_close(&self) {
@@ -625,15 +574,6 @@ impl PSMainWindow {
     }
 }
 
-#[awesome_glib::actions(register_fn = "register_doc_actions")]
-impl PSMainWindow {
-    #[action(stateful, name = "merge-mode")]
-    fn action_merge_mode(&self, toggled: bool) -> Option<bool> {
-        self.set_merge_mode(!toggled);
-        Some(!toggled)
-    }
-}
-
 #[awesome_glib::actions(register_fn = "register_file_actions")]
 impl PSMainWindow {
     #[action(name = "close")]
@@ -650,7 +590,7 @@ impl PSMainWindow {
 
             self.set_mode(AppMode::Initial);
             self.set_changed(false);
-            self.listview_cursor_changed(None);
+            self.listview_cursor_changed(&[]);
         }
     }
 
@@ -720,36 +660,12 @@ impl PSMainWindow {
             self.set_changed(true);
         }
     }
-}
-
-#[awesome_glib::actions(register_fn = "register_merge_actions")]
-impl PSMainWindow {
-    #[action(name = "uncheck-all")]
-    fn action_uncheck_all(&self) {
-        self.private().data.borrow().uncheck_all();
-    }
 
     #[action(name = "merge")]
     async fn action_merge(&self) {
-        let checked = {
-            let model = self.private().data.borrow();
-            let mut checked = Vec::new();
-            let mut path = Vec::new();
-            model.traverse_all(&mut |event| match event {
-                TreeTraverseEvent::Start { iter, record } => {
-                    if model.is_selected(iter) {
-                        checked.push(((*record).clone(), path.clone()));
-                    }
-                    path.push(record.name());
-                }
-                TreeTraverseEvent::End { .. } => {
-                    path.pop();
-                }
-            });
-            checked
-        };
+        let (checked_records, checked_iters) = self.private().view.get_selected_records();
 
-        if checked.len() < 2 {
+        if checked_records.len() < 2 {
             say_info(
                 &self.clone().upcast(),
                 "Nothing to merge. Select few items and try again.",
@@ -758,16 +674,8 @@ impl PSMainWindow {
             return;
         }
 
-        // rename
-        let records = {
-            let mut renamed_records: Vec<Record> = Vec::new();
-            for &(ref record, ref path) in &checked {
-                let mut renamed = record.clone();
-                renamed.rename(move |old_name| format!("{}/{}", path.join("/"), old_name));
-                renamed_records.push(renamed);
-            }
-            renamed_records
-        };
+        // rename (add path prefix to name)
+        let records = checked_records;
 
         {
             let mut message = String::from("Do you want to merge following items?\n");
@@ -782,7 +690,9 @@ impl PSMainWindow {
         }
 
         // delete entries
-        self.private().data.borrow().delete_checked();
+        for iter in &checked_iters {
+            self.private().data.borrow().delete(iter);
+        }
 
         // create new entry
         let result = Record::join_entries(&records);
@@ -830,7 +740,7 @@ impl PSMainWindow {
             .await
             {
                 self.private().data.borrow().update(&iter, &new_record);
-                self.listview_cursor_changed(Some(new_record));
+                self.listview_cursor_changed(&[new_record]);
                 self.set_changed(true);
             }
         }
@@ -846,7 +756,7 @@ impl PSMainWindow {
         .await;
         if confirmed {
             self.private().data.borrow().delete(&iter);
-            self.listview_cursor_changed(None);
+            self.listview_cursor_changed(&[]);
             self.set_changed(true);
         }
     }
@@ -873,7 +783,7 @@ impl PSMainWindow {
             .borrow()
             .update(&selection_iter, &new_record);
         self.set_changed(true);
-        self.listview_cursor_changed(Some(new_record));
+        self.listview_cursor_changed(&[new_record]);
     }
 }
 

@@ -4,13 +4,10 @@
     <file alias="48x48/apps/password-storage.png">icons/app-icon/password-storage.png</file>
     <file alias="scalable/apps/password-storage.svg">icons/app-icon/password-storage.svg</file>
 
-    <file alias="48x48/actions/merge.png">icons/actions/48x48/merge.png</file>
-    <file alias="24x24/actions/merge.png">icons/actions/24x24/merge.png</file>
-    <file alias="48x48/actions/merge-mode.png">icons/actions/48x48/merge-mode.png</file>
-    <file alias="24x24/actions/merge-mode.png">icons/actions/24x24/merge-mode.png</file>
     <file alias="scalable/actions/random.svg">icons/actions/scalable/random.svg</file>
     <file alias="scalable/actions/eye.svg">icons/actions/scalable/eye.svg</file>
     <file alias="scalable/actions/share.svg">icons/actions/scalable/share.svg</file>
+    <file alias="scalable/actions/merge.svg">icons/actions/scalable/merge.svg</file>
 
     <file alias="entry-generic.svg">icons/entries/generic.svg</file>
     <file alias="entry-creditcard.svg">icons/entries/creditcard.svg</file>

@@ -7,7 +7,6 @@ pub mod fancy_button;
 pub mod flow_grid;
 pub mod forms;
 pub mod menu;
-pub mod merge_bar;
 pub mod password_editor;
 pub mod password_strength_bar;
 pub mod record_type_popover;

@@ -11,7 +11,6 @@ mod imp {
     pub struct PSTreeView {
         pub view: gtk::TreeView,
         pub column: gtk::TreeViewColumn,
-        pub check_renderer: gtk::CellRendererToggle,
         pub url_column: gtk::TreeViewColumn,
         pub url_icon_renderer: gtk::CellRendererPixbuf,
         pub description_column: gtk::TreeViewColumn,
@@ -39,20 +38,13 @@ mod imp {
             // self.view.set_reorderable(true);
             self.view.set_search_column(1);
             self.view.set_grid_lines(gtk::TreeViewGridLines::Horizontal);
+            self.view.selection().set_mode(gtk::SelectionMode::Multiple);
             scrolled(&self.view).set_parent(&*obj);
 
             self.column.set_title("Name");
             self.column.set_sizing(gtk::TreeViewColumnSizing::Autosize);
             self.column.set_expand(true);
             self.column.set_spacing(5);
-
-            self.check_renderer.set_visible(false);
-            self.check_renderer.connect_toggled(
-                clone!(@weak self as imp => move |_renderer, path| {
-                    imp.selection_toggled(&path)
-                }),
-            );
-            self.column.pack_start(&self.check_renderer, false);
 
             let icon = gtk::CellRendererPixbuf::new();
             icon.set_padding(0, 4);
@@ -126,22 +118,6 @@ mod imp {
     }
 
     impl WidgetImpl for PSTreeView {}
-
-    impl PSTreeView {
-        fn selection_toggled(&self, path: &gtk::TreePath) {
-            let view = self.obj();
-            if let Some((model, iter)) = get_real_iter(&*view, path) {
-                if let Ok(store) = model.downcast::<gtk::TreeStore>() {
-                    let selected = store.get::<bool>(&iter, TreeStoreColumn::Selection.into());
-                    store.set_value(
-                        &iter,
-                        TreeStoreColumn::Selection.into(),
-                        &glib::Value::from(&!selected),
-                    );
-                }
-            }
-        }
-    }
 }
 
 glib::wrapper! {
@@ -180,9 +156,13 @@ fn view_selection(view: &gtk::TreeView) -> Option<gtk::TreeSelection> {
 }
 
 fn get_selected_iter(view: &gtk::TreeView) -> Option<(Record, gtk::TreeIter, gtk::TreePath)> {
-    let (model, iter) = view_selection(view)?.selected()?;
+    let (mut paths, model) = view_selection(view)?.selected_rows();
+    if paths.len() != 1 {
+        return None;
+    }
+    let path = paths.pop()?;
+    let iter = model.iter(&path)?;
     let record = model.get::<Record>(&iter, TreeStoreColumn::Record.into());
-    let path = model.path(&iter);
     Some((record, iter, path))
 }
 
@@ -240,12 +220,24 @@ impl PSTreeView {
         Some((record, iter))
     }
 
-    pub fn connect_record_changed<F: Fn(Option<Record>) + 'static>(&self, changed: F) {
-        let view = &self.imp().view;
-        view.connect_cursor_changed(move |view| {
-            let record = get_selected_iter(view).map(|(record, _iter, _path)| record);
-            changed(record);
-        });
+    pub fn get_selected_records(&self) -> (Vec<Record>, Vec<gtk::TreeIter>) {
+        let Some(selection) = view_selection(&self.imp().view) else { return (vec![], vec![]) };
+        let (paths, model) = selection.selected_rows();
+        let iters: Vec<_> = paths.iter().filter_map(|p| model.iter(p)).collect();
+        let records = iters
+            .iter()
+            .map(|iter| model.get::<Record>(iter, TreeStoreColumn::Record.into()))
+            .collect();
+        (records, iters)
+    }
+
+    pub fn connect_record_changed<F: Fn(&[Record]) + 'static>(&self, changed: F) {
+        self.imp().view.selection().connect_changed(
+            clone!(@weak self as this => move |_selection| {
+                let (records, _) = this.get_selected_records();
+                changed(&records);
+            }),
+        );
     }
 
     pub fn connect_record_activated<F: Fn(Record, gtk::TreeIter) + 'static>(&self, activated: F) {
@@ -310,26 +302,5 @@ impl PSTreeView {
 
     pub fn select_iter(&self, iter: &gtk::TreeIter) {
         select_iter(&self.imp().view, iter);
-    }
-
-    pub fn set_selection_mode(&self, selection: bool) {
-        if selection {
-            self.imp().column.add_attribute(
-                &self.imp().check_renderer,
-                "visible",
-                TreeStoreColumn::SelectionVisible.into(),
-            );
-            self.imp().column.add_attribute(
-                &self.imp().check_renderer,
-                "active",
-                TreeStoreColumn::Selection.into(),
-            );
-        } else {
-            self.imp()
-                .column
-                .clear_attributes(&self.imp().check_renderer);
-            self.imp().check_renderer.set_visible(false);
-        }
-        self.imp().column.queue_resize();
     }
 }

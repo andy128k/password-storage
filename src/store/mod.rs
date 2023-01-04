@@ -13,8 +13,6 @@ pub enum TreeStoreColumn {
     Record,
     Name,
     TypeIcon,
-    Selection,
-    SelectionVisible,
     Strength,
     ShareIcon,
     Description,
@@ -26,11 +24,9 @@ impl TreeStoreColumn {
             TreeStoreColumn::Record => 0,
             TreeStoreColumn::Name => 1,
             TreeStoreColumn::TypeIcon => 2,
-            TreeStoreColumn::Selection => 3,
-            TreeStoreColumn::SelectionVisible => 5,
-            TreeStoreColumn::Strength => 4,
-            TreeStoreColumn::ShareIcon => 6,
-            TreeStoreColumn::Description => 7,
+            TreeStoreColumn::Strength => 3,
+            TreeStoreColumn::ShareIcon => 4,
+            TreeStoreColumn::Description => 5,
         }
     }
 }
@@ -47,35 +43,13 @@ impl From<TreeStoreColumn> for i32 {
     }
 }
 
-fn is_selected(model: &gtk::TreeModel, iter: &gtk::TreeIter) -> bool {
-    model.get::<bool>(iter, TreeStoreColumn::Selection.into())
-}
-
-fn delete_checked(model: &gtk::TreeStore, parent: Option<&gtk::TreeIter>) {
-    if let Some(i) = model.iter_children(parent) {
-        loop {
-            let cont = if is_selected(&model.clone().upcast(), &i) {
-                model.remove(&i)
-            } else {
-                delete_checked(model, Some(&i));
-                model.iter_next(&i)
-            };
-            if !cont {
-                break;
-            }
-        }
-    }
-}
-
 impl PSStore {
     pub fn new() -> Self {
         let model = gtk::TreeStore::new(&[
             Record::static_type(),
             glib::Type::STRING,
             glib::Type::STRING,
-            glib::Type::BOOL,
             glib::Type::STRING,
-            glib::Type::BOOL,
             glib::Type::STRING,
             glib::Type::STRING,
         ]);
@@ -235,12 +209,6 @@ impl PSStore {
 
         self.model.set_value(
             iter,
-            TreeStoreColumn::SelectionVisible.into(),
-            &glib::Value::from(&!record.record_type.is_group),
-        );
-
-        self.model.set_value(
-            iter,
             TreeStoreColumn::ShareIcon.into(),
             &if record.url().is_some() { "share" } else { "" }.to_value(),
         );
@@ -259,28 +227,6 @@ impl PSStore {
 
     pub fn delete(&self, iter: &gtk::TreeIter) {
         self.model.remove(iter);
-    }
-
-    pub fn is_selected(&self, iter: &gtk::TreeIter) -> bool {
-        is_selected(&self.as_model(), iter)
-    }
-
-    pub fn delete_checked(&self) {
-        delete_checked(&self.model, None);
-    }
-
-    pub fn uncheck_all(&self) {
-        fn uncheck(model: &gtk::TreeStore, parent: Option<&gtk::TreeIter>) {
-            for i in crate::utils::tree::tree_children_entries(&model.clone().upcast(), parent) {
-                model.set_value(
-                    &i,
-                    TreeStoreColumn::Selection.into(),
-                    &glib::Value::from(&false),
-                );
-                uncheck(model, Some(&i));
-            }
-        }
-        uncheck(&self.model, None);
     }
 }
 
