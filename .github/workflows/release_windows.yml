@@ -10,11 +10,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable-gnu
-          default: true
-          override: true
+          toolchain: stable-x86_64-pc-windows-gnu
       - name: Set PATH
         shell: bash
         run: |

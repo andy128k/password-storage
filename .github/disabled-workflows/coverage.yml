@@ -16,10 +16,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends build-essential curl ca-certificates libssl-dev libgtk-4-dev xvfb
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - uses: actions-rs/install@v0.1
         with:
           crate: cargo-tarpaulin

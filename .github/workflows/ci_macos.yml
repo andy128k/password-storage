@@ -7,10 +7,7 @@ jobs:
     runs-on: macOS-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies
         run: brew install pkg-config gtk4 librsvg
       - name: Build
