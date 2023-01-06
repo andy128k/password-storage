@@ -17,15 +17,12 @@ jobs:
           sudo apt-get install -y --no-install-recommends build-essential curl ca-certificates libssl-dev libgtk-4-dev xvfb
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions-rs/install@v0.1
-        with:
-          crate: cargo-tarpaulin
-          version: 0.18.0
-          use-tool-cache: true
-      - name: Run coverage
-        run: xvfb-run cargo tarpaulin --forward --timeout 5 --out Xml --verbose -- --nocapture --test-threads=1
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Generate code coverage
+        run: RUST_TEST_THREADS=1 xvfb-run cargo llvm-cov --lcov --output-path lcov.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./cobertura.xml
+          files: lcov.info
