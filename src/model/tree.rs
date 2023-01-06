@@ -40,6 +40,15 @@ impl RecordNode {
         this
     }
 
+    pub fn with_record(&self, record: Record) -> Self {
+        let this: Self = glib::Object::builder().build();
+        this.imp().record.set(record).unwrap();
+        if let Some(children) = self.imp().children.get() {
+            this.imp().children.set(children.clone()).unwrap();
+        }
+        this
+    }
+
     pub fn record(&self) -> &Record {
         self.imp().record.get().expect("RecordNode is initialized")
     }
@@ -53,7 +62,7 @@ impl RecordNode {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RecordTree {
     pub records: TypedListStore<RecordNode>,
 }

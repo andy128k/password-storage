@@ -10,6 +10,7 @@ pub mod menu;
 pub mod password_editor;
 pub mod password_strength_bar;
 pub mod record_type_popover;
+pub mod record_view;
 pub mod search;
 pub mod toast;
 pub mod tree_view;

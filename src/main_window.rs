@@ -4,8 +4,8 @@ use crate::error::*;
 use crate::format;
 use crate::gtk_prelude::*;
 use crate::model::record::{Record, RecordType, FIELD_NAME, RECORD_TYPES, RECORD_TYPE_GENERIC};
+use crate::model::tree::RecordNode;
 use crate::model::tree::RecordTree;
-use crate::store::{PSStore, TreeTraverseEvent};
 use crate::ui;
 use crate::ui::dashboard::PSDashboard;
 use crate::ui::dialogs::ask::{confirm_likely, confirm_unlikely};
@@ -19,7 +19,7 @@ use crate::ui::record_type_popover::RecordTypePopoverBuilder;
 use crate::ui::search::{PSSearchBar, SearchEvent, SearchEventType};
 use crate::ui::toast::Toast;
 use crate::ui::tree_view::PSTreeView;
-use crate::utils::tree::flatten_tree;
+use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::*;
 use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
@@ -29,6 +29,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 const WINDOW_TITLE: &str = "Password Storage";
+const HOME: &str = "\u{2302}";
 
 #[derive(Clone, Copy)]
 enum AppMode {
@@ -41,7 +42,9 @@ struct PSMainWindowPrivate {
     header_bar: gtk::HeaderBar,
     stack: gtk::Stack,
     dashboard: PSDashboard,
-    data: RefCell<PSStore>,
+    file_data: Rc<RefCell<RecordTree>>,
+    current_path: TypedListStore<RecordNode>,
+    current_records: RefCell<TypedListStore<RecordNode>>,
     view: PSTreeView,
 
     file_actions: gio::SimpleActionGroup,
@@ -60,6 +63,8 @@ struct PSMainWindowPrivate {
 
 #[derive(Default)]
 pub struct PSMainWindowInner {
+    pub path_label: gtk::Label,
+    pub up_button: gtk::Button,
     private: OnceCell<PSMainWindowPrivate>,
     delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
 }
@@ -120,7 +125,6 @@ impl ObjectImpl for PSMainWindowInner {
         save_box.append(&save_as_button);
         header_bar.pack_end(&save_box);
 
-        let data = PSStore::new();
         let view = PSTreeView::default();
         let toast = Toast::new();
 
@@ -128,12 +132,34 @@ impl ObjectImpl for PSMainWindowInner {
 
         let grid = gtk::Grid::new();
 
+        self.path_label.set_xalign(0.0_f32);
+        self.path_label.set_yalign(0.5_f32);
+        self.path_label.set_hexpand(true);
+        self.path_label.set_margin_top(5);
+        self.path_label.set_margin_bottom(5);
+        self.path_label.set_margin_start(5);
+        self.path_label.set_margin_end(5);
+        self.path_label.set_label(HOME);
+
+        self.up_button.set_icon_name("navigate-up");
+        self.up_button.set_tooltip_text(Some("Go go parent group"));
+        self.up_button.set_sensitive(false);
+        self.up_button.set_hexpand(false);
+        self.up_button.set_margin_top(5);
+        self.up_button.set_margin_bottom(5);
+        self.up_button.set_margin_start(5);
+        self.up_button.set_margin_end(5);
+        self.up_button
+            .connect_clicked(clone!(@weak self as this => move |_| this.go_up()));
+
         let search_bar = PSSearchBar::new();
-        grid.attach(&search_bar.get_widget(), 0, 2, 1, 1);
 
         let tree_container = gtk::Grid::new();
         view.set_vexpand(true);
-        tree_container.attach(&view, 0, 0, 1, 1);
+        tree_container.attach(&search_bar.get_widget(), 0, 0, 2, 1);
+        tree_container.attach(&self.path_label, 0, 1, 1, 1);
+        tree_container.attach(&self.up_button, 1, 1, 1, 1);
+        tree_container.attach(&view, 0, 2, 2, 1);
         let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
         tree_action_bar.pack_start(&action_popover_button(
             &RecordTypePopoverBuilder::default()
@@ -168,7 +194,7 @@ impl ObjectImpl for PSMainWindowInner {
             "edit-copy-symbolic",
             "Copy name",
         ));
-        tree_container.attach(&tree_action_bar, 0, 1, 1, 1);
+        tree_container.attach(&tree_action_bar, 0, 3, 2, 1);
 
         let stack = gtk::Stack::new()
             .named("dashboard", &dashboard.get_widget())
@@ -177,7 +203,9 @@ impl ObjectImpl for PSMainWindowInner {
 
         win.set_child(Some(&grid));
 
-        view.set_model(Some(&data.as_model()));
+        let file_data = Rc::new(RefCell::new(RecordTree::default()));
+        let current_records = file_data.borrow().records.clone();
+        view.set_model(&current_records);
 
         let file_actions = gio::SimpleActionGroup::new();
         win.register_file_actions(&file_actions);
@@ -192,7 +220,9 @@ impl ObjectImpl for PSMainWindowInner {
             header_bar,
             stack,
             dashboard,
-            data: RefCell::new(data),
+            file_data,
+            current_path: Default::default(),
+            current_records: RefCell::new(current_records),
             view,
             search_bar,
             toast,
@@ -247,19 +277,9 @@ impl ObjectImpl for PSMainWindowInner {
 
         win.private()
             .view
-            .connect_record_activated(clone!(@weak win => move |_record, _iter| {
+            .connect_record_activated(clone!(@weak win => move |position| {
                 glib::MainContext::default().spawn_local(async move {
-                    win.action_edit().await;
-                });
-            }));
-
-        win.private()
-            .view
-            .connect_url_clicked(clone!(@weak win => move |record| {
-                glib::MainContext::default().spawn_local(async move {
-                    if let Some(url) = record.url() {
-                        gtk::show_uri(Some(&win), url, 0);
-                    }
+                    win.listview_row_activated(position).await;
                 });
             }));
 
@@ -271,6 +291,41 @@ impl ObjectImpl for PSMainWindowInner {
 impl WidgetImpl for PSMainWindowInner {}
 impl WindowImpl for PSMainWindowInner {}
 impl ApplicationWindowImpl for PSMainWindowInner {}
+
+impl PSMainWindowInner {
+    fn go_up(&self) {
+        let private = self.private.get().unwrap();
+
+        let prev = private.current_path.pop_back();
+        match self.private.get().unwrap().current_path.last() {
+            Some(parent) => {
+                *private.current_records.borrow_mut() = parent.children().unwrap().clone();
+            }
+            None => {
+                *private.current_records.borrow_mut() = private.file_data.borrow().records.clone();
+            }
+        }
+        private.view.set_model(&private.current_records.borrow());
+        // FIXME: private.view. select prev
+
+        self.update_path();
+    }
+
+    fn update_path(&self) {
+        let private = self.private.get().unwrap();
+
+        let mut label = String::from(HOME);
+        for record in &private.current_path {
+            label.push_str(" / ");
+            label.push_str(&record.record().name());
+        }
+
+        self.path_label.set_text(&label);
+
+        self.up_button
+            .set_sensitive(!private.current_path.is_empty());
+    }
+}
 
 glib::wrapper! {
     pub struct PSMainWindow(ObjectSubclass<PSMainWindowInner>)
@@ -309,39 +364,66 @@ impl PSMainWindow {
         }
     }
 
-    fn get_selected_group_iter(&self) -> Option<gtk::TreeIter> {
-        let (selected_record, iter) = self.private().view.get_selected_record()?;
-        let model = &self.private().data.borrow();
-        if selected_record.record_type.is_group {
-            return Some(iter);
-        }
-        model.parent(&iter)
+    fn set_data(&self, data: RecordTree) {
+        *self.private().file_data.borrow_mut() = data;
+        self.private().current_path.remove_all();
+        *self.private().current_records.borrow_mut() =
+            self.private().file_data.borrow().records.clone();
+        self.private()
+            .view
+            .set_model(&self.private().current_records.borrow());
     }
 
-    fn listview_cursor_changed(&self, records: &[Record]) {
+    fn get_record(&self, position: u32) -> Option<RecordNode> {
+        self.private().current_records.borrow().get(position)
+    }
+
+    fn listview_cursor_changed(&self, selected: gtk::Bitset) {
         let entry_actions = &self.private().entry_actions;
-        let is_selected_record = records.len() == 1;
+        let selected_record = if selected.size() == 1 {
+            self.get_record(selected.nth(0))
+        } else {
+            None
+        };
 
         entry_actions
             .simple_action("copy-name")
-            .set_enabled(is_selected_record);
-        entry_actions
-            .simple_action("copy-password")
-            .set_enabled(is_selected_record && records[0].password().is_some());
+            .set_enabled(selected_record.is_some());
+        entry_actions.simple_action("copy-password").set_enabled(
+            selected_record
+                .as_ref()
+                .and_then(|r| r.record().password())
+                .is_some(),
+        );
         entry_actions
             .simple_action("edit")
-            .set_enabled(is_selected_record);
+            .set_enabled(selected_record.is_some());
         entry_actions
             .simple_action("delete")
-            .set_enabled(is_selected_record);
+            .set_enabled(selected_record.is_some());
         entry_actions
             .simple_action("convert-to")
-            .set_enabled(is_selected_record && !records[0].record_type.is_group);
+            .set_enabled(selected_record.map_or(false, |r| !r.record().record_type.is_group));
 
         self.private()
             .file_actions
             .simple_action("merge")
-            .set_enabled(records.len() > 1);
+            .set_enabled(selected.size() > 1);
+    }
+
+    async fn listview_row_activated(&self, position: u32) {
+        let Some(record) = self.get_record(position) else { return };
+        if let Some(children) = record.children() {
+            self.private().current_path.append(&record);
+            *self.private().current_records.borrow_mut() = children.clone();
+            self.private()
+                .view
+                .set_model(&self.private().current_records.borrow());
+
+            self.imp().update_path();
+        } else {
+            self.action_edit().await;
+        }
     }
 
     fn search(&self, event: &SearchEvent) {
@@ -349,48 +431,55 @@ impl PSMainWindow {
             return;
         }
 
-        let private = self.private();
-        let model = private.data.borrow().as_model();
-        let iters = flatten_tree(&model);
+        // let private = self.private();
+        // let model = private.data.borrow().as_model();
+        // let iters = flatten_tree(&model);
 
-        let mut search_iter: Box<dyn Iterator<Item = &gtk::TreeIter>> = match event.event_type {
-            SearchEventType::Change | SearchEventType::Next => Box::new(iters.iter()),
-            SearchEventType::Prev => Box::new(iters.iter().rev()),
-        };
-        if let Some((_selection_record, selection_iter)) = private.view.get_selected_record() {
-            search_iter = Box::new(
-                search_iter.skip_while(move |iter| model.path(iter) != model.path(&selection_iter)),
-            );
-        }
-        match event.event_type {
-            SearchEventType::Change => {}
-            SearchEventType::Next | SearchEventType::Prev => {
-                search_iter = Box::new(search_iter.skip(1))
-            }
-        };
+        // let mut search_iter: Box<dyn Iterator<Item = &gtk::TreeIter>> = match event.event_type {
+        //     SearchEventType::Change | SearchEventType::Next => Box::new(iters.iter()),
+        //     SearchEventType::Prev => Box::new(iters.iter().rev()),
+        // };
+        // if let Some((_selection_record, selection_iter)) = private.view.get_selected_record() {
+        //     search_iter = Box::new(
+        //         search_iter.skip_while(move |iter| model.path(iter) != model.path(&selection_iter)),
+        //     );
+        // }
+        // match event.event_type {
+        //     SearchEventType::Change => {}
+        //     SearchEventType::Next | SearchEventType::Prev => {
+        //         search_iter = Box::new(search_iter.skip(1))
+        //     }
+        // };
 
-        let next_match = search_iter
-            .map(|iter| (iter, private.data.borrow().get(iter)))
-            .find(|(_iter, record)| record.has_text(&event.query, event.search_in_secrets));
+        // let next_match = search_iter
+        //     .map(|iter| (iter, private.data.borrow().get(iter)))
+        //     .find(|(_iter, record)| record.has_text(&event.query, event.search_in_secrets));
 
-        if let Some(next_match) = next_match {
-            private.view.select_iter(next_match.0);
-            self.listview_cursor_changed(&[next_match.1]);
-        } else {
-            self.error_bell();
-        }
+        // if let Some(next_match) = next_match {
+        //     private.view.select_iter(next_match.0);
+        //     self.listview_cursor_changed(&[next_match.1]);
+        // } else {
+        //     self.error_bell();
+        // }
     }
 
     fn get_usernames(&self) -> Vec<String> {
-        let mut result = BTreeSet::new();
-        self.private().data.borrow().traverse_all(&mut |event| {
-            let TreeTraverseEvent::Start { record, .. } = event else { return; };
-            let Some(username) = record.username() else { return; };
-            if !username.is_empty() && !result.contains(username) {
-                result.insert(username.to_string());
+        fn traverse(records: &TypedListStore<RecordNode>, usernames: &mut BTreeSet<String>) {
+            for record in records {
+                if let Some(username) = record.record().username().filter(|u| !u.is_empty()) {
+                    if !usernames.contains(username) {
+                        usernames.insert(username.to_string());
+                    }
+                }
+                if let Some(children) = record.children() {
+                    traverse(children, usernames);
+                }
             }
-        });
-        result.into_iter().collect()
+        }
+
+        let mut usernames = BTreeSet::new();
+        traverse(&self.private().file_data.borrow().records, &mut usernames);
+        usernames.into_iter().collect()
     }
 
     async fn ensure_password_is_set(&self) -> Option<String> {
@@ -430,9 +519,7 @@ impl PSMainWindow {
 
     async fn save_data(&self, filename: &Path) -> Result<()> {
         if let Some(password) = self.ensure_password_is_set().await {
-            let tree = self.private().data.borrow().to_tree();
-
-            format::save_file(filename, &password, &tree)?;
+            format::save_file(filename, &password, &*self.private().file_data.borrow())?;
 
             self.private()
                 .toast
@@ -446,9 +533,7 @@ impl PSMainWindow {
 
     pub async fn new_file(&self) {
         if self.ensure_data_is_saved().await {
-            let data = PSStore::new();
-            *self.private().data.borrow_mut() = data.clone();
-            self.private().view.set_model(Some(&data.as_model()));
+            self.set_data(RecordTree::default());
 
             *self.private().filename.borrow_mut() = None;
             *self.private().password.borrow_mut() = None;
@@ -456,7 +541,7 @@ impl PSMainWindow {
 
             self.set_mode(AppMode::FileOpened);
             self.set_changed(false);
-            self.listview_cursor_changed(&[]);
+            self.listview_cursor_changed(gtk::Bitset::new_empty());
         }
     }
 
@@ -467,16 +552,14 @@ impl PSMainWindow {
             self.private().cache.get().unwrap().add_file(filename);
             self.private().search_bar.set_search_mode(false);
 
-            let data = PSStore::from_tree(&entries);
-            *self.private().data.borrow_mut() = data.clone();
-            self.private().view.set_model(Some(&data.as_model()));
+            self.set_data(entries);
 
             *self.private().filename.borrow_mut() = Some(filename.to_owned());
             *self.private().password.borrow_mut() = Some(password);
 
             self.set_mode(AppMode::FileOpened);
             self.set_changed(false);
-            self.listview_cursor_changed(&[]);
+            self.listview_cursor_changed(gtk::Bitset::new_empty());
             self.private().view.grab_focus();
         }
     }
@@ -581,16 +664,14 @@ impl PSMainWindow {
         if self.ensure_data_is_saved().await {
             self.private().search_bar.reset();
 
-            let data = PSStore::new();
-            *self.private().data.borrow_mut() = data.clone();
-            self.private().view.set_model(Some(&data.as_model()));
+            self.set_data(RecordTree::default());
 
             *self.private().filename.borrow_mut() = None;
             *self.private().password.borrow_mut() = None;
 
             self.set_mode(AppMode::Initial);
             self.set_changed(false);
-            self.listview_cursor_changed(&[]);
+            self.listview_cursor_changed(gtk::Bitset::new_empty());
         }
     }
 
@@ -611,14 +692,12 @@ impl PSMainWindow {
         let window = self.clone().upcast();
         if let Some(filename) = open_file(&window).await {
             if let Some((extra_records, _password)) = load_data(filename, &window).await {
-                let records_tree = self.private().data.borrow().to_tree();
+                // TODO: maybe do merge into current folder?
+                let records_tree = &self.private().file_data;
                 let merged_tree =
-                    crate::model::merge_trees::merge_trees(&records_tree, &extra_records);
+                    crate::model::merge_trees::merge_trees(&*records_tree.borrow(), &extra_records);
 
-                let data = PSStore::from_tree(&merged_tree);
-                *self.private().data.borrow_mut() = data.clone();
-                self.private().view.set_model(Some(&data.as_model()));
-
+                self.set_data(merged_tree);
                 self.set_changed(true);
             }
         }
@@ -642,30 +721,41 @@ impl PSMainWindow {
         let record_type = RecordType::find(&record_type_name).unwrap_or(&*RECORD_TYPE_GENERIC);
 
         let empty_record = record_type.new_record();
-        if let Some(new_record) = edit_record(
+        let Some(new_record) = edit_record(
             &empty_record,
             &self.clone().upcast(),
             "Add record",
             self.get_usernames(),
-        )
-        .await
-        {
-            let group_iter = self.get_selected_group_iter();
-            let iter = self
-                .private()
-                .data
-                .borrow()
-                .append(group_iter.as_ref(), &new_record);
-            self.private().view.select_iter(&iter);
-            self.set_changed(true);
-        }
+        ).await else { return };
+
+        let record_node = if new_record.record_type.is_group {
+            RecordNode::group(new_record, &Default::default())
+        } else {
+            RecordNode::leaf(new_record)
+        };
+        self.private().current_records.borrow().append(&record_node);
+        let position = self.private().current_records.borrow().len() as u32 - 1;
+        self.private().view.select_position(position);
+        self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
+        self.set_changed(true);
     }
 
     #[action(name = "merge")]
     async fn action_merge(&self) {
-        let (checked_records, checked_iters) = self.private().view.get_selected_records();
+        let positions = self.private().view.get_selected_positions();
 
-        if checked_records.len() < 2 {
+        let records: Vec<(u32, RecordNode)> = bitset_iter(&positions)
+            .filter_map(|position| {
+                let record = self.get_record(position)?;
+                if record.is_group() {
+                    None
+                } else {
+                    Some((position, record))
+                }
+            })
+            .collect();
+
+        if records.len() < 2 {
             say_info(
                 &self.clone().upcast(),
                 "Nothing to merge. Select few items and try again.",
@@ -674,14 +764,11 @@ impl PSMainWindow {
             return;
         }
 
-        // rename (add path prefix to name)
-        let records = checked_records;
-
         {
             let mut message = String::from("Do you want to merge following items?\n");
-            for record in &records {
+            for (_pos, record) in &records {
                 message.push('\n');
-                message.push_str(&record.name());
+                message.push_str(&record.record().name());
             }
 
             if !confirm_likely(&self.clone().upcast(), &message).await {
@@ -690,16 +777,24 @@ impl PSMainWindow {
         }
 
         // delete entries
-        for iter in &checked_iters {
-            self.private().data.borrow().delete(iter);
+        for position in bitset_iter_rev(&positions) {
+            self.private().current_records.borrow().remove(position);
         }
 
         // create new entry
-        let result = Record::join_entries(&records);
+        let result_node = {
+            let r: Vec<Record> = records
+                .into_iter()
+                .map(|(_pos, record_node)| record_node.record().clone())
+                .collect();
+            let result = Record::join_entries(&r);
+            RecordNode::leaf(result)
+        };
 
-        // TODO: detect common path
-        let iter = self.private().data.borrow().append(None, &result);
-        self.private().view.select_iter(&iter);
+        self.private().current_records.borrow().append(&result_node);
+        let position = self.private().current_records.borrow().len() as u32 - 1;
+        self.private().view.select_position(position);
+        self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
         self.set_changed(true);
     }
 }
@@ -708,82 +803,87 @@ impl PSMainWindow {
 impl PSMainWindow {
     #[action(name = "copy-name")]
     fn action_copy_name(&self) {
-        if let Some((record, _iter)) = self.private().view.get_selected_record() {
-            if let Some(username) = record.username() {
-                self.clipboard().set_text(username);
-                self.private().toast.notify("Name is copied to clipboard");
-            }
-        }
+        let Some(position) = self.private().view.get_selected_position() else { return };
+        let Some(record_node) = self.get_record(position) else { return };
+        let Some(username) = record_node.record().username() else { return };
+        self.clipboard().set_text(username);
+        self.private().toast.notify("Name is copied to clipboard");
     }
 
     #[action(name = "copy-password")]
     fn action_copy_password(&self) {
-        if let Some((record, _iter)) = self.private().view.get_selected_record() {
-            if let Some(password) = record.password() {
-                self.clipboard().set_text(password);
-                self.private()
-                    .toast
-                    .notify("Secret (password) is copied to clipboard");
-            }
-        }
+        let Some(position) = self.private().view.get_selected_position() else { return };
+        let Some(record_node) = self.get_record(position) else { return };
+        let Some(password) = record_node.record().password() else { return };
+        self.clipboard().set_text(password);
+        self.private()
+            .toast
+            .notify("Secret (password) is copied to clipboard");
     }
 
     #[action(name = "edit")]
     async fn action_edit(&self) {
-        if let Some((record, iter)) = self.private().view.get_selected_record() {
-            if let Some(new_record) = edit_record(
-                &record,
-                &self.clone().upcast(),
-                "Edit record",
-                self.get_usernames(),
-            )
-            .await
-            {
-                self.private().data.borrow().update(&iter, &new_record);
-                self.listview_cursor_changed(&[new_record]);
-                self.set_changed(true);
-            }
-        }
+        let Some(position) = self.private().view.get_selected_position() else { return };
+        let Some(record_node) = self.get_record(position) else { return };
+
+        let Some(new_record) = edit_record(
+            record_node.record(),
+            &self.clone().upcast(),
+            "Edit record",
+            self.get_usernames(),
+        )
+        .await else { return };
+
+        self.private()
+            .current_records
+            .borrow()
+            .set(position, record_node.with_record(new_record));
+        self.private().view.select_position(position);
+        self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
+        self.set_changed(true);
     }
 
     #[action(name = "delete")]
     async fn action_delele(&self) {
-        let Some((_record, iter)) = self.private().view.get_selected_record() else { return };
+        let Some(position) = self.private().view.get_selected_position() else { return };
+
         let confirmed = confirm_unlikely(
             &self.clone().upcast(),
             "Do you really want to delete selected entry?",
         )
         .await;
         if confirmed {
-            self.private().data.borrow().delete(&iter);
-            self.listview_cursor_changed(&[]);
+            self.private().current_records.borrow().remove(position);
+            self.listview_cursor_changed(gtk::Bitset::new_empty());
             self.set_changed(true);
         }
     }
 
     #[action(name = "convert-to")]
     fn action_convert(&self, dest_record_type_name: String) {
-        let Some((record, selection_iter)) = self.private().view.get_selected_record() else { return; };
-        if record.record_type.is_group {
+        let Some(position) = self.private().view.get_selected_position() else { return };
+        let Some(record_node) = self.get_record(position) else { return };
+        if record_node.is_group() {
             return;
         }
 
         let Some(dest_record_type) = RecordType::find(&dest_record_type_name)
-            .filter(|rt| !rt.is_group && !rt.ref_eq(record.record_type)) else { return; };
+            .filter(|rt| !rt.is_group && !rt.ref_eq(record_node.record().record_type)) else { return; };
 
         let new_record = {
             let mut new_record = dest_record_type.new_record();
-            let name = record.get_field(&FIELD_NAME);
+            let name = record_node.record().get_field(&FIELD_NAME);
             new_record.set_field(&FIELD_NAME, name);
-            new_record.join(&record);
+            new_record.join(record_node.record());
             new_record
         };
         self.private()
-            .data
+            .current_records
             .borrow()
-            .update(&selection_iter, &new_record);
+            .set(position, record_node.with_record(new_record));
         self.set_changed(true);
-        self.listview_cursor_changed(&[new_record]);
+        self.private().view.select_position(position);
+        self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
     }
 }
 

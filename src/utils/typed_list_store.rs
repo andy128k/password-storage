@@ -21,31 +21,39 @@ where
         self.0
     }
 
-    pub fn len(&self) -> usize {
-        self.0.n_items() as usize
+    pub fn len(&self) -> u32 {
+        self.0.n_items()
     }
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    pub fn get(&self, index: usize) -> Option<T> {
-        self.0
-            .item(index as u32)
-            .and_then(|item| item.downcast().ok())
+    pub fn get(&self, index: u32) -> Option<T> {
+        self.0.item(index).and_then(|item| item.downcast().ok())
     }
 
-    pub fn set(&self, index: usize, value: T) {
-        self.0.splice(index as u32, 1, &[value.upcast()]);
+    pub fn last(&self) -> Option<T> {
+        self.get(self.len().saturating_sub(1))
     }
 
-    pub fn updated(self, index: usize, value: T) -> Self {
+    pub fn set(&self, index: u32, value: T) {
+        self.0.splice(index, 1, &[value.upcast()]);
+    }
+
+    pub fn updated(self, index: u32, value: T) -> Self {
         if self.get(index).as_ref() == Some(&value) {
             self
         } else {
             self.iter()
                 .enumerate()
-                .map(|p| if p.0 == index { value.clone() } else { p.1 })
+                .map(|p| {
+                    if p.0 as u32 == index {
+                        value.clone()
+                    } else {
+                        p.1
+                    }
+                })
                 .collect()
         }
     }
@@ -72,9 +80,11 @@ where
         store
     }
 
-    pub fn remove(&self, index: usize) {
+    pub fn remove(&self, index: u32) -> Option<T> {
+        let item = self.get(index)?;
         const NOTHING: &[glib::Object] = &[];
-        self.0.splice(index as u32, 1, NOTHING);
+        self.0.splice(index, 1, NOTHING);
+        Some(item)
     }
 
     pub fn removed(&self, index: usize) -> Self {
@@ -83,6 +93,14 @@ where
             .filter(|p| p.0 != index)
             .map(|p| p.1)
             .collect()
+    }
+
+    pub fn pop_back(&self) -> Option<T> {
+        self.remove(self.len().saturating_sub(1))
+    }
+
+    pub fn remove_all(&self) {
+        self.0.remove_all();
     }
 
     pub fn append(&self, obj: &T) {
@@ -123,7 +141,7 @@ where
     }
 
     pub fn take_if(&self, predicate: impl Fn(&T) -> bool) -> Option<T> {
-        let index = self.iter().position(|item| predicate(&item))?;
+        let index = self.iter().position(|item| predicate(&item))? as u32;
         let found = self.get(index);
         self.remove(index);
         found
@@ -141,7 +159,7 @@ where
 
 pub struct ListStoreIterator<T> {
     list_store: TypedListStore<T>,
-    index: usize,
+    index: u32,
 }
 
 impl<T> std::iter::Iterator for ListStoreIterator<T>
