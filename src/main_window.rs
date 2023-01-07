@@ -15,6 +15,7 @@ use crate::ui::dialogs::file_chooser::{open_file, save_file};
 use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
+use crate::ui::group_selector::select_group;
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
 use crate::ui::search::{PSSearchBar, SearchEvent, SearchEventType};
 use crate::ui::toast::Toast;
@@ -819,6 +820,50 @@ impl PSMainWindow {
         self.private()
             .toast
             .notify("Secret (password) is copied to clipboard");
+    }
+
+    #[action(name = "move")]
+    async fn action_move(&self) {
+        let positions = self.private().view.get_selected_positions();
+        if positions.size() < 1 {
+            return;
+        }
+
+        let Some(dest) = select_group(
+            &self.clone().upcast(),
+            "Move to...",
+            &self.private().file_data.borrow(),
+        )
+        .await else { return };
+
+        let mut records = Vec::new();
+        for position in bitset_iter_rev(&positions) {
+            let Some(record) = self.private().current_records.borrow().get(position) else { continue };
+            if dest.iter().any(|p| p == record) {
+                continue;
+            }
+            self.private().current_records.borrow().remove(position);
+            records.push(record);
+        }
+
+        match dest.last() {
+            None => {
+                // move to root
+                for record in records {
+                    self.private().file_data.borrow().records.append(&record);
+                }
+            }
+            Some(group) => {
+                // move to a group
+                let children = group.children().expect("Only a group can be a destination");
+                for record in records {
+                    children.append(&record);
+                }
+            }
+        }
+
+        self.listview_cursor_changed(gtk::Bitset::new_empty());
+        self.set_changed(true);
     }
 
     #[action(name = "edit")]

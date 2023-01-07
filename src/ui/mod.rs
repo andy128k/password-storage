@@ -6,6 +6,7 @@ pub mod error_label;
 pub mod fancy_button;
 pub mod flow_grid;
 pub mod forms;
+pub mod group_selector;
 pub mod menu;
 pub mod password_editor;
 pub mod password_strength_bar;

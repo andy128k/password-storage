@@ -9,6 +9,10 @@ impl<T> TypedListStore<T>
 where
     T: IsA<glib::Object>,
 {
+    pub fn from_untyped(list: gio::ListStore) -> Self {
+        Self(list, PhantomData)
+    }
+
     pub fn new() -> Self {
         Self(gio::ListStore::new(T::static_type()), PhantomData)
     }

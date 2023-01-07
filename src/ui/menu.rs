@@ -62,6 +62,13 @@ pub fn create_tree_popup() -> gio::MenuModel {
                 ),
         )
         .section(
+            gio::Menu::new().item(
+                gio::MenuItem::create()
+                    .action("entry.move")
+                    .label("_Move to..."),
+            ),
+        )
+        .section(
             gio::Menu::new()
                 .item(gio::MenuItem::create().action("entry.edit").label("_Edit"))
                 .item(
