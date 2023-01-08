@@ -317,10 +317,6 @@ glib::wrapper! {
 }
 
 impl PSMainWindow {
-    pub fn from_window(window: &gtk::Window) -> Option<Self> {
-        window.clone().downcast::<Self>().ok()
-    }
-
     fn private(&self) -> &imp::PSMainWindowPrivate {
         let private = self.imp();
         private.private.get().unwrap()
