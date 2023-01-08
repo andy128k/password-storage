@@ -35,42 +35,45 @@ const HOME: &str = "\u{2302}";
 mod imp {
     use super::*;
 
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, Default)]
     pub enum AppMode {
+        #[default]
         Initial,
         FileOpened,
     }
 
     pub struct PSMainWindowPrivate {
         pub mode: Cell<AppMode>,
-        pub header_bar: gtk::HeaderBar,
-        pub stack: gtk::Stack,
-        pub dashboard: PSDashboard,
         pub file_data: Rc<RefCell<RecordTree>>,
         pub current_path: TypedListStore<RecordNode>,
         pub current_records: RefCell<TypedListStore<RecordNode>>,
-        pub view: PSTreeView,
-
-        pub file_actions: gio::SimpleActionGroup,
-        pub entry_actions: gio::SimpleActionGroup,
-
-        pub search_bar: PSSearchBar,
-        pub toast: Toast,
 
         pub filename: RefCell<Option<PathBuf>>,
         pub password: RefCell<Option<String>>,
         pub changed: Cell<bool>,
-
-        pub config_service: OnceCell<Rc<ConfigService>>,
-        pub cache: OnceCell<Cache>,
     }
 
     #[derive(Default)]
     pub struct PSMainWindow {
+        pub header_bar: gtk::HeaderBar,
+        pub stack: gtk::Stack,
+
+        pub file_actions: gio::SimpleActionGroup,
+        pub entry_actions: gio::SimpleActionGroup,
+
+        pub dashboard: PSDashboard,
+
+        pub toast: Toast,
         pub path_label: gtk::Label,
         pub up_button: gtk::Button,
+        pub search_bar: PSSearchBar,
+        pub view: PSTreeView,
+
         pub private: OnceCell<PSMainWindowPrivate>,
         pub delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
+
+        pub config_service: OnceCell<Rc<ConfigService>>,
+        pub cache: OnceCell<Cache>,
     }
 
     #[glib::object_subclass]
@@ -91,29 +94,28 @@ mod imp {
             win.set_default_width(1000);
             win.set_default_height(800);
 
-            let header_bar = gtk::HeaderBar::builder()
-                .show_title_buttons(true)
-                .title_widget(&crate::utils::ui::title(WINDOW_TITLE))
-                .build();
-            win.set_titlebar(Some(&header_bar));
+            self.header_bar.set_show_title_buttons(true);
+            self.header_bar
+                .set_title_widget(Some(&crate::utils::ui::title(WINDOW_TITLE)));
+            win.set_titlebar(Some(&self.header_bar));
 
             let open_button = gtk::Button::builder()
                 .label("Open")
                 .action_name("app.open")
                 .build();
-            header_bar.pack_start(&open_button);
+            self.header_bar.pack_start(&open_button);
             let new_button = gtk::Button::builder()
                 .tooltip_text("New file")
                 .icon_name("document-new-symbolic")
                 .action_name("app.new")
                 .build();
-            header_bar.pack_start(&new_button);
+            self.header_bar.pack_start(&new_button);
 
             let menu = gtk::MenuButton::builder()
                 .icon_name("open-menu-symbolic")
                 .menu_model(&crate::ui::menu::create_main_menu())
                 .build();
-            header_bar.pack_end(&menu);
+            self.header_bar.pack_end(&menu);
 
             let save_box = linked_button_box();
             let save_button = gtk::Button::builder()
@@ -127,14 +129,7 @@ mod imp {
                 .action_name("file.save-as")
                 .build();
             save_box.append(&save_as_button);
-            header_bar.pack_end(&save_box);
-
-            let view = PSTreeView::default();
-            let toast = Toast::new();
-
-            let dashboard = PSDashboard::new();
-
-            let grid = gtk::Grid::new();
+            self.header_bar.pack_end(&save_box);
 
             self.path_label.set_xalign(0.0_f32);
             self.path_label.set_yalign(0.5_f32);
@@ -156,14 +151,12 @@ mod imp {
             self.up_button
                 .connect_clicked(clone!(@weak self as this => move |_| this.go_up()));
 
-            let search_bar = PSSearchBar::new();
-
             let tree_container = gtk::Grid::new();
-            view.set_vexpand(true);
-            tree_container.attach(&search_bar.get_widget(), 0, 0, 2, 1);
+            self.view.set_vexpand(true);
+            tree_container.attach(&self.search_bar.get_widget(), 0, 0, 2, 1);
             tree_container.attach(&self.path_label, 0, 1, 1, 1);
             tree_container.attach(&self.up_button, 1, 1, 1, 1);
-            tree_container.attach(&view, 0, 2, 2, 1);
+            tree_container.attach(&self.view, 0, 2, 2, 1);
             let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
             tree_action_bar.pack_start(&action_popover_button(
                 &RecordTypePopoverBuilder::default()
@@ -200,46 +193,33 @@ mod imp {
             ));
             tree_container.attach(&tree_action_bar, 0, 3, 2, 1);
 
-            let stack = gtk::Stack::new()
-                .named("dashboard", &dashboard.get_widget())
-                .named("file", &overlayed(&tree_container, &toast.as_widget()));
-            grid.attach(&stack, 0, 3, 1, 1);
-
-            win.set_child(Some(&grid));
+            self.stack
+                .add_named(&self.dashboard.get_widget(), Some("dashboard"));
+            self.stack.add_named(
+                &overlayed(&tree_container, &self.toast.as_widget()),
+                Some("file"),
+            );
+            win.set_child(Some(&self.stack));
 
             let file_data = Rc::new(RefCell::new(RecordTree::default()));
             let current_records = file_data.borrow().records.clone();
-            view.set_model(&current_records);
+            self.view.set_model(&current_records);
 
-            let file_actions = gio::SimpleActionGroup::new();
-            win.register_file_actions(&file_actions);
-            win.insert_action_group("file", Some(&file_actions));
+            win.register_file_actions(&self.file_actions);
+            win.insert_action_group("file", Some(&self.file_actions));
 
-            let entry_actions = gio::SimpleActionGroup::new();
-            win.register_entry_actions(&entry_actions);
-            win.insert_action_group("entry", Some(&entry_actions));
+            win.register_entry_actions(&self.entry_actions);
+            win.insert_action_group("entry", Some(&self.entry_actions));
 
             let private = PSMainWindowPrivate {
                 mode: Cell::new(AppMode::Initial),
-                header_bar,
-                stack,
-                dashboard,
                 file_data,
                 current_path: Default::default(),
                 current_records: RefCell::new(current_records),
-                view,
-                search_bar,
-                toast,
-
-                file_actions,
-                entry_actions,
 
                 filename: RefCell::new(None),
                 password: RefCell::new(None),
                 changed: Cell::new(false),
-
-                config_service: OnceCell::new(),
-                cache: OnceCell::new(),
             };
 
             self.private
@@ -254,31 +234,29 @@ mod imp {
                 });
                 glib::signal::Inhibit(true)
             });
-
             *self.delete_handler.borrow_mut() = Some(delete_handler);
 
-            win.private()
+            win.imp()
                 .search_bar
                 .on_search
                 .subscribe(clone!(@weak win => move |event| {
                     win.search(event);
                 }));
-            win.private().search_bar.on_configure.subscribe(
-                clone!(@weak win => move |search_config| {
-                    win.private().config_service.get().unwrap()
+            win.imp().search_bar.on_configure.subscribe(
+                clone!(@weak self as imp => move |search_config| {
+                    imp.config_service.get().unwrap()
                         .update(|config| {
                             config.search_in_secrets = search_config.search_in_secrets;
                         });
                 }),
             );
 
-            win.private().view.connect_record_changed(
-                clone!(@weak win => move |selected_records| {
+            self.view
+                .connect_record_changed(clone!(@weak win => move |selected_records| {
                     win.listview_cursor_changed(selected_records);
-                }),
-            );
+                }));
 
-            win.private()
+            win.imp()
                 .view
                 .connect_record_activated(clone!(@weak win => move |position| {
                     glib::MainContext::default().spawn_local(async move {
@@ -287,7 +265,7 @@ mod imp {
                 }));
 
             let popup = ui::menu::create_tree_popup();
-            win.private().view.set_popup(&popup);
+            win.imp().view.set_popup(&popup);
         }
     }
 
@@ -309,7 +287,7 @@ mod imp {
                         private.file_data.borrow().records.clone();
                 }
             }
-            private.view.set_model(&private.current_records.borrow());
+            self.view.set_model(&private.current_records.borrow());
             // FIXME: private.view. select prev
 
             self.update_path();
@@ -375,7 +353,7 @@ impl PSMainWindow {
         self.private().current_path.remove_all();
         *self.private().current_records.borrow_mut() =
             self.private().file_data.borrow().records.clone();
-        self.private()
+        self.imp()
             .view
             .set_model(&self.private().current_records.borrow());
     }
@@ -385,7 +363,7 @@ impl PSMainWindow {
     }
 
     fn listview_cursor_changed(&self, selected: gtk::Bitset) {
-        let entry_actions = &self.private().entry_actions;
+        let entry_actions = &self.imp().entry_actions;
         let selected_record = if selected.size() == 1 {
             self.get_record(selected.nth(0))
         } else {
@@ -411,7 +389,7 @@ impl PSMainWindow {
             .simple_action("convert-to")
             .set_enabled(selected_record.map_or(false, |r| !r.record().record_type.is_group));
 
-        self.private()
+        self.imp()
             .file_actions
             .simple_action("merge")
             .set_enabled(selected.size() > 1);
@@ -422,7 +400,7 @@ impl PSMainWindow {
         if let Some(children) = record.children() {
             self.private().current_path.append(&record);
             *self.private().current_records.borrow_mut() = children.clone();
-            self.private()
+            self.imp()
                 .view
                 .set_model(&self.private().current_records.borrow());
 
@@ -497,12 +475,13 @@ impl PSMainWindow {
 
     fn update_title(&self) {
         let private = self.private();
-        let header_bar = &private.header_bar;
         match private.mode.get() {
             imp::AppMode::Initial => {
-                header_bar.set_title_widget(Some(&crate::utils::ui::title(WINDOW_TITLE)));
+                self.imp()
+                    .header_bar
+                    .set_title_widget(Some(&crate::utils::ui::title(WINDOW_TITLE)));
             }
-            _ => {
+            imp::AppMode::FileOpened => {
                 let mut display_filename = private
                     .filename
                     .borrow()
@@ -515,10 +494,9 @@ impl PSMainWindow {
                     display_filename += " \u{23FA}";
                 }
 
-                header_bar.set_title_widget(Some(&crate::utils::ui::title_and_subtitle(
-                    WINDOW_TITLE,
-                    &display_filename,
-                )));
+                self.imp().header_bar.set_title_widget(Some(
+                    &crate::utils::ui::title_and_subtitle(WINDOW_TITLE, &display_filename),
+                ));
             }
         }
     }
@@ -527,12 +505,12 @@ impl PSMainWindow {
         if let Some(password) = self.ensure_password_is_set().await {
             format::save_file(filename, &password, &self.private().file_data.borrow())?;
 
-            self.private()
+            self.imp()
                 .toast
                 .notify(&format!("File '{}' was saved", filename.display()));
             *self.private().filename.borrow_mut() = Some(filename.to_owned());
             self.set_changed(false);
-            self.private().cache.get().unwrap().add_file(filename);
+            self.imp().cache.get().unwrap().add_file(filename);
         }
         Ok(())
     }
@@ -543,7 +521,7 @@ impl PSMainWindow {
 
             *self.private().filename.borrow_mut() = None;
             *self.private().password.borrow_mut() = None;
-            self.private().search_bar.set_search_mode(false);
+            self.imp().search_bar.set_search_mode(false);
 
             self.set_mode(imp::AppMode::FileOpened);
             self.set_changed(false);
@@ -555,8 +533,8 @@ impl PSMainWindow {
         if let Some((entries, password)) =
             load_data(filename.to_owned(), &self.clone().upcast()).await
         {
-            self.private().cache.get().unwrap().add_file(filename);
-            self.private().search_bar.set_search_mode(false);
+            self.imp().cache.get().unwrap().add_file(filename);
+            self.imp().search_bar.set_search_mode(false);
 
             self.set_data(entries);
 
@@ -566,7 +544,7 @@ impl PSMainWindow {
             self.set_mode(imp::AppMode::FileOpened);
             self.set_changed(false);
             self.listview_cursor_changed(gtk::Bitset::new_empty());
-            self.private().view.grab_focus();
+            self.imp().view.grab_focus();
         }
     }
 
@@ -604,25 +582,24 @@ impl PSMainWindow {
     }
 
     fn set_mode(&self, mode: imp::AppMode) {
-        let private = self.private();
         match mode {
             imp::AppMode::Initial => {
-                private.file_actions.set_enabled(false);
-                private.entry_actions.set_enabled(false);
+                self.imp().file_actions.set_enabled(false);
+                self.imp().entry_actions.set_enabled(false);
 
-                private.stack.set_visible_child_name("dashboard");
-                if let Some(cache) = self.private().cache.get() {
-                    self.private().dashboard.update(cache);
+                self.imp().stack.set_visible_child_name("dashboard");
+                if let Some(cache) = self.imp().cache.get() {
+                    self.imp().dashboard.update(cache);
                 }
             }
             imp::AppMode::FileOpened => {
-                private.file_actions.set_enabled(true);
-                private.entry_actions.set_enabled(true);
+                self.imp().file_actions.set_enabled(true);
+                self.imp().entry_actions.set_enabled(true);
 
-                private.stack.set_visible_child_name("file");
+                self.imp().stack.set_visible_child_name("file");
             }
         }
-        private.search_bar.set_search_mode(false);
+        self.imp().search_bar.set_search_mode(false);
         self.private().mode.set(mode);
     }
 
@@ -640,20 +617,20 @@ impl PSMainWindow {
     pub fn new(app: &gtk::Application, config_service: &Rc<ConfigService>, cache: &Cache) -> Self {
         let win: Self = glib::Object::builder().property("application", app).build();
 
-        win.private()
+        win.imp()
             .config_service
             .set(config_service.clone())
             .ok()
             .unwrap();
-        win.private().cache.set(cache.clone()).ok().unwrap();
-        win.private().dashboard.update(cache);
+        win.imp().cache.set(cache.clone()).ok().unwrap();
+        win.imp().dashboard.update(cache);
 
         let config = config_service.get();
-        win.private().search_bar.configure(config.search_in_secrets);
+        win.imp().search_bar.configure(config.search_in_secrets);
         config_service
             .on_change
             .subscribe(glib::clone!(@weak win => move |new_config| {
-                win.private().search_bar.configure(new_config.search_in_secrets);
+                win.imp().search_bar.configure(new_config.search_in_secrets);
             }));
 
         win.show();
@@ -668,7 +645,7 @@ impl PSMainWindow {
     #[action(name = "close")]
     async fn action_close_file(&self) {
         if self.ensure_data_is_saved().await {
-            self.private().search_bar.reset();
+            self.imp().search_bar.reset();
 
             self.set_data(RecordTree::default());
 
@@ -693,7 +670,7 @@ impl PSMainWindow {
 
     #[action(name = "merge-file")]
     async fn action_merge_file(&self) {
-        self.private().search_bar.reset();
+        self.imp().search_bar.reset();
 
         let window = self.clone().upcast();
         if let Some(filename) = open_file(&window).await {
@@ -719,7 +696,7 @@ impl PSMainWindow {
 
     #[action(name = "find")]
     fn action_find(&self) {
-        self.private().search_bar.set_search_mode(true);
+        self.imp().search_bar.set_search_mode(true);
     }
 
     #[action(name = "add")]
@@ -741,14 +718,14 @@ impl PSMainWindow {
         };
         self.private().current_records.borrow().append(&record_node);
         let position = self.private().current_records.borrow().len() - 1;
-        self.private().view.select_position(position);
+        self.imp().view.select_position(position);
         self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
         self.set_changed(true);
     }
 
     #[action(name = "merge")]
     async fn action_merge(&self) {
-        let positions = self.private().view.get_selected_positions();
+        let positions = self.imp().view.get_selected_positions();
 
         let records: Vec<(u32, RecordNode)> = bitset_iter(&positions)
             .filter_map(|position| {
@@ -799,7 +776,7 @@ impl PSMainWindow {
 
         self.private().current_records.borrow().append(&result_node);
         let position = self.private().current_records.borrow().len() - 1;
-        self.private().view.select_position(position);
+        self.imp().view.select_position(position);
         self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
         self.set_changed(true);
     }
@@ -809,27 +786,27 @@ impl PSMainWindow {
 impl PSMainWindow {
     #[action(name = "copy-name")]
     fn action_copy_name(&self) {
-        let Some(position) = self.private().view.get_selected_position() else { return };
+        let Some(position) = self.imp().view.get_selected_position() else { return };
         let Some(record_node) = self.get_record(position) else { return };
         let Some(username) = record_node.record().username() else { return };
         self.clipboard().set_text(username);
-        self.private().toast.notify("Name is copied to clipboard");
+        self.imp().toast.notify("Name is copied to clipboard");
     }
 
     #[action(name = "copy-password")]
     fn action_copy_password(&self) {
-        let Some(position) = self.private().view.get_selected_position() else { return };
+        let Some(position) = self.imp().view.get_selected_position() else { return };
         let Some(record_node) = self.get_record(position) else { return };
         let Some(password) = record_node.record().password() else { return };
         self.clipboard().set_text(password);
-        self.private()
+        self.imp()
             .toast
             .notify("Secret (password) is copied to clipboard");
     }
 
     #[action(name = "move")]
     async fn action_move(&self) {
-        let positions = self.private().view.get_selected_positions();
+        let positions = self.imp().view.get_selected_positions();
         if positions.size() < 1 {
             return;
         }
@@ -873,7 +850,7 @@ impl PSMainWindow {
 
     #[action(name = "edit")]
     async fn action_edit(&self) {
-        let Some(position) = self.private().view.get_selected_position() else { return };
+        let Some(position) = self.imp().view.get_selected_position() else { return };
         let Some(record_node) = self.get_record(position) else { return };
 
         let Some(new_record) = edit_record(
@@ -888,14 +865,14 @@ impl PSMainWindow {
             .current_records
             .borrow()
             .set(position, record_node.with_record(new_record));
-        self.private().view.select_position(position);
+        self.imp().view.select_position(position);
         self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
         self.set_changed(true);
     }
 
     #[action(name = "delete")]
     async fn action_delele(&self) {
-        let Some(position) = self.private().view.get_selected_position() else { return };
+        let Some(position) = self.imp().view.get_selected_position() else { return };
 
         let confirmed = confirm_unlikely(
             &self.clone().upcast(),
@@ -911,7 +888,7 @@ impl PSMainWindow {
 
     #[action(name = "convert-to")]
     fn action_convert(&self, dest_record_type_name: String) {
-        let Some(position) = self.private().view.get_selected_position() else { return };
+        let Some(position) = self.imp().view.get_selected_position() else { return };
         let Some(record_node) = self.get_record(position) else { return };
         if record_node.is_group() {
             return;
@@ -932,7 +909,7 @@ impl PSMainWindow {
             .borrow()
             .set(position, record_node.with_record(new_record));
         self.set_changed(true);
-        self.private().view.select_position(position);
+        self.imp().view.select_position(position);
         self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
     }
 }

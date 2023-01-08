@@ -10,8 +10,8 @@ pub struct Toast {
     close_at: Rc<Cell<Instant>>,
 }
 
-impl Toast {
-    pub fn new() -> Self {
+impl Default for Toast {
+    fn default() -> Self {
         let revealer = gtk::Revealer::builder()
             .halign(gtk::Align::Center)
             .valign(gtk::Align::Start)
@@ -65,7 +65,9 @@ impl Toast {
 
         toast
     }
+}
 
+impl Toast {
     pub fn as_widget(&self) -> gtk::Widget {
         self.revealer.clone().upcast()
     }

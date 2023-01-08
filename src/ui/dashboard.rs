@@ -150,8 +150,8 @@ fn header(label: &str) -> gtk::Widget {
     grid.upcast()
 }
 
-impl PSDashboard {
-    pub fn new() -> Self {
+impl Default for PSDashboard {
+    fn default() -> Self {
         let listbox = gtk::ListBox::builder()
             .width_request(400)
             .hexpand(true)
@@ -172,7 +172,9 @@ impl PSDashboard {
             listbox,
         }
     }
+}
 
+impl PSDashboard {
     pub fn update(&self, cache: &Cache) {
         self.listbox.hide();
         for child in self.listbox.children() {

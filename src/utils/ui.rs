@@ -142,17 +142,6 @@ pub fn overlayed<P1: IsA<gtk::Widget>, P2: IsA<gtk::Widget>>(
     overlay_container
 }
 
-pub trait PSStackExt {
-    fn named<P: IsA<gtk::Widget>>(self, name: &str, child: &P) -> Self;
-}
-
-impl PSStackExt for gtk::Stack {
-    fn named<P: IsA<gtk::Widget>>(self, name: &str, child: &P) -> Self {
-        self.add_named(child, Some(name));
-        self
-    }
-}
-
 pub trait PSSimpleActionGroupExt {
     fn simple_actions(&self) -> Vec<gio::SimpleAction>;
     fn simple_action(&self, name: &str) -> gio::SimpleAction;

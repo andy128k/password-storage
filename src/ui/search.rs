@@ -28,8 +28,8 @@ pub struct PSSearchBar {
     pub on_configure: Rc<Slot<SearchConfig>>,
 }
 
-impl PSSearchBar {
-    pub fn new() -> Self {
+impl Default for PSSearchBar {
+    fn default() -> Self {
         let bx = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
             .spacing(10)
@@ -74,7 +74,9 @@ impl PSSearchBar {
 
         this
     }
+}
 
+impl PSSearchBar {
     pub fn get_widget(&self) -> gtk::Widget {
         self.bar.clone().upcast()
     }
