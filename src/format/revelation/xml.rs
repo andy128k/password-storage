@@ -3,7 +3,7 @@ use crate::model::record::*;
 use crate::model::tree::{RecordNode, RecordTree};
 use crate::utils::typed_list_store::TypedListStore;
 use crate::version::Version;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use quick_xml::{
     events::{attributes::Attributes, BytesDecl, BytesEnd, BytesStart, BytesText, Event},
     Reader, Writer,
@@ -293,12 +293,12 @@ struct TypeMapping<'a> {
     fields: &'a [(&'a str, &'a str)],
 }
 
-lazy_static! {
-    static ref KNOWN_TYPES: Vec<TypeMapping<'static>> = vec![
+static KNOWN_TYPES: Lazy<Vec<TypeMapping<'static>>> = Lazy::new(|| {
+    vec![
         TypeMapping {
             xml_type_name: "folder",
             record_type: &RECORD_TYPE_GROUP,
-            fields: &[]
+            fields: &[],
         },
         TypeMapping {
             xml_type_name: "generic",
@@ -307,7 +307,7 @@ lazy_static! {
                 ("hostname", "generic-hostname"),
                 ("username", "generic-username"),
                 ("password", "generic-password"),
-            ]
+            ],
         },
         TypeMapping {
             xml_type_name: "creditcard",
@@ -318,7 +318,7 @@ lazy_static! {
                 ("expirydate", "creditcard-expirydate"),
                 ("ccv", "creditcard-ccv"),
                 ("pin", "generic-pin"),
-            ]
+            ],
         },
         TypeMapping {
             xml_type_name: "cryptokey",
@@ -328,7 +328,7 @@ lazy_static! {
                 ("certificate", "generic-certificate"),
                 ("keyfile", "generic-keyfile"),
                 ("password", "generic-password"),
-            ]
+            ],
         },
         TypeMapping {
             xml_type_name: "database",
@@ -338,12 +338,12 @@ lazy_static! {
                 ("username", "generic-username"),
                 ("password", "generic-password"),
                 ("database", "generic-database"),
-            ]
+            ],
         },
         TypeMapping {
             xml_type_name: "door",
             record_type: &RECORD_TYPE_DOOR,
-            fields: &[("location", "generic-location"), ("code", "generic-code"),]
+            fields: &[("location", "generic-location"), ("code", "generic-code")],
         },
         TypeMapping {
             xml_type_name: "email",
@@ -353,7 +353,7 @@ lazy_static! {
                 ("hostname", "generic-hostname"),
                 ("username", "generic-username"),
                 ("password", "generic-password"),
-            ]
+            ],
         },
         TypeMapping {
             xml_type_name: "ftp",
@@ -363,12 +363,12 @@ lazy_static! {
                 ("port", "generic-port"),
                 ("username", "generic-username"),
                 ("password", "generic-password"),
-            ]
+            ],
         },
         TypeMapping {
             xml_type_name: "phone",
             record_type: &RECORD_TYPE_PHONE,
-            fields: &[("phonenumber", "phone-phonenumber"), ("pin", "generic-pin"),]
+            fields: &[("phonenumber", "phone-phonenumber"), ("pin", "generic-pin")],
         },
         TypeMapping {
             xml_type_name: "shell",
@@ -378,7 +378,7 @@ lazy_static! {
                 ("domain", "generic-domain"),
                 ("username", "generic-username"),
                 ("password", "generic-password"),
-            ]
+            ],
         },
         TypeMapping {
             xml_type_name: "website",
@@ -387,10 +387,10 @@ lazy_static! {
                 ("url", "generic-url"),
                 ("username", "generic-username"),
                 ("password", "generic-password"),
-            ]
+            ],
         },
-    ];
-}
+    ]
+});
 
 #[cfg(test)]
 mod test {

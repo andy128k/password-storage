@@ -69,14 +69,15 @@ pub fn save_revelation_file(
     password: &str,
     tree: &RecordTree,
 ) -> Result<()> {
-    let version = 1;
-    let (container, format) = version_impl(version).expect("Version 1 must be supported.");
+    let data_version = 1;
+    let app_version = *VERSION_PARSED;
+    let (container, format) = version_impl(data_version).expect("Version 1 must be supported.");
     let header = file_header::FileHeader {
-        data_version: version,
-        app_version: *VERSION_PARSED,
+        data_version,
+        app_version,
     };
     header.write(destination)?;
-    let xml = format.serialize(tree, *VERSION_PARSED)?;
+    let xml = format.serialize(tree, app_version)?;
     container.encrypt(destination, &xml, password)?;
     Ok(())
 }

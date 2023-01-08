@@ -164,7 +164,7 @@ impl ObjectImpl for PSMainWindowInner {
         let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
         tree_action_bar.pack_start(&action_popover_button(
             &RecordTypePopoverBuilder::default()
-                .record_types(&*RECORD_TYPES)
+                .record_types(&RECORD_TYPES)
                 .action_name_func(|record_type| format!("file.add::{}", record_type.name))
                 .build(),
             "list-add-symbolic",

@@ -1,6 +1,6 @@
 use crate::gtk_prelude::*;
 use crate::utils::run_once::RunOnce;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -11,9 +11,7 @@ pub fn load_css_from_data(data: &[u8]) -> gtk::CssProvider {
 }
 
 pub fn load_static_css<W: IsA<gtk::Widget>>(widget: &W, data: &'static [u8]) {
-    lazy_static! {
-        static ref INITIALIZED_CSS: RunOnce<(u64, String)> = Default::default();
-    }
+    static INITIALIZED_CSS: Lazy<RunOnce<(u64, String)>> = Lazy::new(RunOnce::default);
 
     widget.connect_realize(move |widget| {
         let display = widget.display();

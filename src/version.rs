@@ -1,4 +1,4 @@
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::fmt;
 use std::str::FromStr;
 
@@ -40,9 +40,7 @@ impl fmt::Display for Version {
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-lazy_static! {
-    pub static ref VERSION_PARSED: Version = VERSION.parse().unwrap();
-}
+pub static VERSION_PARSED: Lazy<Version> = Lazy::new(|| VERSION.parse().unwrap());
 
 #[cfg(test)]
 mod test {
