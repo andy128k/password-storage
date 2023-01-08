@@ -24,6 +24,8 @@ impl ObjectImpl for PSApplication {
         app.connect_activate(|app| app.on_activate());
         app.connect_shutdown(|app| app.on_shutdown());
         app.connect_open(|app, files, hint| {
+            app.on_activate();
+
             let app = app.clone();
             let files = files.to_owned();
             let hint = hint.to_owned();
