@@ -5,3 +5,7 @@ data
 *.deb
 PasswordStorage.iconset
 PasswordStorage.icns
+/.flatpak-builder
+/build-dir
+/export
+*.flatpak

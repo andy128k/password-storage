@@ -32,15 +32,3 @@ winres = "0.1"
 
 [profile.release]
 strip = true
-
-[package.metadata.deb]
-extended-description = "Password storing program"
-depends = "libgtk-3-0 (>= 3.22), shared-mime-info"
-conflicts = "revelation"
-assets = [
-    ["target/release/password-storage",               "/usr/bin/",                                    "755"],
-    ["icons/app-icon/password-storage.svg",           "/usr/share/pixmaps/",                          "644"],
-    ["unix-desktop/password-storage.desktop",         "/usr/share/applications/",                     "644"],
-    ["unix-desktop/revelation.xml",                   "/usr/share/mime/packages/",                    "644"],
-    ["icons/mimetypes/application-x-revelation.svg",  "/usr/share/icons/hicolor/scalable/mimetypes/", "644"],
-]

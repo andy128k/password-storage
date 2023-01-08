@@ -4,8 +4,10 @@ test:
 coverage:
 	cargo tarpaulin --forward --timeout 5 --out Xml --verbose -- --nocapture --test-threads=1
 
-deb:
-	cargo deb
+flatpak:
+	flatpak-builder build-dir --user --install-deps-from=flathub --force-clean build-flatpak/dev.andy128k.password-storage.yml
+	flatpak build-export export build-dir
+	flatpak build-bundle export dev.andy128k.password-storage.flatpak dev.andy128k.password-storage
 
 release:
 	cargo build --release

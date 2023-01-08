@@ -8,21 +8,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Install dependencies
+      - uses: actions/checkout@v3
+      - name: Install flatpak
         run: |
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends build-essential curl ca-certificates libssl-dev libgtk-4-dev xvfb
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions-rs/install@v0.1
-        with:
-          crate: cargo-deb
-          # use-tool-cache: true
-      - name: Make deb
-        id: make-deb
-        run: |
-          make deb
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder
+      - run: flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+      - run: make flatpak
       - uses: softprops/action-gh-release@v1
         with:
-          files: target/debian/password-storage*.deb
+          files: dev.andy128k.password-storage.flatpak
