@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-  <gresource prefix="/net/andy128k/password-storage/icons">
+  <gresource prefix="/dev/andy128k/password-storage/icons">
     <file alias="48x48/apps/password-storage.png">icons/app-icon/password-storage.png</file>
     <file alias="scalable/apps/password-storage.svg">icons/app-icon/password-storage.svg</file>
 

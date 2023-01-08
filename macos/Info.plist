@@ -11,7 +11,7 @@
 	<key>CFBundleIconFile</key>
 	<string>PasswordStorage.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>net.andy128k.password-storage</string>
+	<string>dev.andy128k.password-storage</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>

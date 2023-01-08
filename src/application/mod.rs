@@ -18,7 +18,7 @@ glib::wrapper! {
 impl Default for PSApplication {
     fn default() -> Self {
         glib::Object::builder()
-            .property("application-id", "net.andy128k.password-storage")
+            .property("application-id", "dev.andy128k.password-storage")
             .property("flags", &gio::ApplicationFlags::HANDLES_OPEN)
             .build()
     }
