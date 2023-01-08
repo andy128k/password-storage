@@ -5,6 +5,6 @@ module.exports = function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy("icon.png");
 
   return {
-    pathPrefix: '/password-storage/',
+    pathPrefix: '/',
   };
 };
