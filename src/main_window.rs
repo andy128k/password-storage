@@ -520,7 +520,7 @@ impl PSMainWindow {
 
     async fn save_data(&self, filename: &Path) -> Result<()> {
         if let Some(password) = self.ensure_password_is_set().await {
-            format::save_file(filename, &password, &*self.private().file_data.borrow())?;
+            format::save_file(filename, &password, &self.private().file_data.borrow())?;
 
             self.private()
                 .toast
@@ -696,7 +696,7 @@ impl PSMainWindow {
                 // TODO: maybe do merge into current folder?
                 let records_tree = &self.private().file_data;
                 let merged_tree =
-                    crate::model::merge_trees::merge_trees(&*records_tree.borrow(), &extra_records);
+                    crate::model::merge_trees::merge_trees(&records_tree.borrow(), &extra_records);
 
                 self.set_data(merged_tree);
                 self.set_changed(true);
@@ -735,7 +735,7 @@ impl PSMainWindow {
             RecordNode::leaf(new_record)
         };
         self.private().current_records.borrow().append(&record_node);
-        let position = self.private().current_records.borrow().len() as u32 - 1;
+        let position = self.private().current_records.borrow().len() - 1;
         self.private().view.select_position(position);
         self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
         self.set_changed(true);
@@ -793,7 +793,7 @@ impl PSMainWindow {
         };
 
         self.private().current_records.borrow().append(&result_node);
-        let position = self.private().current_records.borrow().len() as u32 - 1;
+        let position = self.private().current_records.borrow().len() - 1;
         self.private().view.select_position(position);
         self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
         self.set_changed(true);
