@@ -32,305 +32,310 @@ use std::rc::Rc;
 const WINDOW_TITLE: &str = "Password Storage";
 const HOME: &str = "\u{2302}";
 
-#[derive(Clone, Copy)]
-enum AppMode {
-    Initial,
-    FileOpened,
-}
+mod imp {
+    use super::*;
 
-struct PSMainWindowPrivate {
-    mode: Cell<AppMode>,
-    header_bar: gtk::HeaderBar,
-    stack: gtk::Stack,
-    dashboard: PSDashboard,
-    file_data: Rc<RefCell<RecordTree>>,
-    current_path: TypedListStore<RecordNode>,
-    current_records: RefCell<TypedListStore<RecordNode>>,
-    view: PSTreeView,
+    #[derive(Clone, Copy)]
+    pub enum AppMode {
+        Initial,
+        FileOpened,
+    }
 
-    file_actions: gio::SimpleActionGroup,
-    entry_actions: gio::SimpleActionGroup,
+    pub struct PSMainWindowPrivate {
+        pub mode: Cell<AppMode>,
+        pub header_bar: gtk::HeaderBar,
+        pub stack: gtk::Stack,
+        pub dashboard: PSDashboard,
+        pub file_data: Rc<RefCell<RecordTree>>,
+        pub current_path: TypedListStore<RecordNode>,
+        pub current_records: RefCell<TypedListStore<RecordNode>>,
+        pub view: PSTreeView,
 
-    search_bar: PSSearchBar,
-    toast: Toast,
+        pub file_actions: gio::SimpleActionGroup,
+        pub entry_actions: gio::SimpleActionGroup,
 
-    filename: RefCell<Option<PathBuf>>,
-    password: RefCell<Option<String>>,
-    changed: Cell<bool>,
+        pub search_bar: PSSearchBar,
+        pub toast: Toast,
 
-    config_service: OnceCell<Rc<ConfigService>>,
-    cache: OnceCell<Cache>,
-}
+        pub filename: RefCell<Option<PathBuf>>,
+        pub password: RefCell<Option<String>>,
+        pub changed: Cell<bool>,
 
-#[derive(Default)]
-pub struct PSMainWindowInner {
-    pub path_label: gtk::Label,
-    pub up_button: gtk::Button,
-    private: OnceCell<PSMainWindowPrivate>,
-    delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
-}
+        pub config_service: OnceCell<Rc<ConfigService>>,
+        pub cache: OnceCell<Cache>,
+    }
 
-#[glib::object_subclass]
-impl ObjectSubclass for PSMainWindowInner {
-    const NAME: &'static str = "PSMainWindow";
-    type Type = PSMainWindow;
-    type ParentType = gtk::ApplicationWindow;
-}
+    #[derive(Default)]
+    pub struct PSMainWindow {
+        pub path_label: gtk::Label,
+        pub up_button: gtk::Button,
+        pub private: OnceCell<PSMainWindowPrivate>,
+        pub delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
+    }
 
-impl ObjectImpl for PSMainWindowInner {
-    fn constructed(&self) {
-        self.parent_constructed();
+    #[glib::object_subclass]
+    impl ObjectSubclass for PSMainWindow {
+        const NAME: &'static str = "PSMainWindow";
+        type Type = super::PSMainWindow;
+        type ParentType = gtk::ApplicationWindow;
+    }
 
-        let win = self.obj();
+    impl ObjectImpl for PSMainWindow {
+        fn constructed(&self) {
+            self.parent_constructed();
 
-        win.set_icon_name(Some("password-storage"));
+            let win = self.obj();
 
-        win.set_default_width(1000);
-        win.set_default_height(800);
+            win.set_icon_name(Some("password-storage"));
 
-        let header_bar = gtk::HeaderBar::builder()
-            .show_title_buttons(true)
-            .title_widget(&crate::utils::ui::title(WINDOW_TITLE))
-            .build();
-        win.set_titlebar(Some(&header_bar));
+            win.set_default_width(1000);
+            win.set_default_height(800);
 
-        let open_button = gtk::Button::builder()
-            .label("Open")
-            .action_name("app.open")
-            .build();
-        header_bar.pack_start(&open_button);
-        let new_button = gtk::Button::builder()
-            .tooltip_text("New file")
-            .icon_name("document-new-symbolic")
-            .action_name("app.new")
-            .build();
-        header_bar.pack_start(&new_button);
+            let header_bar = gtk::HeaderBar::builder()
+                .show_title_buttons(true)
+                .title_widget(&crate::utils::ui::title(WINDOW_TITLE))
+                .build();
+            win.set_titlebar(Some(&header_bar));
 
-        let menu = gtk::MenuButton::builder()
-            .icon_name("open-menu-symbolic")
-            .menu_model(&crate::ui::menu::create_main_menu())
-            .build();
-        header_bar.pack_end(&menu);
+            let open_button = gtk::Button::builder()
+                .label("Open")
+                .action_name("app.open")
+                .build();
+            header_bar.pack_start(&open_button);
+            let new_button = gtk::Button::builder()
+                .tooltip_text("New file")
+                .icon_name("document-new-symbolic")
+                .action_name("app.new")
+                .build();
+            header_bar.pack_start(&new_button);
 
-        let save_box = linked_button_box();
-        let save_button = gtk::Button::builder()
-            .label("Save")
-            .action_name("file.save")
-            .build();
-        save_box.append(&save_button);
-        let save_as_button = gtk::Button::builder()
-            .tooltip_text("Save file as...")
-            .icon_name("document-save-as-symbolic")
-            .action_name("file.save-as")
-            .build();
-        save_box.append(&save_as_button);
-        header_bar.pack_end(&save_box);
+            let menu = gtk::MenuButton::builder()
+                .icon_name("open-menu-symbolic")
+                .menu_model(&crate::ui::menu::create_main_menu())
+                .build();
+            header_bar.pack_end(&menu);
 
-        let view = PSTreeView::default();
-        let toast = Toast::new();
+            let save_box = linked_button_box();
+            let save_button = gtk::Button::builder()
+                .label("Save")
+                .action_name("file.save")
+                .build();
+            save_box.append(&save_button);
+            let save_as_button = gtk::Button::builder()
+                .tooltip_text("Save file as...")
+                .icon_name("document-save-as-symbolic")
+                .action_name("file.save-as")
+                .build();
+            save_box.append(&save_as_button);
+            header_bar.pack_end(&save_box);
 
-        let dashboard = PSDashboard::new();
+            let view = PSTreeView::default();
+            let toast = Toast::new();
 
-        let grid = gtk::Grid::new();
+            let dashboard = PSDashboard::new();
 
-        self.path_label.set_xalign(0.0_f32);
-        self.path_label.set_yalign(0.5_f32);
-        self.path_label.set_hexpand(true);
-        self.path_label.set_margin_top(5);
-        self.path_label.set_margin_bottom(5);
-        self.path_label.set_margin_start(5);
-        self.path_label.set_margin_end(5);
-        self.path_label.set_label(HOME);
+            let grid = gtk::Grid::new();
 
-        self.up_button.set_icon_name("navigate-up");
-        self.up_button.set_tooltip_text(Some("Go go parent group"));
-        self.up_button.set_sensitive(false);
-        self.up_button.set_hexpand(false);
-        self.up_button.set_margin_top(5);
-        self.up_button.set_margin_bottom(5);
-        self.up_button.set_margin_start(5);
-        self.up_button.set_margin_end(5);
-        self.up_button
-            .connect_clicked(clone!(@weak self as this => move |_| this.go_up()));
+            self.path_label.set_xalign(0.0_f32);
+            self.path_label.set_yalign(0.5_f32);
+            self.path_label.set_hexpand(true);
+            self.path_label.set_margin_top(5);
+            self.path_label.set_margin_bottom(5);
+            self.path_label.set_margin_start(5);
+            self.path_label.set_margin_end(5);
+            self.path_label.set_label(HOME);
 
-        let search_bar = PSSearchBar::new();
+            self.up_button.set_icon_name("navigate-up");
+            self.up_button.set_tooltip_text(Some("Go go parent group"));
+            self.up_button.set_sensitive(false);
+            self.up_button.set_hexpand(false);
+            self.up_button.set_margin_top(5);
+            self.up_button.set_margin_bottom(5);
+            self.up_button.set_margin_start(5);
+            self.up_button.set_margin_end(5);
+            self.up_button
+                .connect_clicked(clone!(@weak self as this => move |_| this.go_up()));
 
-        let tree_container = gtk::Grid::new();
-        view.set_vexpand(true);
-        tree_container.attach(&search_bar.get_widget(), 0, 0, 2, 1);
-        tree_container.attach(&self.path_label, 0, 1, 1, 1);
-        tree_container.attach(&self.up_button, 1, 1, 1, 1);
-        tree_container.attach(&view, 0, 2, 2, 1);
-        let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
-        tree_action_bar.pack_start(&action_popover_button(
-            &RecordTypePopoverBuilder::default()
-                .record_types(&RECORD_TYPES)
-                .action_name_func(|record_type| format!("file.add::{}", record_type.name))
-                .build(),
-            "list-add-symbolic",
-            "Add new record",
-        ));
-        tree_action_bar.pack_start(&action_button(
-            "entry.delete",
-            "list-remove-symbolic",
-            "Remove record",
-        ));
-        tree_action_bar.pack_start(&action_button(
-            "entry.edit",
-            "document-edit-symbolic",
-            "Edit record",
-        ));
-        tree_action_bar.pack_start(&action_button(
-            "file.merge",
-            "merge",
-            "Merge selected records",
-        ));
-        tree_action_bar.pack_end(&action_button(
-            "entry.copy-password",
-            "dialog-password-symbolic",
-            "Copy password",
-        ));
-        tree_action_bar.pack_end(&action_button(
-            "entry.copy-name",
-            "edit-copy-symbolic",
-            "Copy name",
-        ));
-        tree_container.attach(&tree_action_bar, 0, 3, 2, 1);
+            let search_bar = PSSearchBar::new();
 
-        let stack = gtk::Stack::new()
-            .named("dashboard", &dashboard.get_widget())
-            .named("file", &overlayed(&tree_container, &toast.as_widget()));
-        grid.attach(&stack, 0, 3, 1, 1);
+            let tree_container = gtk::Grid::new();
+            view.set_vexpand(true);
+            tree_container.attach(&search_bar.get_widget(), 0, 0, 2, 1);
+            tree_container.attach(&self.path_label, 0, 1, 1, 1);
+            tree_container.attach(&self.up_button, 1, 1, 1, 1);
+            tree_container.attach(&view, 0, 2, 2, 1);
+            let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
+            tree_action_bar.pack_start(&action_popover_button(
+                &RecordTypePopoverBuilder::default()
+                    .record_types(&RECORD_TYPES)
+                    .action_name_func(|record_type| format!("file.add::{}", record_type.name))
+                    .build(),
+                "list-add-symbolic",
+                "Add new record",
+            ));
+            tree_action_bar.pack_start(&action_button(
+                "entry.delete",
+                "list-remove-symbolic",
+                "Remove record",
+            ));
+            tree_action_bar.pack_start(&action_button(
+                "entry.edit",
+                "document-edit-symbolic",
+                "Edit record",
+            ));
+            tree_action_bar.pack_start(&action_button(
+                "file.merge",
+                "merge",
+                "Merge selected records",
+            ));
+            tree_action_bar.pack_end(&action_button(
+                "entry.copy-password",
+                "dialog-password-symbolic",
+                "Copy password",
+            ));
+            tree_action_bar.pack_end(&action_button(
+                "entry.copy-name",
+                "edit-copy-symbolic",
+                "Copy name",
+            ));
+            tree_container.attach(&tree_action_bar, 0, 3, 2, 1);
 
-        win.set_child(Some(&grid));
+            let stack = gtk::Stack::new()
+                .named("dashboard", &dashboard.get_widget())
+                .named("file", &overlayed(&tree_container, &toast.as_widget()));
+            grid.attach(&stack, 0, 3, 1, 1);
 
-        let file_data = Rc::new(RefCell::new(RecordTree::default()));
-        let current_records = file_data.borrow().records.clone();
-        view.set_model(&current_records);
+            win.set_child(Some(&grid));
 
-        let file_actions = gio::SimpleActionGroup::new();
-        win.register_file_actions(&file_actions);
-        win.insert_action_group("file", Some(&file_actions));
+            let file_data = Rc::new(RefCell::new(RecordTree::default()));
+            let current_records = file_data.borrow().records.clone();
+            view.set_model(&current_records);
 
-        let entry_actions = gio::SimpleActionGroup::new();
-        win.register_entry_actions(&entry_actions);
-        win.insert_action_group("entry", Some(&entry_actions));
+            let file_actions = gio::SimpleActionGroup::new();
+            win.register_file_actions(&file_actions);
+            win.insert_action_group("file", Some(&file_actions));
 
-        let private = PSMainWindowPrivate {
-            mode: Cell::new(AppMode::Initial),
-            header_bar,
-            stack,
-            dashboard,
-            file_data,
-            current_path: Default::default(),
-            current_records: RefCell::new(current_records),
-            view,
-            search_bar,
-            toast,
+            let entry_actions = gio::SimpleActionGroup::new();
+            win.register_entry_actions(&entry_actions);
+            win.insert_action_group("entry", Some(&entry_actions));
 
-            file_actions,
-            entry_actions,
+            let private = PSMainWindowPrivate {
+                mode: Cell::new(AppMode::Initial),
+                header_bar,
+                stack,
+                dashboard,
+                file_data,
+                current_path: Default::default(),
+                current_records: RefCell::new(current_records),
+                view,
+                search_bar,
+                toast,
 
-            filename: RefCell::new(None),
-            password: RefCell::new(None),
-            changed: Cell::new(false),
+                file_actions,
+                entry_actions,
 
-            config_service: OnceCell::new(),
-            cache: OnceCell::new(),
-        };
+                filename: RefCell::new(None),
+                password: RefCell::new(None),
+                changed: Cell::new(false),
 
-        self.private
-            .set(private)
-            .ok()
-            .expect("private is set only once");
+                config_service: OnceCell::new(),
+                cache: OnceCell::new(),
+            };
 
-        let delete_handler = win.connect_close_request(move |win| {
-            let win = win.clone();
-            glib::MainContext::default().spawn_local(async move {
-                win.on_close().await;
-            });
-            glib::signal::Inhibit(true)
-        });
+            self.private
+                .set(private)
+                .ok()
+                .expect("private is set only once");
 
-        *self.delete_handler.borrow_mut() = Some(delete_handler);
-
-        win.private()
-            .search_bar
-            .on_search
-            .subscribe(clone!(@weak win => move |event| {
-                win.search(event);
-            }));
-        win.private()
-            .search_bar
-            .on_configure
-            .subscribe(clone!(@weak win => move |search_config| {
-                win.private().config_service.get().unwrap()
-                    .update(|config| {
-                        config.search_in_secrets = search_config.search_in_secrets;
-                    });
-            }));
-
-        win.private()
-            .view
-            .connect_record_changed(clone!(@weak win => move |selected_records| {
-                win.listview_cursor_changed(selected_records);
-            }));
-
-        win.private()
-            .view
-            .connect_record_activated(clone!(@weak win => move |position| {
+            let delete_handler = win.connect_close_request(move |win| {
+                let win = win.clone();
                 glib::MainContext::default().spawn_local(async move {
-                    win.listview_row_activated(position).await;
+                    win.on_close().await;
                 });
-            }));
+                glib::signal::Inhibit(true)
+            });
 
-        let popup = ui::menu::create_tree_popup();
-        win.private().view.set_popup(&popup);
-    }
-}
+            *self.delete_handler.borrow_mut() = Some(delete_handler);
 
-impl WidgetImpl for PSMainWindowInner {}
-impl WindowImpl for PSMainWindowInner {}
-impl ApplicationWindowImpl for PSMainWindowInner {}
+            win.private()
+                .search_bar
+                .on_search
+                .subscribe(clone!(@weak win => move |event| {
+                    win.search(event);
+                }));
+            win.private().search_bar.on_configure.subscribe(
+                clone!(@weak win => move |search_config| {
+                    win.private().config_service.get().unwrap()
+                        .update(|config| {
+                            config.search_in_secrets = search_config.search_in_secrets;
+                        });
+                }),
+            );
 
-impl PSMainWindowInner {
-    fn go_up(&self) {
-        let private = self.private.get().unwrap();
+            win.private().view.connect_record_changed(
+                clone!(@weak win => move |selected_records| {
+                    win.listview_cursor_changed(selected_records);
+                }),
+            );
 
-        let prev = private.current_path.pop_back();
-        match self.private.get().unwrap().current_path.last() {
-            Some(parent) => {
-                *private.current_records.borrow_mut() = parent.children().unwrap().clone();
-            }
-            None => {
-                *private.current_records.borrow_mut() = private.file_data.borrow().records.clone();
-            }
+            win.private()
+                .view
+                .connect_record_activated(clone!(@weak win => move |position| {
+                    glib::MainContext::default().spawn_local(async move {
+                        win.listview_row_activated(position).await;
+                    });
+                }));
+
+            let popup = ui::menu::create_tree_popup();
+            win.private().view.set_popup(&popup);
         }
-        private.view.set_model(&private.current_records.borrow());
-        // FIXME: private.view. select prev
-
-        self.update_path();
     }
 
-    fn update_path(&self) {
-        let private = self.private.get().unwrap();
+    impl WidgetImpl for PSMainWindow {}
+    impl WindowImpl for PSMainWindow {}
+    impl ApplicationWindowImpl for PSMainWindow {}
 
-        let mut label = String::from(HOME);
-        for record in &private.current_path {
-            label.push_str(" / ");
-            label.push_str(&record.record().name());
+    impl PSMainWindow {
+        fn go_up(&self) {
+            let private = self.private.get().unwrap();
+
+            let prev = private.current_path.pop_back();
+            match self.private.get().unwrap().current_path.last() {
+                Some(parent) => {
+                    *private.current_records.borrow_mut() = parent.children().unwrap().clone();
+                }
+                None => {
+                    *private.current_records.borrow_mut() =
+                        private.file_data.borrow().records.clone();
+                }
+            }
+            private.view.set_model(&private.current_records.borrow());
+            // FIXME: private.view. select prev
+
+            self.update_path();
         }
 
-        self.path_label.set_text(&label);
+        pub fn update_path(&self) {
+            let private = self.private.get().unwrap();
 
-        self.up_button
-            .set_sensitive(!private.current_path.is_empty());
+            let mut label = String::from(HOME);
+            for record in &private.current_path {
+                label.push_str(" / ");
+                label.push_str(&record.record().name());
+            }
+
+            self.path_label.set_text(&label);
+
+            self.up_button
+                .set_sensitive(!private.current_path.is_empty());
+        }
     }
 }
 
 glib::wrapper! {
-    pub struct PSMainWindow(ObjectSubclass<PSMainWindowInner>)
-        @extends gtk::ApplicationWindow, gtk::Window, gtk::Widget, @implements gio::ActionMap;
+    pub struct PSMainWindow(ObjectSubclass<imp::PSMainWindow>)
+        @extends gtk::ApplicationWindow, gtk::Window, gtk::Widget,
+        @implements gio::ActionMap;
 }
 
 impl PSMainWindow {
@@ -338,7 +343,7 @@ impl PSMainWindow {
         window.clone().downcast::<Self>().ok()
     }
 
-    fn private(&self) -> &PSMainWindowPrivate {
+    fn private(&self) -> &imp::PSMainWindowPrivate {
         let private = self.imp();
         private.private.get().unwrap()
     }
@@ -494,7 +499,7 @@ impl PSMainWindow {
         let private = self.private();
         let header_bar = &private.header_bar;
         match private.mode.get() {
-            AppMode::Initial => {
+            imp::AppMode::Initial => {
                 header_bar.set_title_widget(Some(&crate::utils::ui::title(WINDOW_TITLE)));
             }
             _ => {
@@ -540,7 +545,7 @@ impl PSMainWindow {
             *self.private().password.borrow_mut() = None;
             self.private().search_bar.set_search_mode(false);
 
-            self.set_mode(AppMode::FileOpened);
+            self.set_mode(imp::AppMode::FileOpened);
             self.set_changed(false);
             self.listview_cursor_changed(gtk::Bitset::new_empty());
         }
@@ -558,7 +563,7 @@ impl PSMainWindow {
             *self.private().filename.borrow_mut() = Some(filename.to_owned());
             *self.private().password.borrow_mut() = Some(password);
 
-            self.set_mode(AppMode::FileOpened);
+            self.set_mode(imp::AppMode::FileOpened);
             self.set_changed(false);
             self.listview_cursor_changed(gtk::Bitset::new_empty());
             self.private().view.grab_focus();
@@ -598,10 +603,10 @@ impl PSMainWindow {
         }
     }
 
-    fn set_mode(&self, mode: AppMode) {
+    fn set_mode(&self, mode: imp::AppMode) {
         let private = self.private();
         match mode {
-            AppMode::Initial => {
+            imp::AppMode::Initial => {
                 private.file_actions.set_enabled(false);
                 private.entry_actions.set_enabled(false);
 
@@ -610,7 +615,7 @@ impl PSMainWindow {
                     self.private().dashboard.update(cache);
                 }
             }
-            AppMode::FileOpened => {
+            imp::AppMode::FileOpened => {
                 private.file_actions.set_enabled(true);
                 private.entry_actions.set_enabled(true);
 
@@ -652,7 +657,7 @@ impl PSMainWindow {
             }));
 
         win.show();
-        win.set_mode(AppMode::Initial);
+        win.set_mode(imp::AppMode::Initial);
         crate::css::load_css(&win.display());
         win
     }
@@ -670,7 +675,7 @@ impl PSMainWindow {
             *self.private().filename.borrow_mut() = None;
             *self.private().password.borrow_mut() = None;
 
-            self.set_mode(AppMode::Initial);
+            self.set_mode(imp::AppMode::Initial);
             self.set_changed(false);
             self.listview_cursor_changed(gtk::Bitset::new_empty());
         }
