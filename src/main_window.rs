@@ -163,17 +163,17 @@ mod imp {
                     .record_types(&RECORD_TYPES)
                     .action_name_func(|record_type| format!("file.add::{}", record_type.name))
                     .build(),
-                "list-add-symbolic",
+                "ps-add",
                 "Add new record",
             ));
             tree_action_bar.pack_start(&action_button(
                 "entry.delete",
-                "list-remove-symbolic",
+                "ps-remove",
                 "Remove record",
             ));
             tree_action_bar.pack_start(&action_button(
                 "entry.edit",
-                "document-edit-symbolic",
+                "ps-edit",
                 "Edit record",
             ));
             tree_action_bar.pack_start(&action_button(

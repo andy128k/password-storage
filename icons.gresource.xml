@@ -4,6 +4,9 @@
     <file alias="48x48/apps/password-storage.png">icons/app-icon/password-storage.png</file>
     <file alias="scalable/apps/password-storage.svg">icons/app-icon/password-storage.svg</file>
 
+    <file alias="scalable/actions/ps-add.svg">icons/actions/scalable/add.svg</file>
+    <file alias="scalable/actions/ps-remove.svg">icons/actions/scalable/remove.svg</file>
+    <file alias="scalable/actions/ps-edit.svg">icons/actions/scalable/edit.svg</file>
     <file alias="scalable/actions/navigate-up.svg">icons/actions/scalable/navigate-up.svg</file>
     <file alias="scalable/actions/random.svg">icons/actions/scalable/random.svg</file>
     <file alias="scalable/actions/eye.svg">icons/actions/scalable/eye.svg</file>
