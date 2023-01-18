@@ -8,6 +8,11 @@ mod imp {
     use super::*;
     use crate::ui::record_view::item_factory::item_factory;
     use crate::utils::ui::{scrolled, PSWidgetExt};
+    use once_cell::sync::Lazy;
+
+    pub const SIGNAL_GO_UP: &str = "ps-go-up";
+    pub const SIGNAL_SELECTION_CHANGED: &str = "ps-selection-changed";
+    pub const SIGNAL_RECORD_ACTIVATED: &str = "ps-record-activated";
 
     pub struct PSTreeView {
         pub list_view: gtk::ListView,
@@ -42,7 +47,42 @@ mod imp {
             self.list_view
                 .set_factory(Some(&item_factory(self.popup_model.clone())));
             self.list_view.set_model(Some(&self.selection));
+
+            self.list_view
+                .connect_activate(clone!(@weak obj => move |_list_view, position| {
+                    obj.emit_record_activated(position);
+                }));
+
+            let key_controller = gtk::EventControllerKey::new();
+            key_controller.connect_key_pressed(
+                clone!(@weak obj => @default-return glib::signal::Inhibit(false), move |_controller, key, _keycode, modifier| {
+                    glib::signal::Inhibit(obj.on_key_press(key, modifier))
+                }),
+            );
+            self.list_view.add_controller(&key_controller);
+
+            self.selection.connect_selection_changed(
+                clone!(@weak obj => move |selection, _pos, _n| {
+                    obj.emit_selection_changed(&selection.selection())
+                }),
+            );
+
             scrolled(&self.list_view).set_parent(&*obj);
+        }
+
+        fn signals() -> &'static [glib::subclass::Signal] {
+            static SIGNALS: Lazy<Vec<glib::subclass::Signal>> = Lazy::new(|| {
+                vec![
+                    glib::subclass::Signal::builder(SIGNAL_GO_UP).build(),
+                    glib::subclass::Signal::builder(SIGNAL_RECORD_ACTIVATED)
+                        .param_types([u32::static_type()])
+                        .build(),
+                    glib::subclass::Signal::builder(SIGNAL_SELECTION_CHANGED)
+                        .param_types([gtk::Bitset::static_type()])
+                        .build(),
+                ]
+            });
+            &SIGNALS
         }
 
         fn dispose(&self) {
@@ -84,27 +124,76 @@ impl PSTreeView {
         Some(pos)
     }
 
-    pub fn connect_record_changed<F: Fn(gtk::Bitset) + 'static>(&self, changed: F) {
-        self.imp()
-            .selection
-            .connect_selection_changed(move |selection, _pos, _n| {
-                changed(selection.selection());
-            });
-    }
-
-    pub fn connect_record_activated<F: Fn(u32) + 'static>(&self, activated: F) {
-        self.imp()
-            .list_view
-            .connect_activate(move |_list_view, position| {
-                activated(position);
-            });
-    }
-
     pub fn set_popup(&self, popup_model: &gio::MenuModel) {
         *self.imp().popup_model.borrow_mut() = Some(popup_model.clone());
     }
 
     pub fn select_position(&self, position: u32) {
         self.imp().selection.select_item(position, true);
+    }
+
+    fn on_key_press(&self, key: gdk::Key, modifier: gdk::ModifierType) -> bool {
+        match (modifier, key) {
+            (gdk::ModifierType::ALT_MASK, gdk::Key::Up) => {
+                self.emit_go_up();
+                true
+            }
+            (gdk::ModifierType::ALT_MASK, gdk::Key::Down) => {
+                if let Some(position) = self.get_selected_position() {
+                    self.emit_record_activated(position);
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+}
+
+impl PSTreeView {
+    fn emit_go_up(&self) {
+        self.emit_by_name::<()>(imp::SIGNAL_GO_UP, &[]);
+    }
+
+    pub fn connect_go_up<F>(&self, f: F) -> glib::signal::SignalHandlerId
+    where
+        F: Fn() + 'static,
+    {
+        self.connect_closure(
+            imp::SIGNAL_GO_UP,
+            false,
+            glib::closure_local!(move |_self: &Self| (f)()),
+        )
+    }
+
+    fn emit_selection_changed(&self, selection: &gtk::Bitset) {
+        self.emit_by_name::<()>(imp::SIGNAL_SELECTION_CHANGED, &[selection]);
+    }
+
+    pub fn connect_selection_changed<F>(&self, f: F) -> glib::signal::SignalHandlerId
+    where
+        F: Fn(gtk::Bitset) + 'static,
+    {
+        self.connect_closure(
+            imp::SIGNAL_SELECTION_CHANGED,
+            false,
+            glib::closure_local!(move |_self: &Self, selection| (f)(selection)),
+        )
+    }
+
+    fn emit_record_activated(&self, position: u32) {
+        self.emit_by_name::<()>(imp::SIGNAL_RECORD_ACTIVATED, &[&position]);
+    }
+
+    pub fn connect_record_activated<F>(&self, f: F) -> glib::signal::SignalHandlerId
+    where
+        F: Fn(u32) + 'static,
+    {
+        self.connect_closure(
+            imp::SIGNAL_RECORD_ACTIVATED,
+            false,
+            glib::closure_local!(move |_self: &Self, position| (f)(position)),
+        )
     }
 }

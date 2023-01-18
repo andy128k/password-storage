@@ -171,11 +171,7 @@ mod imp {
                 "ps-remove",
                 "Remove record",
             ));
-            tree_action_bar.pack_start(&action_button(
-                "entry.edit",
-                "ps-edit",
-                "Edit record",
-            ));
+            tree_action_bar.pack_start(&action_button("entry.edit", "ps-edit", "Edit record"));
             tree_action_bar.pack_start(&action_button(
                 "file.merge",
                 "merge",
@@ -236,13 +232,12 @@ mod imp {
             });
             *self.delete_handler.borrow_mut() = Some(delete_handler);
 
-            win.imp()
-                .search_bar
+            self.search_bar
                 .on_search
                 .subscribe(clone!(@weak win => move |event| {
                     win.search(event);
                 }));
-            win.imp().search_bar.on_configure.subscribe(
+            self.search_bar.on_configure.subscribe(
                 clone!(@weak self as imp => move |search_config| {
                     imp.config_service.get().unwrap()
                         .update(|config| {
@@ -252,20 +247,22 @@ mod imp {
             );
 
             self.view
-                .connect_record_changed(clone!(@weak win => move |selected_records| {
+                .connect_selection_changed(clone!(@weak win => move |selected_records| {
                     win.listview_cursor_changed(selected_records);
                 }));
 
-            win.imp()
-                .view
+            self.view
                 .connect_record_activated(clone!(@weak win => move |position| {
                     glib::MainContext::default().spawn_local(async move {
                         win.listview_row_activated(position).await;
                     });
                 }));
 
+            self.view
+                .connect_go_up(clone!(@weak self as imp => move || imp.go_up()));
+
             let popup = ui::menu::create_tree_popup();
-            win.imp().view.set_popup(&popup);
+            self.view.set_popup(&popup);
         }
     }
 
