@@ -49,7 +49,7 @@ mod imp {
                 }
             }
 
-            crate::icons::load_icons().unwrap();
+            gio::resources_register_include!("icons.gresource").expect("icons are registered");
 
             let app = self.obj();
             app.register_actions(&*app);
@@ -209,6 +209,7 @@ mod test {
         test_gtk_init();
 
         let app = PSApplication::default();
+        assert!(gio::Icon::for_string("entry-generic").is_ok());
         app.quit();
     }
 }

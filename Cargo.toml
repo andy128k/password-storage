@@ -25,6 +25,9 @@ serde = { version = "1", features = ["derive"] }
 gtk4 = "0.5"
 awesome-glib = { git = "https://github.com/andy128k/awesome-gtk.git" }
 
+[build-dependencies]
+glib-build-tools = "0.16"
+
 [target.'cfg(target_os = "windows")'.build-dependencies]
 winres = "0.1"
 
