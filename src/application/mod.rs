@@ -198,3 +198,17 @@ fn configure() -> Result<(), Box<dyn Error>> {
     );
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test::test_gtk_init;
+
+    #[test]
+    fn test_app_create() {
+        test_gtk_init();
+
+        let app = PSApplication::default();
+        app.quit();
+    }
+}
