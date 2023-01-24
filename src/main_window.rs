@@ -149,7 +149,11 @@ mod imp {
             self.up_button.set_margin_start(5);
             self.up_button.set_margin_end(5);
             self.up_button
-                .connect_clicked(clone!(@weak self as this => move |_| this.go_up()));
+                .connect_clicked(clone!(@weak self as imp => move |_| {
+                    glib::MainContext::default().spawn_local(async move {
+                        imp.go_up().await
+                    });
+                }));
 
             let tree_container = gtk::Grid::new();
             self.view.set_vexpand(true);
@@ -259,7 +263,11 @@ mod imp {
                 }));
 
             self.view
-                .connect_go_up(clone!(@weak self as imp => move || imp.go_up()));
+                .connect_go_up(clone!(@weak self as imp => move || {
+                    glib::MainContext::default().spawn_local(async move {
+                        imp.go_up().await
+                    });
+                }));
 
             let popup = ui::menu::create_tree_popup();
             self.view.set_popup(&popup);
@@ -271,11 +279,15 @@ mod imp {
     impl ApplicationWindowImpl for PSMainWindow {}
 
     impl PSMainWindow {
-        fn go_up(&self) {
-            let private = self.private.get().unwrap();
+        pub fn private(&self) -> &imp::PSMainWindowPrivate {
+            self.private.get().unwrap()
+        }
+
+        async fn go_up(&self) {
+            let private = self.private();
 
             let prev = private.current_path.pop_back();
-            match self.private.get().unwrap().current_path.last() {
+            match private.current_path.last() {
                 Some(parent) => {
                     *private.current_records.borrow_mut() = parent.children().unwrap().clone();
                 }
@@ -285,7 +297,9 @@ mod imp {
                 }
             }
             self.view.set_model(&private.current_records.borrow());
-            // FIXME: private.view. select prev
+            if let Some(ref prev) = prev {
+                self.view.select_record(prev).await;
+            }
 
             self.update_path();
         }

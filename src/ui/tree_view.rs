@@ -1,13 +1,16 @@
 use crate::gtk_prelude::*;
 use crate::model::tree::RecordNode;
 use crate::utils::typed_list_store::TypedListStore;
+use crate::utils::ui::pending;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 mod imp {
     use super::*;
+    use crate::ui::record_view::item::PSRecordViewItem;
     use crate::ui::record_view::item_factory::item_factory;
     use crate::utils::ui::{scrolled, PSWidgetExt};
+    use crate::weak_map::WeakMap;
     use once_cell::sync::Lazy;
 
     pub const SIGNAL_GO_UP: &str = "ps-go-up";
@@ -18,6 +21,7 @@ mod imp {
         pub list_view: gtk::ListView,
         pub selection: gtk::MultiSelection,
         pub popup_model: Rc<RefCell<Option<gio::MenuModel>>>,
+        pub mapping: Rc<WeakMap<RecordNode, PSRecordViewItem>>,
     }
 
     impl Default for PSTreeView {
@@ -26,6 +30,7 @@ mod imp {
                 list_view: Default::default(),
                 selection: gtk::MultiSelection::new(gio::ListModel::NONE),
                 popup_model: Default::default(),
+                mapping: Default::default(),
             }
         }
     }
@@ -45,7 +50,7 @@ mod imp {
             obj.set_layout_manager(Some(&gtk::BinLayout::new()));
 
             self.list_view
-                .set_factory(Some(&item_factory(self.popup_model.clone())));
+                .set_factory(Some(&item_factory(self.popup_model.clone(), &self.mapping)));
             self.list_view.set_model(Some(&self.selection));
 
             self.list_view
@@ -93,6 +98,17 @@ mod imp {
     }
 
     impl WidgetImpl for PSTreeView {}
+
+    impl PSTreeView {
+        pub fn find_record_position(&self, record: &RecordNode) -> Option<u32> {
+            let model = self.selection.model()?;
+            let position = model
+                .iter::<glib::Object>()
+                .ok()?
+                .position(|r| r.as_ref() == Ok(record.upcast_ref()))?;
+            position.try_into().ok()
+        }
+    }
 }
 
 glib::wrapper! {
@@ -130,6 +146,37 @@ impl PSTreeView {
 
     pub fn select_position(&self, position: u32) {
         self.imp().selection.select_item(position, true);
+    }
+
+    pub async fn select_record(&self, record: &RecordNode) {
+        pending().await;
+
+        let Some(position) = self.imp().find_record_position(record) else { return };
+        self.imp().selection.select_item(position, true);
+
+        pending().await;
+
+        if let Err(err) = self
+            .imp()
+            .list_view
+            .activate_action("list.scroll-to-item", Some(&position.to_variant()))
+        {
+            eprintln!("WARN: PSTreeView::select_record: {}", err);
+        }
+
+        pending().await;
+
+        let Some(item) = self.imp().mapping.find(&record) else {
+            eprintln!("WARN: PSTreeView::select_record: record is not focusable");
+            return;
+        };
+        let Some(parent) = item.parent() else {
+            eprintln!("WARN: PSTreeView::select_record: record item has no parent");
+            return;
+        };
+        parent.grab_focus();
+
+        pending().await;
     }
 
     fn on_key_press(&self, key: gdk::Key, modifier: gdk::ModifierType) -> bool {

@@ -18,6 +18,7 @@ mod test;
 mod ui;
 mod utils;
 mod version;
+mod weak_map;
 
 use crate::gtk_prelude::*;
 

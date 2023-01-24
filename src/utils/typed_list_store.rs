@@ -150,6 +150,10 @@ where
         self.remove(index);
         found
     }
+
+    pub fn find(&self, item: &T) -> Option<u32> {
+        self.0.find(item)
+    }
 }
 
 impl<T> std::default::Default for TypedListStore<T>

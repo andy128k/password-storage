@@ -1,6 +1,10 @@
-use std::collections::VecDeque;
-
 use crate::gtk_prelude::*;
+use std::collections::VecDeque;
+use std::time::Duration;
+
+pub async fn pending() {
+    glib::timeout_future(Duration::ZERO).await;
+}
 
 pub struct WidgetChildrenIter(Option<gtk::Widget>);
 
