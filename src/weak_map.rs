@@ -64,12 +64,9 @@ impl<K: glib::ObjectType, V: glib::ObjectType> WeakMap<K, V> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::test_gtk_init;
 
-    #[test]
+    #[gtk::test]
     fn test_weak_map() {
-        test_gtk_init();
-
         let key1 = gtk::StringObject::new("key1");
         let key2 = gtk::StringObject::new("key2");
         let widget1: gtk::Label = glib::Object::builder().build();
@@ -94,10 +91,8 @@ mod test {
         assert_eq!(map.find(&key2), None);
     }
 
-    #[test]
+    #[gtk::test]
     fn test_weak_map_remove() {
-        test_gtk_init();
-
         let key1 = gtk::StringObject::new("key1");
         let key2 = gtk::StringObject::new("key2");
         let widget1: gtk::Label = glib::Object::builder().build();

@@ -57,7 +57,7 @@ impl<T: glib::IsA<gio::ListModel>> ListModelImmutableExt for T {
 mod test {
     use super::*;
 
-    #[test]
+    #[gtk::test]
     fn test_last() {
         let list = gtk::StringList::new(&["a", "b", "c", "d"]);
         let last = list.last();
@@ -66,7 +66,7 @@ mod test {
         assert_eq!(item.string(), "d");
     }
 
-    #[test]
+    #[gtk::test]
     fn test_slice() {
         let list = gtk::StringList::new(&["a", "b", "c", "d"]);
         assert_eq!(list.sliced(..).n_items(), 4);
@@ -74,7 +74,7 @@ mod test {
         assert_eq!(list.sliced(..2).n_items(), 2);
     }
 
-    #[test]
+    #[gtk::test]
     fn test_appended() {
         let list = gtk::StringList::new(&["a", "b", "c", "d"]);
         let new_list = list.appended(&gtk::StringObject::new("e"));

@@ -281,7 +281,7 @@ pub fn bitset_iter_rev(bitset: &gtk::Bitset) -> impl Iterator<Item = u32> + '_ {
 mod test {
     use super::*;
 
-    #[test]
+    #[gtk::test]
     fn test_bitset_iter() {
         let empty = gtk::Bitset::new_empty();
         let range = gtk::Bitset::new_range(12, 3);

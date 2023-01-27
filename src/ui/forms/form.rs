@@ -181,7 +181,6 @@ impl FormWidget<FormData> for Form {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::test_gtk_init;
     use crate::ui::forms::entry::Text;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -193,18 +192,14 @@ mod test {
         form
     }
 
-    #[test]
+    #[gtk::test]
     fn test_multiline() {
-        test_gtk_init();
-
         let w = new_form();
         w.get_widget(); // ensure get_widget doesn't panic
     }
 
-    #[test]
+    #[gtk::test]
     fn test_multiline_value() {
-        test_gtk_init();
-
         let w = new_form();
         assert_eq!(w.get_value(), Some(vec!["".to_string(), "".to_string()]));
 
@@ -216,10 +211,8 @@ mod test {
         assert_eq!(w.get_value(), Some(vec!["".to_string(), "".to_string()]));
     }
 
-    #[test]
+    #[gtk::test]
     fn test_multiline_event() {
-        test_gtk_init();
-
         let value = Rc::new(RefCell::new(None));
 
         let mut w = new_form();

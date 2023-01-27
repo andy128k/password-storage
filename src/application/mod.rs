@@ -202,12 +202,9 @@ fn configure() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::test_gtk_init;
 
-    #[test]
+    #[gtk::test]
     fn test_app_create() {
-        test_gtk_init();
-
         let app = PSApplication::default();
         assert!(gio::Icon::for_string("entry-generic").is_ok());
         app.quit();

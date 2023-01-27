@@ -14,7 +14,6 @@ mod markup_builder;
 mod model;
 mod password;
 mod slot;
-mod test;
 mod ui;
 mod utils;
 mod version;

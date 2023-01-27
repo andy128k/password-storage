@@ -70,22 +70,17 @@ fn get_value(entry: &gtk::Entry) -> Option<String> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::test_gtk_init;
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    #[test]
+    #[gtk::test]
     fn test_text() {
-        test_gtk_init();
-
         let w = Text::new();
         w.get_widget(); // ensure get_widget doesn't panic
     }
 
-    #[test]
+    #[gtk::test]
     fn test_text_value() {
-        test_gtk_init();
-
         let w = Text::new();
         assert_eq!(w.get_value(), None);
 
@@ -97,10 +92,8 @@ mod test {
         assert_eq!(w.get_value(), None);
     }
 
-    #[test]
+    #[gtk::test]
     fn test_text_event() {
-        test_gtk_init();
-
         let value = Rc::new(RefCell::new(None));
 
         let mut w = Text::new();
@@ -112,18 +105,14 @@ mod test {
         assert_eq!(*value.borrow(), Some(new_value));
     }
 
-    #[test]
+    #[gtk::test]
     fn test_name() {
-        test_gtk_init();
-
         let w = Text::new().with_completion(&[]);
         w.get_widget(); // ensure get_widget doesn't panic
     }
 
-    #[test]
+    #[gtk::test]
     fn test_name_value() {
-        test_gtk_init();
-
         let w = Text::new().with_completion(&[]);
         assert_eq!(w.get_value(), None);
 
@@ -135,10 +124,8 @@ mod test {
         assert_eq!(w.get_value(), None);
     }
 
-    #[test]
+    #[gtk::test]
     fn test_name_event() {
-        test_gtk_init();
-
         let value = Rc::new(RefCell::new(None));
 
         let mut w = Text::new().with_completion(&[]);
@@ -150,18 +137,14 @@ mod test {
         assert_eq!(*value.borrow(), Some(new_value));
     }
 
-    #[test]
+    #[gtk::test]
     fn test_password() {
-        test_gtk_init();
-
         let w = Text::new().for_password();
         w.get_widget(); // ensure get_widget doesn't panic
     }
 
-    #[test]
+    #[gtk::test]
     fn test_password_value() {
-        test_gtk_init();
-
         let w = Text::new().for_password();
         assert_eq!(w.get_value(), None);
 
@@ -173,10 +156,8 @@ mod test {
         assert_eq!(w.get_value(), None);
     }
 
-    #[test]
+    #[gtk::test]
     fn test_password_event() {
-        test_gtk_init();
-
         let value = Rc::new(RefCell::new(None));
 
         let mut w = Text::new().for_password();
