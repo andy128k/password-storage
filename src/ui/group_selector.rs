@@ -100,7 +100,7 @@ fn name_factory() -> gtk::SignalListItemFactory {
 fn description_factory() -> gtk::SignalListItemFactory {
     let factory = gtk::SignalListItemFactory::new();
     factory.connect_setup(|_factory, list_item| {
-        let child = gtk::Label::new(None);
+        let child = gtk::Label::builder().halign(gtk::Align::Start).build();
         list_item.set_child(Some(&child));
     });
     factory.connect_bind(|_factory, list_item| {
