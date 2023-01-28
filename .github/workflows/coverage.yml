@@ -20,7 +20,7 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Generate code coverage
-        run: RUST_TEST_THREADS=1 xvfb-run cargo llvm-cov --lcov --output-path lcov.info
+        run: xvfb-run cargo llvm-cov --lcov --output-path lcov.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

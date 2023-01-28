@@ -33,3 +33,8 @@ winres = "0.1"
 
 [profile.release]
 strip = true
+
+[[test]]
+name = "ui_tests"
+path = "ui_tests/main.rs"
+harness = false
