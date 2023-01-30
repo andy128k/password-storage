@@ -142,6 +142,7 @@ mod imp {
 
             self.up_button.set_icon_name("navigate-up");
             self.up_button.set_tooltip_text(Some("Go go parent group"));
+            self.up_button.style_context().add_class("flat");
             self.up_button.set_sensitive(false);
             self.up_button.set_hexpand(false);
             self.up_button.set_margin_top(5);
