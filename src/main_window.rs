@@ -30,7 +30,6 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 const WINDOW_TITLE: &str = "Password Storage";
-const HOME: &str = "\u{2302}";
 
 mod imp {
     use super::*;
@@ -64,6 +63,7 @@ mod imp {
         pub dashboard: PSDashboard,
 
         pub toast: Toast,
+        pub home_button: gtk::Button,
         pub path_label: gtk::Label,
         pub up_button: gtk::Button,
         pub search_bar: PSSearchBar,
@@ -131,6 +131,22 @@ mod imp {
             save_box.append(&save_as_button);
             self.header_bar.pack_end(&save_box);
 
+            self.home_button.set_icon_name("navigate-home");
+            self.home_button.set_tooltip_text(Some("Go go the root"));
+            self.home_button.style_context().add_class("flat");
+            self.home_button.set_sensitive(false);
+            self.home_button.set_hexpand(false);
+            self.home_button.set_margin_top(5);
+            self.home_button.set_margin_bottom(5);
+            self.home_button.set_margin_start(5);
+            self.home_button.set_margin_end(5);
+            self.home_button
+                .connect_clicked(clone!(@weak self as imp => move |_| {
+                    glib::MainContext::default().spawn_local(async move {
+                        imp.go_home().await
+                    });
+                }));
+
             self.path_label.set_xalign(0.0_f32);
             self.path_label.set_yalign(0.5_f32);
             self.path_label.set_hexpand(true);
@@ -138,7 +154,6 @@ mod imp {
             self.path_label.set_margin_bottom(5);
             self.path_label.set_margin_start(5);
             self.path_label.set_margin_end(5);
-            self.path_label.set_label(HOME);
 
             self.up_button.set_icon_name("navigate-up");
             self.up_button.set_tooltip_text(Some("Go go parent group"));
@@ -158,10 +173,11 @@ mod imp {
 
             let tree_container = gtk::Grid::new();
             self.view.set_vexpand(true);
-            tree_container.attach(&self.search_bar.get_widget(), 0, 0, 2, 1);
-            tree_container.attach(&self.path_label, 0, 1, 1, 1);
-            tree_container.attach(&self.up_button, 1, 1, 1, 1);
-            tree_container.attach(&self.view, 0, 2, 2, 1);
+            tree_container.attach(&self.search_bar.get_widget(), 0, 0, 3, 1);
+            tree_container.attach(&self.home_button, 0, 1, 1, 1);
+            tree_container.attach(&self.path_label, 1, 1, 1, 1);
+            tree_container.attach(&self.up_button, 2, 1, 1, 1);
+            tree_container.attach(&self.view, 0, 2, 3, 1);
             let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
             tree_action_bar.pack_start(&action_popover_button(
                 &RecordTypePopoverBuilder::default()
@@ -192,7 +208,7 @@ mod imp {
                 "edit-copy-symbolic",
                 "Copy name",
             ));
-            tree_container.attach(&tree_action_bar, 0, 3, 2, 1);
+            tree_container.attach(&tree_action_bar, 0, 3, 3, 1);
 
             self.stack
                 .add_named(&self.dashboard.get_widget(), Some("dashboard"));
@@ -264,6 +280,12 @@ mod imp {
                 }));
 
             self.view
+                .connect_go_home(clone!(@weak self as imp => move || {
+                    glib::MainContext::default().spawn_local(async move {
+                        imp.go_home().await
+                    });
+                }));
+            self.view
                 .connect_go_up(clone!(@weak self as imp => move || {
                     glib::MainContext::default().spawn_local(async move {
                         imp.go_up().await
@@ -282,6 +304,16 @@ mod imp {
     impl PSMainWindow {
         pub fn private(&self) -> &imp::PSMainWindowPrivate {
             self.private.get().unwrap()
+        }
+
+        async fn go_home(&self) {
+            let private = self.private();
+
+            private.current_path.remove_all();
+            *private.current_records.borrow_mut() = private.file_data.borrow().records.clone();
+            self.view.set_model(&private.current_records.borrow());
+
+            self.update_path();
         }
 
         async fn go_up(&self) {
@@ -308,16 +340,18 @@ mod imp {
         pub fn update_path(&self) {
             let private = self.private.get().unwrap();
 
-            let mut label = String::from(HOME);
+            let mut label = String::new();
             for record in &private.current_path {
-                label.push_str(" / ");
+                if !label.is_empty() {
+                    label.push_str(" / ");
+                }
                 label.push_str(&record.record().name());
             }
-
             self.path_label.set_text(&label);
 
-            self.up_button
-                .set_sensitive(!private.current_path.is_empty());
+            let has_parent = !private.current_path.is_empty();
+            self.home_button.set_sensitive(has_parent);
+            self.up_button.set_sensitive(has_parent);
         }
     }
 }

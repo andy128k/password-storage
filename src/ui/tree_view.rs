@@ -13,6 +13,7 @@ mod imp {
     use crate::weak_map::WeakMap;
     use once_cell::sync::Lazy;
 
+    pub const SIGNAL_GO_HOME: &str = "ps-go-home";
     pub const SIGNAL_GO_UP: &str = "ps-go-up";
     pub const SIGNAL_SELECTION_CHANGED: &str = "ps-selection-changed";
     pub const SIGNAL_RECORD_ACTIVATED: &str = "ps-record-activated";
@@ -78,6 +79,7 @@ mod imp {
         fn signals() -> &'static [glib::subclass::Signal] {
             static SIGNALS: Lazy<Vec<glib::subclass::Signal>> = Lazy::new(|| {
                 vec![
+                    glib::subclass::Signal::builder(SIGNAL_GO_HOME).build(),
                     glib::subclass::Signal::builder(SIGNAL_GO_UP).build(),
                     glib::subclass::Signal::builder(SIGNAL_RECORD_ACTIVATED)
                         .param_types([u32::static_type()])
@@ -181,6 +183,10 @@ impl PSTreeView {
 
     fn on_key_press(&self, key: gdk::Key, modifier: gdk::ModifierType) -> bool {
         match (modifier, key) {
+            (gdk::ModifierType::ALT_MASK, gdk::Key::Home) => {
+                self.emit_go_home();
+                true
+            }
             (gdk::ModifierType::ALT_MASK, gdk::Key::Up) => {
                 self.emit_go_up();
                 true
@@ -199,6 +205,21 @@ impl PSTreeView {
 }
 
 impl PSTreeView {
+    fn emit_go_home(&self) {
+        self.emit_by_name::<()>(imp::SIGNAL_GO_HOME, &[]);
+    }
+
+    pub fn connect_go_home<F>(&self, f: F) -> glib::signal::SignalHandlerId
+    where
+        F: Fn() + 'static,
+    {
+        self.connect_closure(
+            imp::SIGNAL_GO_HOME,
+            false,
+            glib::closure_local!(move |_self: &Self| (f)()),
+        )
+    }
+
     fn emit_go_up(&self) {
         self.emit_by_name::<()>(imp::SIGNAL_GO_UP, &[]);
     }
