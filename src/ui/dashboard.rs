@@ -178,7 +178,9 @@ impl PSDashboard {
     pub fn update(&self, cache: &Cache) {
         self.listbox.hide();
         for child in self.listbox.children() {
-            self.listbox.remove(&child);
+            if let Some(row) = child.downcast_ref::<gtk::ListBoxRow>() {
+                self.listbox.remove(row);
+            }
         }
 
         self.listbox.append(&action_row(
