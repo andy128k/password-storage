@@ -1,4 +1,5 @@
 use crate::gtk_prelude::*;
+use crate::utils::algorithm::all_equal_by_key;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
@@ -267,24 +268,6 @@ impl RecordType {
     }
 }
 
-fn common_type(types: &[&'static RecordType]) -> &'static RecordType {
-    if let Some((first, rest)) = types.split_first() {
-        if rest.iter().all(|item| RecordType::ref_eq(item, first)) {
-            return first;
-        }
-    }
-    &RECORD_TYPE_GENERIC
-}
-
-fn common_name(names: &[String]) -> String {
-    if let Some((first, rest)) = names.split_first() {
-        if rest.iter().all(|name| name == first) {
-            return first.to_string();
-        }
-    }
-    names.join(" and ")
-}
-
 impl Record {
     pub fn name(&self) -> String {
         self.values.get("name").cloned().unwrap_or_default()
@@ -348,16 +331,26 @@ impl Record {
     }
 
     pub fn join_entries(records: &[Record]) -> Record {
-        let types: Vec<&RecordType> = records.iter().map(|e| e.record_type).collect();
-        let record_type_name = common_type(&types);
-        let mut result = record_type_name.new_record();
+        let record_type = if let Some(record) = all_equal_by_key(records, |r| r.record_type) {
+            record.record_type
+        } else {
+            &RECORD_TYPE_GENERIC
+        };
+        let name = if let Some(record) = all_equal_by_key(records, |r| r.name()) {
+            record.name()
+        } else {
+            records
+                .iter()
+                .map(|p| p.name())
+                .collect::<Vec<_>>()
+                .join(" and ")
+        };
 
+        let mut result = record_type.new_record();
         for record in records.iter() {
             result.join(record);
         }
-
-        let names: Vec<String> = records.iter().map(|p| p.name()).collect();
-        result.set_field(&FIELD_NAME, &common_name(&names));
+        result.set_field(&FIELD_NAME, &name);
         result
     }
 
