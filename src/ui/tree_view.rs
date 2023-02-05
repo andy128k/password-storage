@@ -22,7 +22,7 @@ mod imp {
         pub list_view: gtk::ListView,
         pub selection: gtk::MultiSelection,
         pub popup_model: Rc<RefCell<Option<gio::MenuModel>>>,
-        pub mapping: Rc<WeakMap<RecordNode, PSRecordViewItem>>,
+        pub mapping: Rc<WeakMap<u32, PSRecordViewItem>>,
     }
 
     impl Default for PSTreeView {
@@ -151,9 +151,14 @@ impl PSTreeView {
     }
 
     pub async fn select_record(&self, record: &RecordNode) {
+        if let Some(position) = self.imp().find_record_position(record) {
+            self.select_position_async(position).await;
+        }
+    }
+
+    pub async fn select_position_async(&self, position: u32) {
         pending().await;
 
-        let Some(position) = self.imp().find_record_position(record) else { return };
         self.imp().selection.select_item(position, true);
 
         pending().await;
@@ -168,14 +173,8 @@ impl PSTreeView {
 
         pending().await;
 
-        let Some(item) = self.imp().mapping.find(&record) else {
-            eprintln!("WARN: PSTreeView::select_record: record is not focusable");
-            return;
-        };
-        let Some(parent) = item.parent() else {
-            eprintln!("WARN: PSTreeView::select_record: record item has no parent");
-            return;
-        };
+        let Some(item) = self.imp().mapping.find(position) else { return };
+        let Some(parent) = item.parent() else { return };
         parent.grab_focus();
 
         pending().await;

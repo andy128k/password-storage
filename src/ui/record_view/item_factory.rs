@@ -15,7 +15,7 @@ fn get_record_node(list_item: &gtk::ListItem) -> Option<RecordNode> {
 
 pub fn item_factory(
     popup_model: Rc<RefCell<Option<gio::MenuModel>>>,
-    mapping: &Rc<WeakMap<RecordNode, PSRecordViewItem>>,
+    mapping: &Rc<WeakMap<u32, PSRecordViewItem>>,
 ) -> gtk::ListItemFactory {
     let factory = gtk::SignalListItemFactory::new();
     factory.connect_setup(move |_factory, list_item| {
@@ -28,15 +28,14 @@ pub fn item_factory(
         let Some(record_item) = get_record_item(list_item) else { return };
         let Some(record_node) = get_record_node(list_item) else { return };
         mapping.remove_value(&record_item);
-        mapping.add(&record_node, &record_item);
+        mapping.add(list_item.position(), &record_item);
         record_item.set_record_node(Some(record_node));
     }));
     factory.connect_unbind(clone!(@strong mapping => move |_factory, list_item| {
         let Some(record_item) = get_record_item(list_item) else { return };
-        let Some(record_node) = get_record_node(list_item) else { return };
-        record_item.set_record_node(None);
-        mapping.remove_key(&record_node);
+        mapping.remove_key(list_item.position());
         mapping.remove_value(&record_item);
+        record_item.set_record_node(None);
     }));
     factory.connect_teardown(clone!(@strong mapping => move |_factory, list_item| {
         if let Some(record_item) = get_record_item(list_item) {

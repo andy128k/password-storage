@@ -312,6 +312,7 @@ mod imp {
             private.current_path.remove_all();
             *private.current_records.borrow_mut() = private.file_data.borrow().records.clone();
             self.view.set_model(&private.current_records.borrow());
+            self.view.select_position_async(0).await;
 
             self.update_path();
         }
@@ -445,6 +446,7 @@ impl PSMainWindow {
             self.imp()
                 .view
                 .set_model(&self.private().current_records.borrow());
+            self.imp().view.select_position_async(0).await;
 
             self.imp().update_path();
         } else {
@@ -579,6 +581,7 @@ impl PSMainWindow {
             self.imp().search_bar.set_search_mode(false);
 
             self.set_data(entries);
+            self.imp().view.select_position_async(0).await;
 
             *self.private().filename.borrow_mut() = Some(filename.to_owned());
             *self.private().password.borrow_mut() = Some(password);
@@ -723,6 +726,7 @@ impl PSMainWindow {
                     crate::model::merge_trees::merge_trees(&records_tree.borrow(), &extra_records);
 
                 self.set_data(merged_tree);
+                self.imp().view.select_position_async(0).await;
                 self.set_changed(true);
             }
         }
