@@ -941,7 +941,7 @@ impl PSMainWindow {
         }
 
         let Some(dest_record_type) = RecordType::find(&dest_record_type_name)
-            .filter(|rt| !rt.is_group && !rt.ref_eq(record_node.record().record_type)) else { return; };
+            .filter(|rt| !rt.is_group && *rt != record_node.record().record_type) else { return; };
 
         let new_record = {
             let mut new_record = dest_record_type.new_record();

@@ -243,7 +243,7 @@ fn write_record_node<W: Write>(writer: &mut Writer<W>, record_node: &RecordNode)
 
     let mapping = KNOWN_TYPES
         .iter()
-        .find(|mapping| RecordType::ref_eq(mapping.record_type, record.record_type))
+        .find(|mapping| mapping.record_type == record.record_type)
         .unwrap();
 
     writer.write_event(Event::Start({

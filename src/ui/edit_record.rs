@@ -152,10 +152,7 @@ impl RecordWidget {
     }
 
     fn set_record_type(&self, record_type: &'static RecordType) {
-        if self
-            .get_record_type()
-            .map_or(false, |rt| rt.ref_eq(record_type))
-        {
+        if self.get_record_type() == Some(record_type) {
             return;
         }
 
@@ -164,7 +161,7 @@ impl RecordWidget {
         if !record_type.is_group {
             let convert_to_types = RECORD_TYPES
                 .iter()
-                .filter(|rt| !rt.is_group && !rt.ref_eq(record_type))
+                .filter(|rt| !rt.is_group && **rt != record_type)
                 .cloned()
                 .collect::<Vec<_>>();
 

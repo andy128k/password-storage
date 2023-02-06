@@ -262,10 +262,6 @@ impl RecordType {
             values,
         }
     }
-
-    pub fn ref_eq(&'static self, other: &'static Self) -> bool {
-        std::ptr::eq(self, other)
-    }
 }
 
 impl Record {
