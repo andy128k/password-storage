@@ -21,7 +21,7 @@ impl Config {
 
     pub fn save_to_file(&self, filename: &Path) -> Result<()> {
         let dump = toml::to_vec(self)?;
-        fs::write(&filename, &dump)?;
+        fs::write(filename, dump)?;
         Ok(())
     }
 }
@@ -55,7 +55,7 @@ impl ConfigService {
             return *value;
         }
         let config = Config::load_from_file(&self.path).unwrap_or_else(|err| {
-            eprintln!("Cannot load config: {:?}", err);
+            eprintln!("Cannot load config: {err:?}");
             Default::default()
         });
         *self.cached.borrow_mut() = Some(config);
@@ -64,7 +64,7 @@ impl ConfigService {
 
     pub fn set(&self, new_value: Config) {
         if let Err(err) = new_value.save_to_file(&self.path) {
-            eprintln!("Cannot save config: {:?}", err);
+            eprintln!("Cannot save config: {err:?}");
         }
         self.on_change.emit(new_value);
         *self.cached.borrow_mut() = Some(new_value);

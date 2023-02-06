@@ -52,13 +52,12 @@ impl FormPrivate {
     fn set_value(&self, value: Option<&FormData>) {
         match value {
             Some(entry) => {
-                for (&FormEntry { ref widget, .. }, value) in self.entries.iter().zip(entry.iter())
-                {
+                for (FormEntry { widget, .. }, value) in self.entries.iter().zip(entry.iter()) {
                     widget.set_value(Some(value));
                 }
             }
             None => {
-                for &FormEntry { ref widget, .. } in &self.entries {
+                for FormEntry { widget, .. } in &self.entries {
                     widget.set_value(None);
                 }
             }
@@ -152,7 +151,7 @@ impl Form {
         let error_label = create_error_label();
         private.grid.attach(&error_label, 0, index as i32, 2, 1);
 
-        (*private).validation = Some(FormValidation {
+        private.validation = Some(FormValidation {
             label: error_label,
             callback: validate,
         });
@@ -174,6 +173,6 @@ impl FormWidget<FormData> for Form {
 
     fn connect_changed(&mut self, callback: FormDataChanged) {
         let mut private = self.0.borrow_mut();
-        (*private).change_callback = Some(callback);
+        private.change_callback = Some(callback);
     }
 }

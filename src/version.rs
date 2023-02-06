@@ -20,8 +20,7 @@ impl FromStr for Version {
             .map_err(|err| err.to_string())?;
         if parts.len() != 3 {
             return Err(format!(
-                "Bad version '{}'. Three components are expected.",
-                version
+                "Bad version '{version}'. Three components are expected."
             ));
         }
         Ok(Version {

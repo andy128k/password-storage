@@ -36,7 +36,7 @@ fn read_document<R: BufRead>(reader: &mut Reader<R>) -> Result<RecordTree> {
             }
             Event::Text(element) if element.unescape()?.trim().is_empty() => {}
             Event::Eof => break,
-            e => return Err(format!("1 Unexpected XML event {:?}.", e).into()),
+            e => return Err(format!("Unexpected XML event {e:?}.").into()),
         }
     }
 
@@ -75,7 +75,7 @@ fn read_revelationdata<R: BufRead>(
             }
             Event::Text(element) if element.unescape()?.trim().is_empty() => {}
             Event::End(ref e) if e.name().as_ref() == b"revelationdata" => break,
-            e => return Err(format!("3 Unexpected XML event {:?}.", e).into()),
+            e => return Err(format!("Unexpected XML event {e:?}.").into()),
         }
     }
     Ok(records)
@@ -90,7 +90,7 @@ fn read_record_node<R: BufRead>(
     let mapping = KNOWN_TYPES
         .iter()
         .find(|mapping| mapping.xml_type_name == xml_type)
-        .ok_or_else(|| format!("Bad entry type '{}'.", xml_type))?;
+        .ok_or_else(|| format!("Bad entry type '{xml_type}'."))?;
 
     let is_group = xml_type == "folder";
 
@@ -123,10 +123,7 @@ fn read_record_node<R: BufRead>(
                         })
                         .next()
                         .ok_or_else(|| {
-                            format!(
-                                "Field {} is not expected in a record of type {}.",
-                                id, xml_type
-                            )
+                            format!("Field {id} is not expected in a record of type {xml_type}.")
                         })?;
                     let value = expect_text(reader, b"field")?;
                     record.values.insert(field_name.to_string(), value);
@@ -135,7 +132,7 @@ fn read_record_node<R: BufRead>(
                     let child = read_record_node(reader, &mut e.attributes())?;
                     children.append(&child);
                 }
-                e => return Err(format!("Unexpected element {:?}.", e).into()),
+                e => return Err(format!("Unexpected element {e:?}.").into()),
             },
             Event::Empty(ref e) => match e.name().as_ref() {
                 b"name" | b"description" | b"field" => {}
@@ -143,11 +140,11 @@ fn read_record_node<R: BufRead>(
                     let child = read_empty_record_node(reader, &mut e.attributes())?;
                     children.append(&child);
                 }
-                e => return Err(format!("Unexpected element {:?}.", e).into()),
+                e => return Err(format!("Unexpected element {e:?}.").into()),
             },
             Event::Text(element) if element.unescape()?.trim().is_empty() => {}
             Event::End(ref e) if e.name().as_ref() == b"entry" => break,
-            e => return Err(format!(" 5 Unexpected XML event {:?} {:?}.", e, record).into()),
+            e => return Err(format!("Unexpected XML event {e:?} {record:?}.").into()),
         }
     }
 
@@ -167,7 +164,7 @@ fn read_empty_record_node<R: BufRead>(
     let mapping = KNOWN_TYPES
         .iter()
         .find(|mapping| mapping.xml_type_name == xml_type)
-        .ok_or_else(|| format!("Bad entry type '{}'.", xml_type))?;
+        .ok_or_else(|| format!("Bad entry type '{xml_type}'."))?;
 
     let is_group = xml_type == "folder";
     let record = mapping.record_type.new_record();
@@ -186,7 +183,7 @@ fn expect_text<R: BufRead>(reader: &mut Reader<R>, end_name: &[u8]) -> Result<St
         match reader.read_event_into(&mut buf)? {
             Event::Text(text) => result.push_str(&text.unescape()?),
             Event::End(end) if end.name().as_ref() == end_name => break,
-            e => return Err(format!("Unexpected XML event {:?}.", e).into()),
+            e => return Err(format!("Unexpected XML event {e:?}.").into()),
         }
     }
     Ok(result)
@@ -213,7 +210,7 @@ fn expect_attribute<R: BufRead>(
     name: &str,
 ) -> Result<String> {
     let value = read_attribute(reader, atts, name.as_bytes())?;
-    let value = value.ok_or_else(|| format!("Attribute '{}' was not found.", name))?;
+    let value = value.ok_or_else(|| format!("Attribute '{name}' was not found."))?;
     Ok(value)
 }
 

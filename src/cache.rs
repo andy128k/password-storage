@@ -32,7 +32,7 @@ impl Cache {
                 *self.0.borrow_mut() = cache;
             }
             Err(err) => {
-                eprintln!("{:?}", err);
+                eprintln!("{err:?}");
             }
         }
     }
@@ -40,7 +40,7 @@ impl Cache {
     pub fn save(&self) -> Result<()> {
         let filename = cache_path();
         let dump = toml::to_vec(&*self.0.borrow())?;
-        fs::write(&filename, &dump)?;
+        fs::write(filename, dump)?;
         Ok(())
     }
 

@@ -38,7 +38,7 @@ mod imp {
             self.cache.load();
 
             if let Err(error) = configure() {
-                eprintln!("Failed to configure global settings: {}.", error);
+                eprintln!("Failed to configure global settings: {error}.");
             }
 
             for (_group_title, actions) in shortcuts::SHORTCUTS {
@@ -91,7 +91,7 @@ mod imp {
         }
 
         pub fn new_window(&self) -> PSMainWindow {
-            PSMainWindow::new(&self.obj().upcast_ref(), &self.config, &self.cache)
+            PSMainWindow::new(self.obj().upcast_ref(), &self.config, &self.cache)
         }
 
         async fn on_open(&self, files: &[gio::File], _hint: &str) {

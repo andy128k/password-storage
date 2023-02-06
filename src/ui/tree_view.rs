@@ -168,7 +168,7 @@ impl PSTreeView {
             .list_view
             .activate_action("list.scroll-to-item", Some(&position.to_variant()))
         {
-            eprintln!("WARN: PSTreeView::select_record: {}", err);
+            eprintln!("WARN: PSTreeView::select_record: {err}");
         }
 
         pending().await;

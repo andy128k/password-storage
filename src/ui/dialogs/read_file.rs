@@ -77,7 +77,7 @@ where
             }
             Err(e) => {
                 error_label.set_visible(true);
-                error_label.set_label(&format!("Can't open this file.\n{}", e));
+                error_label.set_label(&format!("Can't open this file.\n{e}"));
             }
         }
     }

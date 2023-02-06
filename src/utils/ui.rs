@@ -167,9 +167,9 @@ impl PSSimpleActionGroupExt for gio::SimpleActionGroup {
 
     fn simple_action(&self, name: &str) -> gio::SimpleAction {
         self.lookup_action(name)
-            .unwrap_or_else(|| panic!("Action {} should exist.", name))
+            .unwrap_or_else(|| panic!("Action {name} should exist."))
             .downcast::<gio::SimpleAction>()
-            .unwrap_or_else(|_| panic!("Action {} should be a simple action.", name))
+            .unwrap_or_else(|_| panic!("Action {name} should be a simple action."))
     }
 }
 

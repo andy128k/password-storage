@@ -858,7 +858,7 @@ impl PSMainWindow {
         }
 
         let Some(dest) = select_group(
-            &self.clone().upcast(),
+            self.clone().upcast_ref(),
             "Move to...",
             &self.private().file_data.borrow(),
         )

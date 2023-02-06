@@ -25,7 +25,7 @@ impl FileHeader {
             } else {
                 Err(Error::new(
                     ErrorKind::Other,
-                    format!("Unexpected byte {} ({} was expected).", byte, expected),
+                    format!("Unexpected byte {byte} ({expected} was expected)."),
                 ))
             }
         }

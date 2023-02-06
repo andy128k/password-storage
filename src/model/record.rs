@@ -243,12 +243,7 @@ pub const RECORD_TYPE_FIELD: &str = "__record_type";
 
 impl RecordType {
     pub fn find(name: &str) -> Option<&'static RecordType> {
-        for record_type in RECORD_TYPES.iter() {
-            if record_type.name == name {
-                return Some(record_type);
-            }
-        }
-        None
+        RECORD_TYPES.iter().find(|r| r.name == name).copied()
     }
 
     pub fn new_record(&'static self) -> Record {
