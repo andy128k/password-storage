@@ -245,19 +245,23 @@ impl RecordType {
     }
 
     pub fn new_record(&'static self) -> Record {
-        let mut values = HashMap::new();
-        values.insert(RECORD_TYPE_FIELD.to_owned(), self.name.to_owned());
-        for field in &self.fields {
-            values.insert(field.name.to_owned(), String::new());
-        }
-        Record {
-            record_type: self,
-            values,
-        }
+        Record::new(self)
     }
 }
 
 impl Record {
+    pub fn new(record_type: &'static RecordType) -> Self {
+        let mut values = HashMap::new();
+        values.insert(RECORD_TYPE_FIELD.to_owned(), record_type.name.to_owned());
+        for field in &record_type.fields {
+            values.insert(field.name.to_owned(), String::new());
+        }
+        Self {
+            record_type,
+            values,
+        }
+    }
+
     pub fn name(&self) -> String {
         self.values.get("name").cloned().unwrap_or_default()
     }
