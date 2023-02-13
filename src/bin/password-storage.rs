@@ -2,9 +2,9 @@
 
 use gtk4::prelude::*;
 use password_storage::application::PSApplication;
+use std::process::Termination;
 
-fn main() {
+fn main() -> impl Termination {
     let app = PSApplication::default();
-    let code = app.run();
-    std::process::exit(code);
+    app.run()
 }

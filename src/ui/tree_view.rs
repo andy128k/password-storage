@@ -29,7 +29,7 @@ mod imp {
         fn default() -> Self {
             Self {
                 list_view: Default::default(),
-                selection: gtk::MultiSelection::new(gio::ListModel::NONE),
+                selection: gtk::MultiSelection::new(None::<gio::ListModel>),
                 popup_model: Default::default(),
                 mapping: Default::default(),
             }
@@ -48,7 +48,7 @@ mod imp {
             self.parent_constructed();
 
             let obj = self.obj();
-            obj.set_layout_manager(Some(&gtk::BinLayout::new()));
+            obj.set_layout_manager(Some(gtk::BinLayout::new()));
 
             self.list_view
                 .set_factory(Some(&item_factory(self.popup_model.clone(), &self.mapping)));
@@ -65,7 +65,7 @@ mod imp {
                     glib::signal::Inhibit(obj.on_key_press(key, modifier))
                 }),
             );
-            self.list_view.add_controller(&key_controller);
+            self.list_view.add_controller(key_controller);
 
             self.selection.connect_selection_changed(
                 clone!(@weak obj => move |selection, _pos, _n| {
@@ -106,7 +106,6 @@ mod imp {
             let model = self.selection.model()?;
             let position = model
                 .iter::<glib::Object>()
-                .ok()?
                 .position(|r| r.as_ref() == Ok(record.upcast_ref()))?;
             position.try_into().ok()
         }

@@ -32,7 +32,7 @@ impl Default for Toast {
 
         let frame = gtk::Frame::builder().child(&grid).build();
         frame.style_context().add_class("app-notification");
-        frame.add_controller(&event_controller);
+        frame.add_controller(event_controller.clone());
 
         revealer.set_child(Some(&frame));
 

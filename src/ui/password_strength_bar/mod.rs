@@ -15,7 +15,7 @@ impl PasswordStrenthBar {
             .max_value(5.0)
             .build();
         levelbar.style_context().add_class("password-strength-bar");
-        load_static_css(&levelbar, include_bytes!("style.css"));
+        load_static_css(&levelbar, include_str!("style.css"));
         levelbar.add_offset_value("strength-very-weak", 1.0);
         levelbar.add_offset_value("strength-weak", 2.0);
         levelbar.add_offset_value("strength-reasonable", 3.0);

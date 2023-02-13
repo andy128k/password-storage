@@ -19,7 +19,7 @@ fn fake_root(record_tree: &RecordTree) -> RecordNode {
 
 fn make_groups_model(record_tree: &RecordTree) -> gtk::TreeListModel {
     let toplevel = singleton_list(&singleton_list(&fake_root(record_tree)));
-    gtk::TreeListModel::new(&toplevel, false, true, |obj| {
+    gtk::TreeListModel::new(toplevel, false, true, |obj| {
         let item = obj.clone().downcast::<gio::ListStore>().ok()?;
 
         let children: TypedListStore<_> = item
@@ -142,7 +142,7 @@ pub async fn select_group(
 
     let model = make_groups_model(tree);
 
-    let selection_model = gtk::SingleSelection::new(Some(&model));
+    let selection_model = gtk::SingleSelection::new(Some(model));
 
     let tree_view = gtk::ColumnView::builder()
         .can_focus(true)

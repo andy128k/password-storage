@@ -167,7 +167,7 @@ impl PSApplication {
         window.set_transient_for(self.active_window().as_ref());
         let section = gtk::ShortcutsSection::builder().visible(true).build();
         for (group_title, actions) in shortcuts::SHORTCUTS {
-            let group = gtk::ShortcutsGroup::builder().title(group_title).build();
+            let group = gtk::ShortcutsGroup::builder().title(*group_title).build();
             for shortcut in actions.iter() {
                 let s = gtk::ShortcutsShortcut::builder()
                     .shortcut_type(gtk::ShortcutType::Accelerator)

@@ -40,7 +40,7 @@ pub fn action_row(action: &str, label: &str, icon: &str, accel: Option<&str>) ->
 
     if let Some(accel) = accel.and_then(accel_label) {
         let accel_label = gtk::Label::builder()
-            .label(&accel)
+            .label(accel)
             .halign(gtk::Align::Start)
             .build();
         grid.attach(&accel_label, 1, 1, 2, 1);
@@ -71,7 +71,7 @@ pub fn file_row(
 
     let label1 = gtk::Label::builder()
         .use_markup(true)
-        .label(&bold(basename.to_string_lossy().as_ref()))
+        .label(bold(basename.to_string_lossy().as_ref()))
         .margin_bottom(5)
         .halign(gtk::Align::Start)
         .hexpand(true)

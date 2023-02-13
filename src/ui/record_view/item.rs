@@ -9,7 +9,6 @@ mod imp {
     use crate::entropy::{password_entropy, AsciiClassifier};
     use once_cell::sync::Lazy;
     use std::cell::RefCell;
-    use std::collections::HashMap;
 
     #[derive(Default)]
     pub struct PSRecordViewItem {
@@ -33,7 +32,7 @@ mod imp {
             self.parent_constructed();
 
             let layout = gtk::ConstraintLayout::new();
-            self.obj().set_layout_manager(Some(&layout));
+            self.obj().set_layout_manager(Some(layout.clone()));
 
             self.icon.set_parent(&*self.obj());
             self.icon.set_icon_size(gtk::IconSize::Large);
@@ -53,15 +52,15 @@ mod imp {
                         "V:|-[name]-|",
                         "V:|-[strength]-|",
                         "V:|-[share]-|",
-                    ],
+                    ] as &[&str],
                     4,
                     0,
-                    &HashMap::<&str, &gtk::Widget>::from([
-                        ("icon", self.icon.upcast_ref()),
+                    [
+                        ("icon", self.icon.upcast_ref::<gtk::Widget>()),
                         ("name", self.name.upcast_ref()),
                         ("strength", self.strength.upcast_ref()),
                         ("share", self.open.upcast_ref()),
-                    ]),
+                    ],
                 )
                 .expect("layout is ok");
 
@@ -69,7 +68,7 @@ mod imp {
             self.context_click.connect_pressed(
                 clone!(@weak self as imp => move |_gesture, _n, x, y| imp.on_context_click(x, y)),
             );
-            self.obj().add_controller(&self.context_click);
+            self.obj().add_controller(self.context_click.clone());
 
             let open_click = gtk::GestureClick::builder()
                 .button(GDK_BUTTON_PRIMARY as u32)
@@ -77,7 +76,7 @@ mod imp {
             open_click.connect_pressed(
                 clone!(@weak self as imp => move |_gesture, _n, _x, _y| imp.on_open_clicked()),
             );
-            self.open.add_controller(&open_click);
+            self.open.add_controller(open_click);
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {

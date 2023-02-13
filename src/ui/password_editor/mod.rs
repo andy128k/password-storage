@@ -70,7 +70,7 @@ impl PasswordEditor {
             .column_spacing(5)
             .build();
         container.style_context().add_class("password-editor");
-        load_static_css(&container, include_bytes!("style.css"));
+        load_static_css(&container, include_str!("style.css"));
         container.attach(&entry, 0, 0, 1, 1);
         container.attach(&square(visibility_toggle), 1, 0, 1, 1);
         container.attach(&square(generate_button), 2, 0, 1, 1);

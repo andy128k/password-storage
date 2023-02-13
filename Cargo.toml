@@ -22,11 +22,11 @@ quick-xml = "0.27"
 toml = "0.5"
 serde = { version = "1", features = ["derive"] }
 
-gtk4 = "0.5"
+gtk4 = "0.6"
 awesome-glib = { git = "https://github.com/andy128k/awesome-gtk.git" }
 
 [build-dependencies]
-glib-build-tools = "0.16"
+glib-build-tools = "0.17"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
 winres = "0.1"
