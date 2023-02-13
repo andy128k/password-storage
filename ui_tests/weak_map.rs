@@ -1,5 +1,4 @@
-use gtk4 as gtk;
-use gtk4::glib;
+use gtk::glib;
 use password_storage::weak_map::WeakMap;
 
 pub fn test_weak_map() {

@@ -1,4 +1,4 @@
-use crate::gtk_prelude::*;
+use gtk::prelude::*;
 
 async fn say(parent_window: &gtk::Window, message_type: gtk::MessageType, message: &str) {
     let dlg = gtk::MessageDialog::builder()

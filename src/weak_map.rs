@@ -1,4 +1,4 @@
-use crate::gtk_prelude::*;
+use gtk::{glib, glib::prelude::*};
 use std::cell::RefCell;
 
 pub struct WeakMap<K: Copy, V: glib::ObjectType> {

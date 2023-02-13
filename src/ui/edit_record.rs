@@ -4,11 +4,11 @@ use super::forms::entry::*;
 use super::forms::form::*;
 use super::forms::multiline::*;
 use super::password_editor::PasswordEditor;
-use crate::gtk_prelude::*;
 use crate::model::record::FIELD_NAME;
 use crate::model::record::RECORD_TYPES;
 use crate::model::record::{FieldType, Record, RecordType};
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
+use gtk::{glib, prelude::*};
 use std::cell::RefCell;
 use std::rc::Rc;
 

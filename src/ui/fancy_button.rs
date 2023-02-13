@@ -1,4 +1,4 @@
-use crate::gtk_prelude::*;
+use gtk::prelude::*;
 
 pub fn fancy_button(icon: &str, label: &str) -> gtk::Button {
     let content = gtk::Grid::builder()

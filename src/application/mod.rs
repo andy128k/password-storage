@@ -1,7 +1,7 @@
-use crate::gtk_prelude::*;
 use crate::main_window::PSMainWindow;
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
+use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 use os_str_bytes::OsStringBytes;
 use std::error::Error;
 use std::path::PathBuf;
@@ -69,9 +69,11 @@ mod imp {
 
             let files = files.to_owned();
             let hint = hint.to_owned();
-            glib::MainContext::default().spawn_local(clone!(@weak self as imp => async move {
-                imp.on_open(&files, &hint).await;
-            }));
+            glib::MainContext::default().spawn_local(
+                glib::clone!(@weak self as imp => async move {
+                    imp.on_open(&files, &hint).await;
+                }),
+            );
         }
     }
 

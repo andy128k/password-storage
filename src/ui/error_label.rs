@@ -1,5 +1,5 @@
-use crate::gtk_prelude::*;
 use crate::utils::also::Also;
+use gtk::prelude::*;
 
 pub fn create_error_label() -> gtk::Label {
     gtk::Label::builder()

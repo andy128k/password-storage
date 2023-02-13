@@ -1,5 +1,5 @@
 use super::forms::base::FormWidget;
-use crate::gtk_prelude::*;
+use gtk::{glib, prelude::*};
 
 pub async fn edit_object<T: 'static, W: FormWidget<T> + 'static>(
     object: Option<&T>,
@@ -27,7 +27,7 @@ pub async fn edit_object<T: 'static, W: FormWidget<T> + 'static>(
     dlg.content_area().append(&widget.get_widget());
 
     dlg.set_response_sensitive(gtk::ResponseType::Ok, widget.get_value().is_some());
-    widget.connect_changed(Box::new(clone!(@weak dlg => move |value| {
+    widget.connect_changed(Box::new(glib::clone!(@weak dlg => move |value| {
         dlg.set_response_sensitive(gtk::ResponseType::Ok, value.is_some());
     })));
 

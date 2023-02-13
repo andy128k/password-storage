@@ -5,7 +5,6 @@ pub mod css;
 pub mod entropy;
 pub mod error;
 pub mod format;
-pub mod gtk_prelude;
 pub mod id;
 pub mod main_window;
 pub mod markup_builder;

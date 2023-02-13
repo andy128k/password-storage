@@ -1,11 +1,11 @@
 use crate::entropy::{password_entropy, AsciiClassifier};
-use crate::gtk_prelude::*;
 use crate::password::generate_password;
 use crate::ui::dialogs::ask::confirm_unlikely;
 use crate::ui::forms::base::FormWidget;
 use crate::ui::password_strength_bar::PasswordStrenthBar;
 use crate::utils::string::StringExt;
 use crate::utils::style::load_static_css;
+use gtk::{glib, prelude::*};
 
 pub struct PasswordEditor {
     container: gtk::Grid,
@@ -39,7 +39,7 @@ impl PasswordEditor {
             .width_request(300)
             .hexpand(true)
             .build();
-        entry.connect_changed(clone!(@weak level => move |e| {
+        entry.connect_changed(glib::clone!(@weak level => move |e| {
             let strength = get_value(e)
                 .map(|text| password_entropy(&AsciiClassifier, text.as_bytes()).into());
             level.set_strength(strength);
@@ -50,7 +50,7 @@ impl PasswordEditor {
             .tooltip_text("Reveal password")
             .has_frame(false)
             .build();
-        visibility_toggle.connect_clicked(clone!(@weak entry => move |t| {
+        visibility_toggle.connect_clicked(glib::clone!(@weak entry => move |t| {
             entry.set_visibility(t.is_active());
         }));
 
@@ -59,7 +59,7 @@ impl PasswordEditor {
             .tooltip_text("Generate password")
             .has_frame(false)
             .build();
-        generate_button.connect_clicked(clone!(@weak entry => move |_| {
+        generate_button.connect_clicked(glib::clone!(@weak entry => move |_| {
             glib::MainContext::default().spawn_local(
                 generate_password_clicked(entry)
             );

@@ -1,4 +1,4 @@
-use crate::gtk_prelude::*;
+use gtk::prelude::*;
 
 pub fn flow_grid(columns: usize, widgets: &[gtk::Widget]) -> gtk::Grid {
     let grid = gtk::Grid::builder()

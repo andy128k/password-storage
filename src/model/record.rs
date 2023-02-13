@@ -1,4 +1,3 @@
-use crate::gtk_prelude::*;
 use crate::utils::algorithm::all_equal_by_key;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
@@ -46,8 +45,7 @@ pub struct RecordType {
     password_field: Option<&'static str>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, glib::Boxed)]
-#[boxed_type(name = "PSRecord")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Record {
     pub record_type: &'static RecordType,
     pub values: HashMap<String, String>,

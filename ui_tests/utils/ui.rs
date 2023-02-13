@@ -1,4 +1,3 @@
-use gtk4 as gtk;
 use password_storage::utils::ui::{bitset_iter, bitset_iter_rev};
 
 pub fn test_bitset_iter() {

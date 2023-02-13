@@ -1,6 +1,6 @@
-use crate::gtk_prelude::*;
 use crate::model::record::Record;
 use crate::utils::typed_list_store::TypedListStore;
+use gtk::glib::{self, subclass::prelude::*};
 
 mod imp {
     use once_cell::sync::OnceCell;

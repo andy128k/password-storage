@@ -2,7 +2,6 @@ use crate::cache::Cache;
 use crate::config::ConfigService;
 use crate::error::*;
 use crate::format;
-use crate::gtk_prelude::*;
 use crate::model::record::{Record, RecordType, FIELD_NAME, RECORD_TYPES, RECORD_TYPE_GENERIC};
 use crate::model::tree::RecordNode;
 use crate::model::tree::RecordTree;
@@ -22,6 +21,7 @@ use crate::ui::toast::Toast;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::*;
+use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
@@ -141,7 +141,7 @@ mod imp {
             self.home_button.set_margin_start(5);
             self.home_button.set_margin_end(5);
             self.home_button
-                .connect_clicked(clone!(@weak self as imp => move |_| {
+                .connect_clicked(glib::clone!(@weak self as imp => move |_| {
                     glib::MainContext::default().spawn_local(async move {
                         imp.go_home().await
                     });
@@ -165,7 +165,7 @@ mod imp {
             self.up_button.set_margin_start(5);
             self.up_button.set_margin_end(5);
             self.up_button
-                .connect_clicked(clone!(@weak self as imp => move |_| {
+                .connect_clicked(glib::clone!(@weak self as imp => move |_| {
                     glib::MainContext::default().spawn_local(async move {
                         imp.go_up().await
                     });
@@ -255,11 +255,11 @@ mod imp {
 
             self.search_bar
                 .on_search
-                .subscribe(clone!(@weak win => move |event| {
+                .subscribe(glib::clone!(@weak win => move |event| {
                     win.search(event);
                 }));
             self.search_bar.on_configure.subscribe(
-                clone!(@weak self as imp => move |search_config| {
+                glib::clone!(@weak self as imp => move |search_config| {
                     imp.config_service.get().unwrap()
                         .update(|config| {
                             config.search_in_secrets = search_config.search_in_secrets;
@@ -267,26 +267,27 @@ mod imp {
                 }),
             );
 
-            self.view
-                .connect_selection_changed(clone!(@weak win => move |selected_records| {
+            self.view.connect_selection_changed(
+                glib::clone!(@weak win => move |selected_records| {
                     win.listview_cursor_changed(selected_records);
-                }));
+                }),
+            );
 
             self.view
-                .connect_record_activated(clone!(@weak win => move |position| {
+                .connect_record_activated(glib::clone!(@weak win => move |position| {
                     glib::MainContext::default().spawn_local(async move {
                         win.listview_row_activated(position).await;
                     });
                 }));
 
             self.view
-                .connect_go_home(clone!(@weak self as imp => move || {
+                .connect_go_home(glib::clone!(@weak self as imp => move || {
                     glib::MainContext::default().spawn_local(async move {
                         imp.go_home().await
                     });
                 }));
             self.view
-                .connect_go_up(clone!(@weak self as imp => move || {
+                .connect_go_up(glib::clone!(@weak self as imp => move || {
                     glib::MainContext::default().spawn_local(async move {
                         imp.go_up().await
                     });

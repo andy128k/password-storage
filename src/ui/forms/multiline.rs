@@ -1,6 +1,6 @@
 use super::base::*;
-use crate::gtk_prelude::*;
 use crate::utils::string::StringExt;
+use gtk::prelude::*;
 
 pub struct MultiLine {
     scrolled_window: gtk::ScrolledWindow,

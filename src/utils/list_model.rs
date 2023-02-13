@@ -1,4 +1,4 @@
-use crate::gtk_prelude::*;
+use gtk::{gio, gio::prelude::*, glib};
 use std::ops::{Bound, RangeBounds};
 
 pub trait ListModelImmutableExt {

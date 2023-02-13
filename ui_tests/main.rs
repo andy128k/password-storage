@@ -13,7 +13,7 @@ macro_rules! run_test {
 
 fn main() {
     eprintln!("");
-    gtk4::init().unwrap();
+    gtk::init().unwrap();
 
     run_test!(weak_map::test_weak_map);
     run_test!(weak_map::test_weak_map_remove);

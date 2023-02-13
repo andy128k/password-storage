@@ -1,7 +1,7 @@
 use crate::error::*;
-use crate::gtk_prelude::*;
 use crate::id::Id;
 use crate::slot::Slot;
+use gtk::glib;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::fs;

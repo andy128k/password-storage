@@ -1,5 +1,5 @@
-use crate::gtk_prelude::*;
 use crate::utils::menu_builder::*;
+use gtk::{gio, prelude::*};
 
 pub fn create_main_menu() -> gio::MenuModel {
     gio::Menu::new()

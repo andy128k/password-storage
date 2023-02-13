@@ -1,6 +1,6 @@
 use super::base::*;
-use crate::gtk_prelude::*;
 use crate::utils::string::StringExt;
+use gtk::{glib, prelude::*};
 
 pub struct Text {
     entry: gtk::Entry,

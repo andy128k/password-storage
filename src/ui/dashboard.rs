@@ -1,8 +1,8 @@
 use crate::cache::Cache;
-use crate::gtk_prelude::*;
 use crate::markup_builder::bold;
 use crate::utils::ui::centered;
 use crate::utils::ui::PSWidgetExt;
+use gtk::{glib, prelude::*};
 use os_str_bytes::OsStrBytes;
 use std::path::{Path, PathBuf};
 
@@ -105,7 +105,7 @@ pub fn file_row(
         &glib::Bytes::from(filename.to_raw_bytes().as_ref()),
     )));
 
-    remove_button.connect_clicked(clone!(@weak row => move |_| {
+    remove_button.connect_clicked(glib::clone!(@weak row => move |_| {
         on_remove(&row, &filename);
     }));
 
@@ -200,7 +200,7 @@ impl PSDashboard {
         for filename in cache.recent_files() {
             if let Some(row) = file_row(
                 filename,
-                clone!(@weak self.listbox as listbox, @strong cache => move |row, filename| {
+                glib::clone!(@weak self.listbox as listbox, @strong cache => move |row, filename| {
                     cache.remove_file(filename);
                     listbox.remove(row);
                 }),

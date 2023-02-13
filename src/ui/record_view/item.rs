@@ -1,8 +1,13 @@
 use crate::entropy::PasswordStrength;
-use crate::gtk_prelude::*;
 use crate::model::tree::RecordNode;
 use crate::utils::ui::PSWidgetExt;
-use gdk::ffi::{GDK_BUTTON_PRIMARY, GDK_BUTTON_SECONDARY};
+use gtk::{
+    gdk,
+    gdk::ffi::{GDK_BUTTON_PRIMARY, GDK_BUTTON_SECONDARY},
+    gio, glib,
+    prelude::*,
+    subclass::prelude::*,
+};
 
 mod imp {
     use super::*;
@@ -66,7 +71,7 @@ mod imp {
 
             self.context_click.set_button(GDK_BUTTON_SECONDARY as u32);
             self.context_click.connect_pressed(
-                clone!(@weak self as imp => move |_gesture, _n, x, y| imp.on_context_click(x, y)),
+                glib::clone!(@weak self as imp => move |_gesture, _n, x, y| imp.on_context_click(x, y)),
             );
             self.obj().add_controller(self.context_click.clone());
 
@@ -74,7 +79,7 @@ mod imp {
                 .button(GDK_BUTTON_PRIMARY as u32)
                 .build();
             open_click.connect_pressed(
-                clone!(@weak self as imp => move |_gesture, _n, _x, _y| imp.on_open_clicked()),
+                glib::clone!(@weak self as imp => move |_gesture, _n, _x, _y| imp.on_open_clicked()),
             );
             self.open.add_controller(open_click);
         }

@@ -1,9 +1,7 @@
-use crate::gtk_prelude::*;
 use crate::model::tree::RecordNode;
 use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::pending;
-use std::cell::RefCell;
-use std::rc::Rc;
+use gtk::{gdk, gio, glib, prelude::*, subclass::prelude::*};
 
 mod imp {
     use super::*;
@@ -12,6 +10,8 @@ mod imp {
     use crate::utils::ui::{scrolled, PSWidgetExt};
     use crate::weak_map::WeakMap;
     use once_cell::sync::Lazy;
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     pub const SIGNAL_GO_HOME: &str = "ps-go-home";
     pub const SIGNAL_GO_UP: &str = "ps-go-up";
@@ -54,21 +54,22 @@ mod imp {
                 .set_factory(Some(&item_factory(self.popup_model.clone(), &self.mapping)));
             self.list_view.set_model(Some(&self.selection));
 
-            self.list_view
-                .connect_activate(clone!(@weak obj => move |_list_view, position| {
+            self.list_view.connect_activate(
+                glib::clone!(@weak obj => move |_list_view, position| {
                     obj.emit_record_activated(position);
-                }));
+                }),
+            );
 
             let key_controller = gtk::EventControllerKey::new();
             key_controller.connect_key_pressed(
-                clone!(@weak obj => @default-return glib::signal::Inhibit(false), move |_controller, key, _keycode, modifier| {
+                glib::clone!(@weak obj => @default-return glib::signal::Inhibit(false), move |_controller, key, _keycode, modifier| {
                     glib::signal::Inhibit(obj.on_key_press(key, modifier))
                 }),
             );
             self.list_view.add_controller(key_controller);
 
             self.selection.connect_selection_changed(
-                clone!(@weak obj => move |selection, _pos, _n| {
+                glib::clone!(@weak obj => move |selection, _pos, _n| {
                     obj.emit_selection_changed(&selection.selection())
                 }),
             );

@@ -1,6 +1,6 @@
 #![windows_subsystem = "windows"]
 
-use gtk4::prelude::*;
+use gtk::prelude::*;
 use password_storage::application::PSApplication;
 use std::process::Termination;
 

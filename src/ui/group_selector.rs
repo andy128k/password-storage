@@ -1,9 +1,9 @@
-use crate::gtk_prelude::*;
 use crate::model::record::{FIELD_NAME, RECORD_TYPE_GENERIC};
 use crate::model::tree::{RecordNode, RecordTree};
 use crate::utils::list_model::ListModelImmutableExt;
 use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::{scrolled, PSWidgetLookupExt};
+use gtk::{gio, glib, prelude::*};
 
 pub fn singleton_list(item: &impl glib::IsA<glib::Object>) -> gio::ListStore {
     let list = gio::ListStore::new(item.type_());
@@ -174,7 +174,7 @@ pub async fn select_group(
     dlg.content_area().append(&scrolled_window);
 
     dlg.set_response_sensitive(gtk::ResponseType::Ok, false);
-    selection_model.connect_selection_changed(clone!(@weak dlg => move |selection_model, _, _| {
+    selection_model.connect_selection_changed(glib::clone!(@weak dlg => move |selection_model, _, _| {
         dlg.set_response_sensitive(gtk::ResponseType::Ok, get_selected_record(selection_model).is_some());
     }));
 

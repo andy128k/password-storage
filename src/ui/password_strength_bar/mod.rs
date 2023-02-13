@@ -1,6 +1,6 @@
 use crate::entropy::PasswordStrength;
-use crate::gtk_prelude::*;
 use crate::utils::style::load_static_css;
+use gtk::{glib, prelude::*};
 
 #[derive(Clone, glib::Downgrade)]
 pub struct PasswordStrenthBar {

@@ -1,5 +1,5 @@
-use crate::gtk_prelude::*;
 use crate::slot::Slot;
+use gtk::{glib, prelude::*};
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy)]
@@ -56,19 +56,19 @@ impl Default for PSSearchBar {
             on_configure: Default::default(),
         };
 
-        entry.connect_search_changed(clone!(@weak this => move |entry| {
+        entry.connect_search_changed(glib::clone!(@weak this => move |entry| {
             let search_in_secrets = this.search_in_secrets.is_active();
             this.on_search.emit(SearchEvent { event_type: SearchEventType::Change, query: entry.text(), search_in_secrets });
         }));
-        entry.connect_next_match(clone!(@weak this => move |entry| {
+        entry.connect_next_match(glib::clone!(@weak this => move |entry| {
             let search_in_secrets = this.search_in_secrets.is_active();
             this.on_search.emit(SearchEvent { event_type: SearchEventType::Next, query: entry.text(), search_in_secrets });
         }));
-        entry.connect_previous_match(clone!(@weak this => move |entry| {
+        entry.connect_previous_match(glib::clone!(@weak this => move |entry| {
             let search_in_secrets = this.search_in_secrets.is_active();
             this.on_search.emit(SearchEvent { event_type: SearchEventType::Prev, query: entry.text(), search_in_secrets });
         }));
-        search_in_secrets.connect_toggled(clone!(@weak this => move |b| {
+        search_in_secrets.connect_toggled(glib::clone!(@weak this => move |b| {
             this.on_configure.emit(SearchConfig { search_in_secrets:  b.is_active() });
         }));
 
@@ -107,13 +107,13 @@ fn create_search_entry_box() -> (gtk::Box, gtk::SearchEntry) {
     bx.append(&entry);
 
     let next = create_button("go-down-symbolic");
-    next.connect_clicked(clone!(@weak entry => move |_| {
+    next.connect_clicked(glib::clone!(@weak entry => move |_| {
         entry.emit_next_match();
     }));
     bx.append(&next);
 
     let prev = create_button("go-up-symbolic");
-    prev.connect_clicked(clone!(@weak entry => move |_| {
+    prev.connect_clicked(glib::clone!(@weak entry => move |_| {
         entry.emit_previous_match();
     }));
     bx.append(&prev);

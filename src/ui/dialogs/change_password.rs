@@ -1,4 +1,3 @@
-use crate::gtk_prelude::*;
 use crate::ui::edit_object::edit_object;
 use crate::ui::forms::entry::Text;
 use crate::ui::forms::form::{Form, ValidationResult};

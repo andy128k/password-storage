@@ -1,4 +1,4 @@
-use crate::gtk_prelude::*;
+use gtk::prelude::*;
 use std::path::PathBuf;
 
 async fn choose_file(

@@ -1,7 +1,7 @@
-use crate::gtk_prelude::*;
 use crate::model::record::RecordType;
 use crate::ui::fancy_button::fancy_button;
 use crate::ui::flow_grid::flow_grid;
+use gtk::{glib, prelude::*};
 use std::rc::Rc;
 
 pub struct RecordTypePopoverBuilder<'b> {

@@ -1,5 +1,4 @@
-use gtk4 as gtk;
-use gtk4::prelude::*;
+use gtk::prelude::*;
 use password_storage::utils::list_model::ListModelImmutableExt;
 
 pub fn test_last() {

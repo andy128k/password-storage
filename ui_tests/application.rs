@@ -1,5 +1,5 @@
-use gtk4::gio;
-use gtk4::prelude::*;
+use gtk::gio;
+use gtk::prelude::*;
 use password_storage::application::PSApplication;
 
 pub fn test_app_create() {

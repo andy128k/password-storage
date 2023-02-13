@@ -1,7 +1,7 @@
 use crate::config::Config;
-use crate::gtk_prelude::*;
 use crate::ui::edit_object::edit_object;
 use crate::ui::forms::base::FormWidget;
+use gtk::prelude::*;
 
 struct ConfigForm {
     grid: gtk::Grid,

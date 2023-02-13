@@ -1,6 +1,6 @@
 use crate::error::*;
-use crate::gtk_prelude::*;
 use crate::ui::error_label::create_error_label;
+use gtk::{glib, prelude::*};
 
 pub async fn read_file<T, R>(
     parent_window: &gtk::Window,
@@ -52,7 +52,7 @@ where
     dlg.content_area().append(&grid);
     dlg.content_area().set_spacing(8);
 
-    entry.connect_changed(clone!(@weak dlg => move |e| {
+    entry.connect_changed(glib::clone!(@weak dlg => move |e| {
         dlg.set_response_sensitive(
             gtk::ResponseType::Accept,
             e.chars(0, -1).len() > 0,

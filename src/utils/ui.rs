@@ -1,4 +1,4 @@
-use crate::gtk_prelude::*;
+use gtk::{gio, glib, pango, prelude::*};
 use std::collections::VecDeque;
 use std::time::Duration;
 

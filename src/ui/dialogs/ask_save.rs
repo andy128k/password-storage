@@ -1,4 +1,4 @@
-use crate::gtk_prelude::*;
+use gtk::prelude::*;
 
 pub enum AskSave {
     Discard,

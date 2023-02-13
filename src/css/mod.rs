@@ -1,5 +1,5 @@
-use crate::gtk_prelude::*;
 use crate::utils::style::load_css_from_data;
+use gtk::gdk;
 
 pub fn load_css(display: &gdk::Display) {
     gtk::StyleContext::add_provider_for_display(
