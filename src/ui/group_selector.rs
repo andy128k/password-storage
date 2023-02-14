@@ -69,27 +69,34 @@ fn name_factory() -> gtk::SignalListItemFactory {
         list_item.set_child(Some(&expander));
     });
     factory.connect_bind(|_factory, list_item| {
-        let Some(expander) = list_item.child().and_then(|child| child.downcast::<gtk::TreeExpander>().ok()) else { return };
+        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else { return };
 
-        let row = list_item.item().and_then(|i| i.downcast::<gtk::TreeListRow>().ok());
+        let row = list_item.item().and_downcast::<gtk::TreeListRow>();
         expander.set_list_row(row.as_ref());
 
-        let record = row
+        let item = row
             .and_then(|row| row.item())
-            .and_then(|item| item.downcast_ref::<gio::ListModel>()?.last()?.downcast::<RecordNode>().ok());
+            .and_downcast::<gio::ListModel>();
+        let record = item
+            .and_then(|item| item.last())
+            .and_downcast::<RecordNode>();
 
         if let Some(label) = expander.child().and_then(|c| c.of_type::<gtk::Label>()) {
-            label.set_text(&record.map(|r| r.record().name()).unwrap_or_else(|| "/".to_string()));
+            label.set_text(
+                &record
+                    .map(|r| r.record().name())
+                    .unwrap_or_else(|| "/".to_string()),
+            );
         }
     });
     factory.connect_unbind(|_factory, list_item| {
-        let Some(expander) = list_item.child().and_then(|child| child.downcast::<gtk::TreeExpander>().ok()) else { return };
+        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else { return };
         if let Some(label) = expander.child().and_then(|c| c.of_type::<gtk::Label>()) {
             label.set_text("");
         }
     });
     factory.connect_teardown(|_factory, list_item| {
-        let Some(expander) = list_item.child().and_then(|child| child.downcast::<gtk::TreeExpander>().ok()) else { return };
+        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else { return };
         if let Some(label) = expander.child().and_then(|c| c.of_type::<gtk::Label>()) {
             label.set_text("");
         }
@@ -104,20 +111,33 @@ fn description_factory() -> gtk::SignalListItemFactory {
         list_item.set_child(Some(&child));
     });
     factory.connect_bind(|_factory, list_item| {
-        let Some(label) = list_item.child().and_then(|child| child.downcast::<gtk::Label>().ok()) else { return };
-        let record = list_item.item()
-            .and_then(|i| i.downcast::<gtk::TreeListRow>().ok())
+        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else { return };
+        let row = list_item.item().and_downcast::<gtk::TreeListRow>();
+        let item = row
             .and_then(|row| row.item())
-            .and_then(|item| item.downcast_ref::<gio::ListModel>()?.last()?.downcast::<RecordNode>().ok());
+            .and_downcast::<gio::ListModel>();
+        let record = item
+            .and_then(|item| item.last())
+            .and_downcast::<RecordNode>();
 
-        label.set_text(&record.and_then(|r| r.record().description().lines().next().map(|s| s.to_string())).unwrap_or_default());
+        label.set_text(
+            &record
+                .and_then(|r| {
+                    r.record()
+                        .description()
+                        .lines()
+                        .next()
+                        .map(|s| s.to_string())
+                })
+                .unwrap_or_default(),
+        );
     });
     factory.connect_unbind(|_factory, list_item| {
-        let Some(label) = list_item.child().and_then(|child| child.downcast::<gtk::Label>().ok()) else { return };
+        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else { return };
         label.set_text("");
     });
     factory.connect_teardown(|_factory, list_item| {
-        let Some(label) = list_item.child().and_then(|child| child.downcast::<gtk::Label>().ok()) else { return };
+        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else { return };
         label.set_text("");
     });
     factory

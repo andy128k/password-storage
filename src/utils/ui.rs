@@ -87,8 +87,8 @@ impl PSWidgetLookupExt for gtk::Widget {
 
     fn of_type_and_name<W: IsA<gtk::Widget>>(&self, name: &str) -> Option<W> {
         self.traverse()
-            .filter(|ch| ch.widget_name() == name)
-            .find_map(|ch| ch.downcast::<W>().ok())
+            .find(|ch| ch.widget_name() == name)
+            .and_downcast::<W>()
     }
 }
 

@@ -51,13 +51,13 @@ mod imp {
 
             layout
                 .add_constraints_from_description(
-                    &[
+                    [
                         "H:|-[icon(==30)]-[name]-[strength(==50)]-[share(==50)]-|",
                         "V:|-[icon]-|",
                         "V:|-[name]-|",
                         "V:|-[strength]-|",
                         "V:|-[share]-|",
-                    ] as &[&str],
+                    ],
                     4,
                     0,
                     [
@@ -166,9 +166,7 @@ mod imp {
         }
 
         fn root_window(&self) -> Option<gtk::Window> {
-            self.obj()
-                .root()
-                .and_then(|r| r.downcast::<gtk::Window>().ok())
+            self.obj().root().and_downcast::<gtk::Window>()
         }
     }
 }

@@ -5,7 +5,7 @@ pub fn test_last() {
     let list = gtk::StringList::new(&["a", "b", "c", "d"]);
     let last = list.last();
     assert!(last.is_some());
-    let item = last.unwrap().downcast::<gtk::StringObject>().unwrap();
+    let item = last.and_downcast::<gtk::StringObject>().unwrap();
     assert_eq!(item.string(), "d");
 }
 

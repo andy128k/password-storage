@@ -6,11 +6,11 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 fn get_record_item(list_item: &gtk::ListItem) -> Option<PSRecordViewItem> {
-    list_item.child()?.downcast::<PSRecordViewItem>().ok()
+    list_item.child().and_downcast::<PSRecordViewItem>()
 }
 
 fn get_record_node(list_item: &gtk::ListItem) -> Option<RecordNode> {
-    list_item.item()?.downcast::<RecordNode>().ok()
+    list_item.item().and_downcast::<RecordNode>()
 }
 
 pub fn item_factory(

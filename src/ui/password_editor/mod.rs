@@ -13,7 +13,7 @@ pub struct PasswordEditor {
 }
 
 async fn confirm_password_overwrite<P: WidgetExt>(widget: &P) -> bool {
-    if let Some(window) = widget.root().and_then(|w| w.downcast().ok()) {
+    if let Some(window) = widget.root().and_downcast() {
         confirm_unlikely(&window, "Do you want to overwrite current password?").await
     } else {
         false

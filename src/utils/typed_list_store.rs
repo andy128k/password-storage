@@ -34,7 +34,7 @@ where
     }
 
     pub fn get(&self, index: u32) -> Option<T> {
-        self.0.item(index).and_then(|item| item.downcast().ok())
+        self.0.item(index).and_downcast()
     }
 
     pub fn last(&self) -> Option<T> {
