@@ -194,9 +194,6 @@ fn configure() -> Result<(), Box<dyn Error>> {
 #[cfg(target_os = "macos")]
 fn configure() -> Result<(), Box<dyn Error>> {
     let settings = gtk::Settings::default().ok_or("No default settings found.")?;
-    settings.set_property(
-        "gtk-decoration-layout",
-        "close,minimize,maximize".to_value(),
-    );
+    settings.set_property("gtk-decoration-layout", "close,minimize,maximize");
     Ok(())
 }
