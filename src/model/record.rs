@@ -237,8 +237,6 @@ pub static RECORD_TYPES: Lazy<Vec<&'static RecordType>> = Lazy::new(|| {
     ]
 });
 
-pub const RECORD_TYPE_FIELD: &str = "__record_type";
-
 impl RecordType {
     pub fn find(name: &str) -> Option<&'static RecordType> {
         RECORD_TYPES.iter().find(|r| r.name == name).copied()
@@ -252,7 +250,6 @@ impl RecordType {
 impl Record {
     pub fn new(record_type: &'static RecordType) -> Self {
         let mut values = HashMap::new();
-        values.insert(RECORD_TYPE_FIELD.to_owned(), record_type.name.to_owned());
         for field in &record_type.fields {
             values.insert(field.name.to_owned(), String::new());
         }
@@ -412,9 +409,9 @@ mod test {
         let generic = RECORD_TYPE_GENERIC.new_record();
 
         assert_eq!(group.record_type.name, "group");
-        assert_eq!(group.values.keys().len(), 2 + 1);
+        assert_eq!(group.values.keys().len(), 2);
 
         assert_eq!(generic.record_type.name, "generic");
-        assert_eq!(generic.values.keys().len(), 5 + 1);
+        assert_eq!(generic.values.keys().len(), 5);
     }
 }
