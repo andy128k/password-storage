@@ -1,6 +1,5 @@
 use crate::entropy::PasswordStrength;
 use crate::model::tree::RecordNode;
-use crate::utils::ui::PSWidgetExt;
 use gtk::{
     gdk,
     gdk::ffi::{GDK_BUTTON_PRIMARY, GDK_BUTTON_SECONDARY},
@@ -12,6 +11,7 @@ use gtk::{
 mod imp {
     use super::*;
     use crate::entropy::{password_entropy, AsciiClassifier};
+    use awesome_gtk::widget::AwesomeWidgetTraverseExt;
     use once_cell::sync::Lazy;
     use std::cell::RefCell;
 

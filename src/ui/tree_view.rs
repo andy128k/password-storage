@@ -7,8 +7,9 @@ mod imp {
     use super::*;
     use crate::ui::record_view::item::PSRecordViewItem;
     use crate::ui::record_view::item_factory::item_factory;
-    use crate::utils::ui::{scrolled, PSWidgetExt};
+    use crate::utils::ui::scrolled;
     use crate::weak_map::WeakMap;
+    use awesome_gtk::widget::AwesomeWidgetTraverseExt;
     use once_cell::sync::Lazy;
     use std::cell::RefCell;
     use std::rc::Rc;

@@ -24,6 +24,7 @@ serde = { version = "1", features = ["derive"] }
 
 gtk = { package = "gtk4", version = "0.6" }
 awesome-glib = "0.2"
+awesome-gtk = "0.1"
 
 [build-dependencies]
 glib-build-tools = "0.17"

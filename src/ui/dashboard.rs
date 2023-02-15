@@ -1,7 +1,7 @@
 use crate::cache::Cache;
 use crate::markup_builder::bold;
 use crate::utils::ui::centered;
-use crate::utils::ui::PSWidgetExt;
+use awesome_gtk::widget::AwesomeWidgetTraverseExt;
 use gtk::{glib, prelude::*};
 use os_str_bytes::OsStrBytes;
 use std::path::{Path, PathBuf};

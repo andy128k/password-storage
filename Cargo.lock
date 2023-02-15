@@ -44,6 +44,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "awesome-gtk"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0aeb59709b6ff1a020c06dc85e8168e06226c07bfa8efafc8fec17c1f1d23fae"
+dependencies = [
+ "gtk4",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -673,6 +682,7 @@ version = "0.20.0"
 dependencies = [
  "aes",
  "awesome-glib",
+ "awesome-gtk",
  "cbc",
  "deflate",
  "glib-build-tools",
