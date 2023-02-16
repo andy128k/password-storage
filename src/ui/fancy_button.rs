@@ -25,7 +25,8 @@ pub fn fancy_button(icon: &str, label: &str) -> gtk::Button {
         .build();
     content.attach(&label, 0, 1, 1, 1);
 
-    let button = gtk::Button::builder().child(&content).build();
-    button.style_context().add_class("flat");
-    button
+    gtk::Button::builder()
+        .child(&content)
+        .css_classes(["flat"])
+        .build()
 }

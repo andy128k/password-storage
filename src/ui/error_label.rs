@@ -1,13 +1,8 @@
-use crate::utils::also::Also;
-use gtk::prelude::*;
-
 pub fn create_error_label() -> gtk::Label {
     gtk::Label::builder()
         .xalign(0.0)
         .yalign(0.5)
+        .visible(false)
+        .css_classes(["error"])
         .build()
-        .also(|label| {
-            label.style_context().add_class("error");
-            label.hide();
-        })
 }

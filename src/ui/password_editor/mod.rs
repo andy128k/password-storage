@@ -68,8 +68,8 @@ impl PasswordEditor {
         let container = gtk::Grid::builder()
             .row_spacing(5)
             .column_spacing(5)
+            .css_classes(["password-editor"])
             .build();
-        container.style_context().add_class("password-editor");
         load_static_css(&container, include_str!("style.css"));
         container.attach(&entry, 0, 0, 1, 1);
         container.attach(&square(visibility_toggle), 1, 0, 1, 1);

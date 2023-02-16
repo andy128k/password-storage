@@ -13,8 +13,8 @@ impl PasswordStrenthBar {
             .mode(gtk::LevelBarMode::Discrete)
             .min_value(0.0)
             .max_value(5.0)
+            .css_classes(["password-strength-bar"])
             .build();
-        levelbar.style_context().add_class("password-strength-bar");
         load_static_css(&levelbar, include_str!("style.css"));
         levelbar.add_offset_value("strength-very-weak", 1.0);
         levelbar.add_offset_value("strength-weak", 2.0);

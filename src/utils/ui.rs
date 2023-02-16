@@ -124,21 +124,19 @@ pub fn action_popover_button(popover: &gtk::Popover, icon: &str, title: &str) ->
 }
 
 pub fn linked_button_box() -> gtk::Box {
-    let bbox = gtk::Box::builder()
+    gtk::Box::builder()
         .orientation(gtk::Orientation::Horizontal)
-        .build();
-    bbox.style_context().add_class("linked");
-    bbox
+        .css_classes(["linked"])
+        .build()
 }
 
 fn title_label(label: &str, class: &str) -> gtk::Label {
-    let label = gtk::Label::builder()
+    gtk::Label::builder()
         .label(label)
         .single_line_mode(true)
         .ellipsize(pango::EllipsizeMode::End)
-        .build();
-    label.add_css_class(class);
-    label
+        .css_classes([class])
+        .build()
 }
 
 pub fn title(title: &str) -> gtk::Widget {

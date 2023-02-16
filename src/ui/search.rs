@@ -100,8 +100,8 @@ impl PSSearchBar {
 fn create_search_entry_box() -> (gtk::Box, gtk::SearchEntry) {
     let bx = gtk::Box::builder()
         .orientation(gtk::Orientation::Horizontal)
+        .css_classes(["linked"])
         .build();
-    bx.style_context().add_class("linked");
 
     let entry = gtk::SearchEntry::builder().width_request(300).build();
     bx.append(&entry);
@@ -122,7 +122,8 @@ fn create_search_entry_box() -> (gtk::Box, gtk::SearchEntry) {
 }
 
 fn create_button(icon: &str) -> gtk::Button {
-    let btn = gtk::Button::builder().icon_name(icon).build();
-    btn.style_context().add_class("image-button");
-    btn
+    gtk::Button::builder()
+        .icon_name(icon)
+        .css_classes(["image-button"])
+        .build()
 }

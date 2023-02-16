@@ -46,10 +46,11 @@ pub fn action_row(action: &str, label: &str, icon: &str, accel: Option<&str>) ->
         grid.attach(&accel_label, 1, 1, 2, 1);
     }
 
-    let row = gtk::ListBoxRow::builder().action_name(action).build();
-    row.set_child(Some(&grid));
-
-    row.style_context().add_class("frame");
+    let row = gtk::ListBoxRow::builder()
+        .action_name(action)
+        .css_classes(["frame"])
+        .child(&grid)
+        .build();
 
     set_group_title(&row, "Start");
 
@@ -97,19 +98,16 @@ pub fn file_row(
     }
     grid.attach(&label2, 0, 1, 2, 1);
 
-    let row = gtk::ListBoxRow::builder().build();
-    row.set_child(Some(&grid));
-
-    row.set_action_name(Some("app.open-file"));
-    row.set_action_target_value(Some(&glib::Variant::from_bytes::<Vec<u8>>(
-        &glib::Bytes::from(filename.to_raw_bytes().as_ref()),
-    )));
+    let row = gtk::ListBoxRow::builder()
+        .action_name("app.open-file")
+        .action_target(&filename.to_raw_bytes().as_ref().into())
+        .css_classes(["frame"])
+        .child(&grid)
+        .build();
 
     remove_button.connect_clicked(glib::clone!(@weak row => move |_| {
         on_remove(&row, &filename);
     }));
-
-    row.style_context().add_class("frame");
 
     set_group_title(&row, "Recent files");
 
@@ -140,13 +138,9 @@ fn header(label: &str) -> gtk::Widget {
         .halign(gtk::Align::Start)
         .build();
 
-    let grid = gtk::Grid::new();
-    let context = grid.style_context();
-    context.add_class("background");
-
+    let grid = gtk::Grid::builder().css_classes(["background"]).build();
     grid.attach(&label, 0, 0, 1, 1);
 
-    grid.show();
     grid.upcast()
 }
 

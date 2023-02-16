@@ -12,15 +12,10 @@ pub struct Toast {
 
 impl Default for Toast {
     fn default() -> Self {
-        let revealer = gtk::Revealer::builder()
-            .halign(gtk::Align::Center)
-            .valign(gtk::Align::Start)
-            .build();
-
         let close_button = gtk::Button::builder()
             .icon_name("window-close-symbolic")
+            .css_classes(["close-button"])
             .build();
-        close_button.style_context().add_class("close-button");
 
         let label = gtk::Label::builder().build();
 
@@ -30,11 +25,17 @@ impl Default for Toast {
 
         let event_controller = gtk::EventControllerMotion::builder().build();
 
-        let frame = gtk::Frame::builder().child(&grid).build();
-        frame.style_context().add_class("app-notification");
+        let frame = gtk::Frame::builder()
+            .css_classes(["app-notification"])
+            .child(&grid)
+            .build();
         frame.add_controller(event_controller.clone());
 
-        revealer.set_child(Some(&frame));
+        let revealer = gtk::Revealer::builder()
+            .halign(gtk::Align::Center)
+            .valign(gtk::Align::Start)
+            .child(&frame)
+            .build();
 
         let toast = Self {
             revealer,
