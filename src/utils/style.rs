@@ -1,8 +1,4 @@
-use crate::utils::run_once::RunOnce;
-use gtk::{glib, prelude::*};
-use once_cell::sync::Lazy;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use gtk::{gdk, glib, prelude::*};
 
 pub fn load_css_from_data(data: &str) -> gtk::CssProvider {
     let provider = gtk::CssProvider::new();
@@ -10,23 +6,23 @@ pub fn load_css_from_data(data: &str) -> gtk::CssProvider {
     provider
 }
 
-pub fn load_static_css<W: glib::IsA<gtk::Widget>>(widget: &W, data: &'static str) {
-    static INITIALIZED_CSS: Lazy<RunOnce<(u64, String)>> = Lazy::new(RunOnce::default);
+fn add_static_css(display: &gdk::Display, css: &'static str, priority: u32) {
+    let key = glib::Quark::from_str(format!("static_css_{:?}", css.as_ptr()));
+    if unsafe { display.qdata::<bool>(key) }.is_none() {
+        let provider = load_css_from_data(css);
+        gtk::StyleContext::add_provider_for_display(display, &provider, priority);
+        unsafe { display.set_qdata::<bool>(key, true) };
+    }
+}
 
-    widget.connect_realize(move |widget| {
-        let display = widget.display();
+pub trait StaticCssExt {
+    fn add_static_css(&self, css: &'static str, priority: u32);
+}
 
-        let mut hasher = DefaultHasher::new();
-        display.hash(&mut hasher);
-        let display_hash = hasher.finish();
-
-        let key = (display_hash, widget.type_().name().to_string());
-        INITIALIZED_CSS.run(key, || {
-            gtk::StyleContext::add_provider_for_display(
-                &display,
-                &load_css_from_data(data),
-                gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-            );
+impl<W: glib::IsA<gtk::Widget>> StaticCssExt for W {
+    fn add_static_css(&self, css: &'static str, priority: u32) {
+        self.connect_realize(move |this| {
+            add_static_css(&this.display(), css, priority);
         });
-    });
+    }
 }

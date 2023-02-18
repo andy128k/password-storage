@@ -1,5 +1,5 @@
 use crate::entropy::PasswordStrength;
-use crate::utils::style::load_static_css;
+use crate::utils::style::StaticCssExt;
 use gtk::{glib, prelude::*};
 
 #[derive(Clone, glib::Downgrade)]
@@ -16,7 +16,10 @@ impl PasswordStrenthBar {
             .height_request(8)
             .css_classes(["password-strength-bar"])
             .build();
-        load_static_css(&levelbar, include_str!("style.css"));
+        levelbar.add_static_css(
+            include_str!("style.css"),
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
         levelbar.add_offset_value("strength-very-weak", 1.0);
         levelbar.add_offset_value("strength-weak", 2.0);
         levelbar.add_offset_value("strength-reasonable", 3.0);

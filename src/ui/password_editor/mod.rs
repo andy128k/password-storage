@@ -4,7 +4,7 @@ use crate::ui::dialogs::ask::confirm_unlikely;
 use crate::ui::forms::base::FormWidget;
 use crate::ui::password_strength_bar::PasswordStrenthBar;
 use crate::utils::string::StringExt;
-use crate::utils::style::load_static_css;
+use crate::utils::style::StaticCssExt;
 use gtk::{glib, prelude::*};
 
 pub struct PasswordEditor {
@@ -70,7 +70,10 @@ impl PasswordEditor {
             .column_spacing(5)
             .css_classes(["password-editor"])
             .build();
-        load_static_css(&container, include_str!("style.css"));
+        container.add_static_css(
+            include_str!("style.css"),
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
         container.attach(&entry, 0, 0, 1, 1);
         container.attach(&square(visibility_toggle), 1, 0, 1, 1);
         container.attach(&square(generate_button), 2, 0, 1, 1);
