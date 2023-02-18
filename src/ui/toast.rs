@@ -40,7 +40,7 @@ impl Default for Toast {
         let toast = Self {
             revealer,
             label,
-            close_at: Rc::new(Cell::new(past())),
+            close_at: Rc::new(Cell::new(Instant::now())),
         };
 
         event_controller.connect_enter(glib::clone!(@weak toast => move |_, _, _| {
@@ -52,7 +52,7 @@ impl Default for Toast {
         }));
 
         close_button.connect_clicked(glib::clone!(@weak toast => move |_| {
-            toast.close_at.set(past());
+            toast.close_at.set(Instant::now());
             toast.revealer.set_reveal_child(false);
         }));
 
@@ -80,14 +80,10 @@ impl Toast {
     }
 
     fn tick(&self) {
-        if self.close_at.get() < Instant::now() {
+        if self.close_at.get() <= Instant::now() {
             self.revealer.set_reveal_child(false);
         }
     }
-}
-
-fn past() -> Instant {
-    Instant::now() - Duration::from_millis(1)
 }
 
 fn future() -> Instant {
