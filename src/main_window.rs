@@ -702,18 +702,17 @@ impl PSMainWindow {
         self.imp().search_bar.reset();
 
         let window = self.upcast_ref();
-        if let Some(filename) = open_file(window).await {
-            if let Some((extra_records, _password)) = load_data(filename, window).await {
-                // TODO: maybe do merge into current folder?
-                let records_tree = &self.private().file_data;
-                let merged_tree =
-                    crate::model::merge_trees::merge_trees(&records_tree.borrow(), &extra_records);
+        let Some(filename) = open_file(window).await else { return };
+        let Some((extra_records, _password)) = load_data(filename, window).await else { return };
 
-                self.set_data(merged_tree);
-                self.imp().view.select_position_async(0).await;
-                self.set_changed(true);
-            }
-        }
+        // TODO: maybe do merge into current folder?
+        let records_tree = &self.private().file_data;
+        let merged_tree =
+            crate::model::merge_trees::merge_trees(&records_tree.borrow(), &extra_records);
+
+        self.set_data(merged_tree);
+        self.imp().view.select_position_async(0).await;
+        self.set_changed(true);
     }
 
     #[action(name = "change-password")]
