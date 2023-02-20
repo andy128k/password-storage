@@ -493,22 +493,7 @@ impl PSMainWindow {
     }
 
     fn get_usernames(&self) -> Vec<String> {
-        fn traverse(records: &TypedListStore<RecordNode>, usernames: &mut BTreeSet<String>) {
-            for record in records {
-                if let Some(username) = record.record().username().filter(|u| !u.is_empty()) {
-                    if !usernames.contains(username) {
-                        usernames.insert(username.to_string());
-                    }
-                }
-                if let Some(children) = record.children() {
-                    traverse(children, usernames);
-                }
-            }
-        }
-
-        let mut usernames = BTreeSet::new();
-        traverse(&self.private().file_data.borrow().records, &mut usernames);
-        usernames.into_iter().collect()
+        get_usernames(&self.private().file_data.borrow())
     }
 
     async fn ensure_password_is_set(&self) -> Option<String> {
@@ -983,4 +968,23 @@ async fn new_password(parent_window: &gtk::Window) -> Option<String> {
     )
     .await;
     result.map(|mut values| values.remove(0))
+}
+
+fn get_usernames(data: &RecordTree) -> Vec<String> {
+    fn traverse(records: &TypedListStore<RecordNode>, usernames: &mut BTreeSet<String>) {
+        for record in records {
+            if let Some(username) = record.record().username().filter(|u| !u.is_empty()) {
+                if !usernames.contains(username) {
+                    usernames.insert(username.to_string());
+                }
+            }
+            if let Some(children) = record.children() {
+                traverse(children, usernames);
+            }
+        }
+    }
+
+    let mut usernames = BTreeSet::new();
+    traverse(&data.records, &mut usernames);
+    usernames.into_iter().collect()
 }
