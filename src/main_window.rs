@@ -379,9 +379,9 @@ impl PSMainWindow {
         if !self.private().changed.get() {
             return true;
         }
-        let window = self.clone().upcast();
+        let window = self.upcast_ref();
         match ask_save(
-            &window,
+            window,
             "Save changes before closing? If you don't save, changes will be permanently lost.",
         )
         .await
@@ -513,7 +513,7 @@ impl PSMainWindow {
 
     async fn ensure_password_is_set(&self) -> Option<String> {
         if self.private().password.borrow().is_none() {
-            *self.private().password.borrow_mut() = new_password(&self.clone().upcast()).await;
+            *self.private().password.borrow_mut() = new_password(self.upcast_ref()).await;
         }
         self.private().password.borrow().clone()
     }
@@ -575,9 +575,7 @@ impl PSMainWindow {
     }
 
     pub async fn do_open_file(&self, filename: &Path) {
-        if let Some((entries, password)) =
-            load_data(filename.to_owned(), &self.clone().upcast()).await
-        {
+        if let Some((entries, password)) = load_data(filename.to_owned(), self.upcast_ref()).await {
             self.imp().cache.get().unwrap().add_file(filename);
             self.imp().search_bar.set_search_mode(false);
 
@@ -596,17 +594,17 @@ impl PSMainWindow {
 
     pub async fn open_file(&self) {
         if self.ensure_data_is_saved().await {
-            if let Some(filename) = open_file(&self.clone().upcast()).await {
+            if let Some(filename) = open_file(self.upcast_ref()).await {
                 self.do_open_file(&filename).await;
             }
         }
     }
 
     async fn cb_save_as(&self) -> bool {
-        let window = self.clone().upcast();
-        if let Some(ref filename) = save_file(&window).await {
+        let window = self.upcast_ref();
+        if let Some(ref filename) = save_file(window).await {
             if let Err(error) = self.save_data(filename).await {
-                say_error(&window, &error.to_string()).await;
+                say_error(window, &error.to_string()).await;
                 return false;
             }
         }
@@ -617,8 +615,8 @@ impl PSMainWindow {
         let filename = self.private().filename.borrow().clone();
         if let Some(ref filename) = filename {
             if let Err(error) = self.save_data(filename).await {
-                let window = self.clone().upcast();
-                say_error(&window, &error.to_string()).await;
+                let window = self.upcast_ref();
+                say_error(window, &error.to_string()).await;
                 return false;
             }
             true
@@ -718,9 +716,9 @@ impl PSMainWindow {
     async fn action_merge_file(&self) {
         self.imp().search_bar.reset();
 
-        let window = self.clone().upcast();
-        if let Some(filename) = open_file(&window).await {
-            if let Some((extra_records, _password)) = load_data(filename, &window).await {
+        let window = self.upcast_ref();
+        if let Some(filename) = open_file(window).await {
+            if let Some((extra_records, _password)) = load_data(filename, window).await {
                 // TODO: maybe do merge into current folder?
                 let records_tree = &self.private().file_data;
                 let merged_tree =
@@ -735,7 +733,7 @@ impl PSMainWindow {
 
     #[action(name = "change-password")]
     async fn action_change_password(&self) {
-        if let Some(new_password) = change_password(&self.clone().upcast()).await {
+        if let Some(new_password) = change_password(self.upcast_ref()).await {
             *self.private().password.borrow_mut() = Some(new_password);
             self.set_changed(true);
         }
@@ -753,7 +751,7 @@ impl PSMainWindow {
         let empty_record = record_type.new_record();
         let Some(new_record) = edit_record(
             &empty_record,
-            &self.clone().upcast(),
+            self.upcast_ref(),
             "Add record",
             self.get_usernames(),
         ).await else { return };
@@ -787,7 +785,7 @@ impl PSMainWindow {
 
         if records.len() < 2 {
             say_info(
-                &self.clone().upcast(),
+                self.upcast_ref(),
                 "Nothing to merge. Select few items and try again.",
             )
             .await;
@@ -801,7 +799,7 @@ impl PSMainWindow {
                 message.push_str(&record.record().name());
             }
 
-            if !confirm_likely(&self.clone().upcast(), &message).await {
+            if !confirm_likely(self.upcast_ref(), &message).await {
                 return;
             }
         }
@@ -859,7 +857,7 @@ impl PSMainWindow {
         }
 
         let Some(dest) = select_group(
-            self.clone().upcast_ref(),
+            self.upcast_ref(),
             "Move to...",
             &self.private().file_data.borrow(),
         )
@@ -902,7 +900,7 @@ impl PSMainWindow {
 
         let Some(new_record) = edit_record(
             record_node.record(),
-            &self.clone().upcast(),
+            self.upcast_ref(),
             "Edit record",
             self.get_usernames(),
         )
@@ -922,7 +920,7 @@ impl PSMainWindow {
         let Some(position) = self.imp().view.get_selected_position() else { return };
 
         let confirmed = confirm_unlikely(
-            &self.clone().upcast(),
+            self.upcast_ref(),
             "Do you really want to delete selected entry?",
         )
         .await;

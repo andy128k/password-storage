@@ -136,7 +136,7 @@ impl PSApplication {
     async fn preferences(&self) {
         let win = self.imp().activate_main_window();
         let config = self.imp().config.get();
-        if let Some(new_config) = preferences(&win.clone().upcast(), &config).await {
+        if let Some(new_config) = preferences(win.upcast_ref(), &config).await {
             self.imp().config.set(new_config);
         }
     }
