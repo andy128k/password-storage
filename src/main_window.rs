@@ -23,6 +23,8 @@ use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::*;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 use once_cell::unsync::OnceCell;
+use std::cell::Ref;
+use std::cell::RefMut;
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
 use std::iter::Iterator;
@@ -30,6 +32,13 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 const WINDOW_TITLE: &str = "Password Storage";
+
+pub struct OpenedFile {
+    pub data: RecordTree,
+    pub filename: Option<PathBuf>,
+    pub password: Option<String>,
+    pub changed: bool,
+}
 
 mod imp {
     use super::*;
@@ -43,13 +52,9 @@ mod imp {
 
     pub struct PSMainWindowPrivate {
         pub mode: Cell<AppMode>,
-        pub file_data: Rc<RefCell<RecordTree>>,
+        pub file: RefCell<OpenedFile>,
         pub current_path: TypedListStore<RecordNode>,
         pub current_records: RefCell<TypedListStore<RecordNode>>,
-
-        pub filename: RefCell<Option<PathBuf>>,
-        pub password: RefCell<Option<String>>,
-        pub changed: Cell<bool>,
     }
 
     #[derive(Default)]
@@ -218,8 +223,8 @@ mod imp {
             );
             win.set_child(Some(&self.stack));
 
-            let file_data = Rc::new(RefCell::new(RecordTree::default()));
-            let current_records = file_data.borrow().records.clone();
+            let file_data = RecordTree::default();
+            let current_records = file_data.records.clone();
             self.view.set_model(&current_records);
 
             win.register_file_actions(&self.file_actions);
@@ -230,13 +235,14 @@ mod imp {
 
             let private = PSMainWindowPrivate {
                 mode: Cell::new(AppMode::Initial),
-                file_data,
+                file: RefCell::new(OpenedFile {
+                    data: file_data,
+                    filename: None,
+                    password: None,
+                    changed: false,
+                }),
                 current_path: Default::default(),
                 current_records: RefCell::new(current_records),
-
-                filename: RefCell::new(None),
-                password: RefCell::new(None),
-                changed: Cell::new(false),
             };
 
             self.private
@@ -311,7 +317,7 @@ mod imp {
             let private = self.private();
 
             private.current_path.remove_all();
-            *private.current_records.borrow_mut() = private.file_data.borrow().records.clone();
+            *private.current_records.borrow_mut() = private.file.borrow().data.records.clone();
             self.view.set_model(&private.current_records.borrow());
             self.view.select_position_async(0).await;
 
@@ -328,7 +334,7 @@ mod imp {
                 }
                 None => {
                     *private.current_records.borrow_mut() =
-                        private.file_data.borrow().records.clone();
+                        private.file.borrow().data.records.clone();
                 }
             }
             self.view.set_model(&private.current_records.borrow());
@@ -366,17 +372,25 @@ glib::wrapper! {
 
 impl PSMainWindow {
     fn private(&self) -> &imp::PSMainWindowPrivate {
-        let private = self.imp();
-        private.private.get().unwrap()
+        let imp = self.imp();
+        imp.private.get().unwrap()
+    }
+
+    fn file(&self) -> Ref<'_, OpenedFile> {
+        self.private().file.borrow()
+    }
+
+    fn file_mut(&self) -> RefMut<'_, OpenedFile> {
+        self.private().file.borrow_mut()
     }
 
     fn set_changed(&self, changed: bool) {
-        self.private().changed.set(changed);
+        (*self.file_mut()).changed = changed;
         self.update_title();
     }
 
     async fn ensure_data_is_saved(&self) -> bool {
-        if !self.private().changed.get() {
+        if !self.file().changed {
             return true;
         }
         let window = self.upcast_ref();
@@ -392,11 +406,10 @@ impl PSMainWindow {
         }
     }
 
-    fn set_data(&self, data: RecordTree) {
-        *self.private().file_data.borrow_mut() = data;
+    fn reset_records_view(&self) {
         self.private().current_path.remove_all();
-        *self.private().current_records.borrow_mut() =
-            self.private().file_data.borrow().records.clone();
+        *self.private().current_records.borrow_mut() = self.file().data.records.clone();
+
         self.imp()
             .view
             .set_model(&self.private().current_records.borrow());
@@ -493,14 +506,14 @@ impl PSMainWindow {
     }
 
     fn get_usernames(&self) -> Vec<String> {
-        get_usernames(&self.private().file_data.borrow())
+        get_usernames(&self.private().file.borrow().data)
     }
 
     async fn ensure_password_is_set(&self) -> Option<String> {
-        if self.private().password.borrow().is_none() {
-            *self.private().password.borrow_mut() = new_password(self.upcast_ref()).await;
+        if self.file().password.is_none() {
+            (*self.file_mut()).password = new_password(self.upcast_ref()).await;
         }
-        self.private().password.borrow().clone()
+        self.file().password.clone()
     }
 
     fn update_title(&self) {
@@ -512,15 +525,15 @@ impl PSMainWindow {
                     .set_title_widget(Some(&crate::utils::ui::title(WINDOW_TITLE)));
             }
             imp::AppMode::FileOpened => {
-                let mut display_filename = private
+                let mut display_filename = self
+                    .file()
                     .filename
-                    .borrow()
                     .as_ref()
                     .map_or(String::from("Unnamed"), |filename| {
                         filename.display().to_string()
                     });
 
-                if private.changed.get() {
+                if self.file().changed {
                     display_filename += " \u{23FA}";
                 }
 
@@ -533,12 +546,12 @@ impl PSMainWindow {
 
     async fn save_data(&self, filename: &Path) -> Result<()> {
         if let Some(password) = self.ensure_password_is_set().await {
-            format::save_file(filename, &password, &self.private().file_data.borrow())?;
+            format::save_file(filename, &password, &self.file().data)?;
 
             self.imp()
                 .toast
                 .notify(&format!("File '{}' was saved", filename.display()));
-            *self.private().filename.borrow_mut() = Some(filename.to_owned());
+            (*self.file_mut()).filename = Some(filename.to_owned());
             self.set_changed(false);
             self.imp().cache.get().unwrap().add_file(filename);
         }
@@ -547,31 +560,39 @@ impl PSMainWindow {
 
     pub async fn new_file(&self) {
         if self.ensure_data_is_saved().await {
-            self.set_data(RecordTree::default());
-
-            *self.private().filename.borrow_mut() = None;
-            *self.private().password.borrow_mut() = None;
-            self.imp().search_bar.set_search_mode(false);
+            *self.file_mut() = OpenedFile {
+                data: RecordTree::default(),
+                filename: None,
+                password: None,
+                changed: false,
+            };
 
             self.set_mode(imp::AppMode::FileOpened);
-            self.set_changed(false);
+            self.reset_records_view();
+
+            self.update_title();
+            self.imp().search_bar.set_search_mode(false);
             self.listview_cursor_changed(gtk::Bitset::new_empty());
         }
     }
 
     pub async fn do_open_file(&self, filename: &Path) {
-        if let Some((entries, password)) = load_data(filename.to_owned(), self.upcast_ref()).await {
+        if let Some((data, password)) = load_data(filename.to_owned(), self.upcast_ref()).await {
             self.imp().cache.get().unwrap().add_file(filename);
-            self.imp().search_bar.set_search_mode(false);
 
-            self.set_data(entries);
-            self.imp().view.select_position_async(0).await;
-
-            *self.private().filename.borrow_mut() = Some(filename.to_owned());
-            *self.private().password.borrow_mut() = Some(password);
+            *self.file_mut() = OpenedFile {
+                data,
+                filename: Some(filename.to_owned()),
+                password: Some(password),
+                changed: false,
+            };
 
             self.set_mode(imp::AppMode::FileOpened);
-            self.set_changed(false);
+            self.reset_records_view();
+
+            self.update_title();
+            self.imp().search_bar.set_search_mode(false);
+            self.imp().view.select_position_async(0).await;
             self.listview_cursor_changed(gtk::Bitset::new_empty());
             self.imp().view.grab_focus();
         }
@@ -597,7 +618,7 @@ impl PSMainWindow {
     }
 
     async fn cb_save(&self) -> bool {
-        let filename = self.private().filename.borrow().clone();
+        let filename = self.file().filename.clone();
         if let Some(ref filename) = filename {
             if let Err(error) = self.save_data(filename).await {
                 let window = self.upcast_ref();
@@ -674,15 +695,18 @@ impl PSMainWindow {
     #[action(name = "close")]
     async fn action_close_file(&self) {
         if self.ensure_data_is_saved().await {
-            self.imp().search_bar.reset();
-
-            self.set_data(RecordTree::default());
-
-            *self.private().filename.borrow_mut() = None;
-            *self.private().password.borrow_mut() = None;
+            *self.file_mut() = OpenedFile {
+                data: RecordTree::default(),
+                filename: None,
+                password: None,
+                changed: false,
+            };
 
             self.set_mode(imp::AppMode::Initial);
-            self.set_changed(false);
+            self.reset_records_view();
+
+            self.update_title();
+            self.imp().search_bar.reset();
             self.listview_cursor_changed(gtk::Bitset::new_empty());
         }
     }
@@ -706,11 +730,10 @@ impl PSMainWindow {
         let Some((extra_records, _password)) = load_data(filename, window).await else { return };
 
         // TODO: maybe do merge into current folder?
-        let records_tree = &self.private().file_data;
-        let merged_tree =
-            crate::model::merge_trees::merge_trees(&records_tree.borrow(), &extra_records);
+        let merged_tree = crate::model::merge_trees::merge_trees(&self.file().data, &extra_records);
 
-        self.set_data(merged_tree);
+        (*self.file_mut()).data = merged_tree;
+        self.reset_records_view();
         self.imp().view.select_position_async(0).await;
         self.set_changed(true);
     }
@@ -718,7 +741,7 @@ impl PSMainWindow {
     #[action(name = "change-password")]
     async fn action_change_password(&self) {
         if let Some(new_password) = change_password(self.upcast_ref()).await {
-            *self.private().password.borrow_mut() = Some(new_password);
+            (*self.file_mut()).password = Some(new_password);
             self.set_changed(true);
         }
     }
@@ -843,7 +866,7 @@ impl PSMainWindow {
         let Some(dest) = select_group(
             self.upcast_ref(),
             "Move to...",
-            &self.private().file_data.borrow(),
+            &self.file().data,
         )
         .await else { return };
 
@@ -861,7 +884,7 @@ impl PSMainWindow {
             None => {
                 // move to root
                 for record in records {
-                    self.private().file_data.borrow().records.append(&record);
+                    self.file().data.records.append(&record);
                 }
             }
             Some(group) => {
