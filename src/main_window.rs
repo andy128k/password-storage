@@ -33,6 +33,7 @@ use std::rc::Rc;
 
 const WINDOW_TITLE: &str = "Password Storage";
 
+#[derive(Default)]
 pub struct OpenedFile {
     pub data: RecordTree,
     pub filename: Option<PathBuf>,
@@ -48,13 +49,6 @@ mod imp {
         #[default]
         Initial,
         FileOpened,
-    }
-
-    pub struct PSMainWindowPrivate {
-        pub mode: Cell<AppMode>,
-        pub file: RefCell<OpenedFile>,
-        pub current_path: TypedListStore<RecordNode>,
-        pub current_records: RefCell<TypedListStore<RecordNode>>,
     }
 
     #[derive(Default)]
@@ -74,8 +68,12 @@ mod imp {
         pub search_bar: PSSearchBar,
         pub view: PSTreeView,
 
-        pub private: OnceCell<PSMainWindowPrivate>,
         pub delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
+
+        pub mode: Cell<AppMode>,
+        pub file: RefCell<OpenedFile>,
+        pub current_path: TypedListStore<RecordNode>,
+        pub current_records: RefCell<TypedListStore<RecordNode>>,
 
         pub config_service: OnceCell<Rc<ConfigService>>,
         pub cache: OnceCell<Cache>,
@@ -223,32 +221,15 @@ mod imp {
             );
             win.set_child(Some(&self.stack));
 
-            let file_data = RecordTree::default();
-            let current_records = file_data.records.clone();
-            self.view.set_model(&current_records);
+            let current_records = &self.file.borrow().data.records;
+            *self.current_records.borrow_mut() = current_records.clone();
+            self.view.set_model(current_records);
 
             win.register_file_actions(&self.file_actions);
             win.insert_action_group("file", Some(&self.file_actions));
 
             win.register_entry_actions(&self.entry_actions);
             win.insert_action_group("entry", Some(&self.entry_actions));
-
-            let private = PSMainWindowPrivate {
-                mode: Cell::new(AppMode::Initial),
-                file: RefCell::new(OpenedFile {
-                    data: file_data,
-                    filename: None,
-                    password: None,
-                    changed: false,
-                }),
-                current_path: Default::default(),
-                current_records: RefCell::new(current_records),
-            };
-
-            self.private
-                .set(private)
-                .ok()
-                .expect("private is set only once");
 
             let delete_handler = win.connect_close_request(move |win| {
                 let win = win.clone();
@@ -309,35 +290,26 @@ mod imp {
     impl ApplicationWindowImpl for PSMainWindow {}
 
     impl PSMainWindow {
-        pub fn private(&self) -> &imp::PSMainWindowPrivate {
-            self.private.get().unwrap()
-        }
-
         async fn go_home(&self) {
-            let private = self.private();
-
-            private.current_path.remove_all();
-            *private.current_records.borrow_mut() = private.file.borrow().data.records.clone();
-            self.view.set_model(&private.current_records.borrow());
+            self.current_path.remove_all();
+            *self.current_records.borrow_mut() = self.file.borrow().data.records.clone();
+            self.view.set_model(&self.current_records.borrow());
             self.view.select_position_async(0).await;
 
             self.update_path();
         }
 
         async fn go_up(&self) {
-            let private = self.private();
-
-            let prev = private.current_path.pop_back();
-            match private.current_path.last() {
+            let prev = self.current_path.pop_back();
+            match self.current_path.last() {
                 Some(parent) => {
-                    *private.current_records.borrow_mut() = parent.children().unwrap().clone();
+                    *self.current_records.borrow_mut() = parent.children().unwrap().clone();
                 }
                 None => {
-                    *private.current_records.borrow_mut() =
-                        private.file.borrow().data.records.clone();
+                    *self.current_records.borrow_mut() = self.file.borrow().data.records.clone();
                 }
             }
-            self.view.set_model(&private.current_records.borrow());
+            self.view.set_model(&self.current_records.borrow());
             if let Some(ref prev) = prev {
                 self.view.select_record(prev).await;
             }
@@ -346,10 +318,8 @@ mod imp {
         }
 
         pub fn update_path(&self) {
-            let private = self.private.get().unwrap();
-
             let mut label = String::new();
-            for record in &private.current_path {
+            for record in &self.current_path {
                 if !label.is_empty() {
                     label.push_str(" / ");
                 }
@@ -357,7 +327,7 @@ mod imp {
             }
             self.path_label.set_text(&label);
 
-            let has_parent = !private.current_path.is_empty();
+            let has_parent = !self.current_path.is_empty();
             self.home_button.set_sensitive(has_parent);
             self.up_button.set_sensitive(has_parent);
         }
@@ -371,17 +341,12 @@ glib::wrapper! {
 }
 
 impl PSMainWindow {
-    fn private(&self) -> &imp::PSMainWindowPrivate {
-        let imp = self.imp();
-        imp.private.get().unwrap()
-    }
-
     fn file(&self) -> Ref<'_, OpenedFile> {
-        self.private().file.borrow()
+        self.imp().file.borrow()
     }
 
     fn file_mut(&self) -> RefMut<'_, OpenedFile> {
-        self.private().file.borrow_mut()
+        self.imp().file.borrow_mut()
     }
 
     fn set_changed(&self, changed: bool) {
@@ -407,16 +372,16 @@ impl PSMainWindow {
     }
 
     fn reset_records_view(&self) {
-        self.private().current_path.remove_all();
-        *self.private().current_records.borrow_mut() = self.file().data.records.clone();
+        self.imp().current_path.remove_all();
+        *self.imp().current_records.borrow_mut() = self.file().data.records.clone();
 
         self.imp()
             .view
-            .set_model(&self.private().current_records.borrow());
+            .set_model(&self.imp().current_records.borrow());
     }
 
     fn get_record(&self, position: u32) -> Option<RecordNode> {
-        self.private().current_records.borrow().get(position)
+        self.imp().current_records.borrow().get(position)
     }
 
     fn listview_cursor_changed(&self, selected: gtk::Bitset) {
@@ -455,11 +420,11 @@ impl PSMainWindow {
     async fn listview_row_activated(&self, position: u32) {
         let Some(record) = self.get_record(position) else { return };
         if let Some(children) = record.children() {
-            self.private().current_path.append(&record);
-            *self.private().current_records.borrow_mut() = children.clone();
+            self.imp().current_path.append(&record);
+            *self.imp().current_records.borrow_mut() = children.clone();
             self.imp()
                 .view
-                .set_model(&self.private().current_records.borrow());
+                .set_model(&self.imp().current_records.borrow());
             self.imp().view.select_position_async(0).await;
 
             self.imp().update_path();
@@ -506,7 +471,7 @@ impl PSMainWindow {
     }
 
     fn get_usernames(&self) -> Vec<String> {
-        get_usernames(&self.private().file.borrow().data)
+        get_usernames(&self.imp().file.borrow().data)
     }
 
     async fn ensure_password_is_set(&self) -> Option<String> {
@@ -517,8 +482,7 @@ impl PSMainWindow {
     }
 
     fn update_title(&self) {
-        let private = self.private();
-        match private.mode.get() {
+        match self.imp().mode.get() {
             imp::AppMode::Initial => {
                 self.imp()
                     .header_bar
@@ -650,7 +614,7 @@ impl PSMainWindow {
             }
         }
         self.imp().search_bar.set_search_mode(false);
-        self.private().mode.set(mode);
+        self.imp().mode.set(mode);
     }
 
     async fn on_close(&self) {
@@ -768,8 +732,8 @@ impl PSMainWindow {
         } else {
             RecordNode::leaf(new_record)
         };
-        self.private().current_records.borrow().append(&record_node);
-        let position = self.private().current_records.borrow().len() - 1;
+        self.imp().current_records.borrow().append(&record_node);
+        let position = self.imp().current_records.borrow().len() - 1;
         self.imp().view.select_position(position);
         self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
         self.set_changed(true);
@@ -813,7 +777,7 @@ impl PSMainWindow {
 
         // delete entries
         for position in bitset_iter_rev(&positions) {
-            self.private().current_records.borrow().remove(position);
+            self.imp().current_records.borrow().remove(position);
         }
 
         // create new entry
@@ -826,8 +790,8 @@ impl PSMainWindow {
             RecordNode::leaf(result)
         };
 
-        self.private().current_records.borrow().append(&result_node);
-        let position = self.private().current_records.borrow().len() - 1;
+        self.imp().current_records.borrow().append(&result_node);
+        let position = self.imp().current_records.borrow().len() - 1;
         self.imp().view.select_position(position);
         self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
         self.set_changed(true);
@@ -872,11 +836,11 @@ impl PSMainWindow {
 
         let mut records = Vec::new();
         for position in bitset_iter_rev(&positions) {
-            let Some(record) = self.private().current_records.borrow().get(position) else { continue };
+            let Some(record) = self.imp().current_records.borrow().get(position) else { continue };
             if dest.iter().any(|p| p == record) {
                 continue;
             }
-            self.private().current_records.borrow().remove(position);
+            self.imp().current_records.borrow().remove(position);
             records.push(record);
         }
 
@@ -913,7 +877,7 @@ impl PSMainWindow {
         )
         .await else { return };
 
-        self.private()
+        self.imp()
             .current_records
             .borrow()
             .set(position, record_node.with_record(new_record));
@@ -932,7 +896,7 @@ impl PSMainWindow {
         )
         .await;
         if confirmed {
-            self.private().current_records.borrow().remove(position);
+            self.imp().current_records.borrow().remove(position);
             self.listview_cursor_changed(gtk::Bitset::new_empty());
             self.set_changed(true);
         }
@@ -956,7 +920,7 @@ impl PSMainWindow {
             new_record.join(record_node.record());
             new_record
         };
-        self.private()
+        self.imp()
             .current_records
             .borrow()
             .set(position, record_node.with_record(new_record));
