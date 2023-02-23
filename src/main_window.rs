@@ -221,9 +221,7 @@ mod imp {
             );
             win.set_child(Some(&self.stack));
 
-            let current_records = &self.file.borrow().data.records;
-            *self.current_records.borrow_mut() = current_records.clone();
-            self.view.set_model(current_records);
+            self.set_view_model(&self.file.borrow().data.records);
 
             win.register_file_actions(&self.file_actions);
             win.insert_action_group("file", Some(&self.file_actions));
@@ -290,10 +288,14 @@ mod imp {
     impl ApplicationWindowImpl for PSMainWindow {}
 
     impl PSMainWindow {
+        pub fn set_view_model(&self, model: &TypedListStore<RecordNode>) {
+            *self.current_records.borrow_mut() = model.clone();
+            self.view.set_model(model);
+        }
+
         async fn go_home(&self) {
             self.current_path.remove_all();
-            *self.current_records.borrow_mut() = self.file.borrow().data.records.clone();
-            self.view.set_model(&self.current_records.borrow());
+            self.set_view_model(&self.file.borrow().data.records);
             self.view.select_position_async(0).await;
 
             self.update_path();
@@ -301,15 +303,11 @@ mod imp {
 
         async fn go_up(&self) {
             let prev = self.current_path.pop_back();
-            match self.current_path.last() {
-                Some(parent) => {
-                    *self.current_records.borrow_mut() = parent.children().unwrap().clone();
-                }
-                None => {
-                    *self.current_records.borrow_mut() = self.file.borrow().data.records.clone();
-                }
-            }
-            self.view.set_model(&self.current_records.borrow());
+            let records = match self.current_path.last() {
+                Some(parent) => parent.children().unwrap().clone(),
+                None => self.file.borrow().data.records.clone(),
+            };
+            self.set_view_model(&records);
             if let Some(ref prev) = prev {
                 self.view.select_record(prev).await;
             }
@@ -373,11 +371,7 @@ impl PSMainWindow {
 
     fn reset_records_view(&self) {
         self.imp().current_path.remove_all();
-        *self.imp().current_records.borrow_mut() = self.file().data.records.clone();
-
-        self.imp()
-            .view
-            .set_model(&self.imp().current_records.borrow());
+        self.imp().set_view_model(&self.file().data.records);
     }
 
     fn get_record(&self, position: u32) -> Option<RecordNode> {
@@ -421,10 +415,7 @@ impl PSMainWindow {
         let Some(record) = self.get_record(position) else { return };
         if let Some(children) = record.children() {
             self.imp().current_path.append(&record);
-            *self.imp().current_records.borrow_mut() = children.clone();
-            self.imp()
-                .view
-                .set_model(&self.imp().current_records.borrow());
+            self.imp().set_view_model(children);
             self.imp().view.select_position_async(0).await;
 
             self.imp().update_path();
