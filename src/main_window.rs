@@ -176,7 +176,7 @@ mod imp {
 
             let tree_container = gtk::Grid::new();
             self.view.set_vexpand(true);
-            tree_container.attach(&self.search_bar.get_widget(), 0, 0, 3, 1);
+            tree_container.attach(&self.search_bar, 0, 0, 3, 1);
             tree_container.attach(&self.home_button, 0, 1, 1, 1);
             tree_container.attach(&self.path_label, 1, 1, 1, 1);
             tree_container.attach(&self.up_button, 2, 1, 1, 1);
@@ -239,11 +239,10 @@ mod imp {
             *self.delete_handler.borrow_mut() = Some(delete_handler);
 
             self.search_bar
-                .on_search
-                .subscribe(glib::clone!(@weak win => move |event| {
-                    win.search(event);
+                .connect_search(glib::clone!(@weak win => move |event| {
+                    win.search(&event);
                 }));
-            self.search_bar.on_configure.subscribe(
+            self.search_bar.connect_configure(
                 glib::clone!(@weak self as imp => move |search_config| {
                     imp.config_service.get().unwrap()
                         .update(|config| {
