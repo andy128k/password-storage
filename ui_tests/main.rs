@@ -44,8 +44,6 @@ fn main() {
     run_test!(utils::list_model::test_slice);
     run_test!(utils::list_model::test_appended);
 
-    run_test!(utils::ui::test_bitset_iter);
-
     run_test!(application::test_app_create);
 
     eprintln!("");

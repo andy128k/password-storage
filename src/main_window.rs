@@ -21,6 +21,7 @@ use crate::ui::toast::Toast;
 use crate::ui::tree_view::PSTreeView;
 use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::*;
+use awesome_gtk::bitset::BitSetIterExt;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 use once_cell::unsync::OnceCell;
 use std::cell::Ref;
@@ -733,7 +734,8 @@ impl PSMainWindow {
     async fn action_merge(&self) {
         let positions = self.imp().view.get_selected_positions();
 
-        let records: Vec<(u32, RecordNode)> = bitset_iter(&positions)
+        let records: Vec<(u32, RecordNode)> = positions
+            .iter_asc()
             .filter_map(|position| {
                 let record = self.get_record(position)?;
                 if record.is_group() {
@@ -766,7 +768,7 @@ impl PSMainWindow {
         }
 
         // delete entries
-        for position in bitset_iter_rev(&positions) {
+        for position in positions.iter_desc() {
             self.imp().current_records.borrow().remove(position);
         }
 
@@ -825,7 +827,7 @@ impl PSMainWindow {
         .await else { return };
 
         let mut records = Vec::new();
-        for position in bitset_iter_rev(&positions) {
+        for position in positions.iter_desc() {
             let Some(record) = self.imp().current_records.borrow().get(position) else { continue };
             if dest.iter().any(|p| p == record) {
                 continue;

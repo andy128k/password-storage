@@ -45,9 +45,9 @@ dependencies = [
 
 [[package]]
 name = "awesome-gtk"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0aeb59709b6ff1a020c06dc85e8168e06226c07bfa8efafc8fec17c1f1d23fae"
+checksum = "e5a4dc6251cb90c6043b5b0f33be8045238e6a75a26333571aba3cfdaf4b5e14"
 dependencies = [
  "gtk4",
 ]
