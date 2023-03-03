@@ -14,13 +14,13 @@ pub struct Config {
 
 impl Config {
     fn load_from_file(filename: &Path) -> Result<Self> {
-        let buf = fs::read(filename)?;
-        let dump = toml::from_slice(&buf)?;
+        let buf = fs::read_to_string(filename)?;
+        let dump = toml::from_str(&buf)?;
         Ok(dump)
     }
 
     pub fn save_to_file(&self, filename: &Path) -> Result<()> {
-        let dump = toml::to_vec(self)?;
+        let dump = toml::to_string(self)?;
         fs::write(filename, dump)?;
         Ok(())
     }

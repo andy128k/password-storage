@@ -20,8 +20,8 @@ fn cache_path() -> PathBuf {
 
 impl Cache {
     fn from_file(filename: &Path) -> Result<CachePrivate> {
-        let buf = fs::read(filename)?;
-        let config: CachePrivate = toml::from_slice(&buf)?;
+        let buf = fs::read_to_string(filename)?;
+        let config: CachePrivate = toml::from_str(&buf)?;
         Ok(config)
     }
 
@@ -39,7 +39,7 @@ impl Cache {
 
     pub fn save(&self) -> Result<()> {
         let filename = cache_path();
-        let dump = toml::to_vec(&*self.0.borrow())?;
+        let dump = toml::to_string(&*self.0.borrow())?;
         fs::write(filename, dump)?;
         Ok(())
     }
