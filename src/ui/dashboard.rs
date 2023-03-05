@@ -94,7 +94,7 @@ pub fn file_row(
         .build();
     if !filename.is_file() {
         label2.set_tooltip_text(Some("File does not exist."));
-        label2.style_context().add_class("error");
+        label2.add_css_class("error");
     }
     grid.attach(&label2, 0, 1, 2, 1);
 

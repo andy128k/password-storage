@@ -138,7 +138,7 @@ mod imp {
 
             self.home_button.set_icon_name("navigate-home");
             self.home_button.set_tooltip_text(Some("Go go the root"));
-            self.home_button.style_context().add_class("flat");
+            self.home_button.add_css_class("flat");
             self.home_button.set_sensitive(false);
             self.home_button.set_hexpand(false);
             self.home_button.set_margin_top(5);
@@ -162,7 +162,7 @@ mod imp {
 
             self.up_button.set_icon_name("navigate-up");
             self.up_button.set_tooltip_text(Some("Go go parent group"));
-            self.up_button.style_context().add_class("flat");
+            self.up_button.add_css_class("flat");
             self.up_button.set_sensitive(false);
             self.up_button.set_hexpand(false);
             self.up_button.set_margin_top(5);
