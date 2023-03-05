@@ -118,6 +118,7 @@ mod imp {
             let menu = gtk::MenuButton::builder()
                 .icon_name("open-menu-symbolic")
                 .menu_model(&crate::ui::menu::create_main_menu())
+                .primary(true)
                 .build();
             self.header_bar.pack_end(&menu);
 

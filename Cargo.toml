@@ -22,7 +22,7 @@ quick-xml = "0.27"
 toml = "0.7"
 serde = { version = "1", features = ["derive"] }
 
-gtk = { package = "gtk4", version = "0.6" }
+gtk = { package = "gtk4", version = "0.6", features = ["v4_6"] }
 awesome-glib = "0.2"
 awesome-gtk = "0.2"
 
