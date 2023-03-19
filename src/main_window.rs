@@ -1,6 +1,5 @@
 use crate::cache::Cache;
 use crate::config::ConfigService;
-use crate::error::*;
 use crate::format;
 use crate::model::record::{Record, RecordType, FIELD_NAME, RECORD_TYPES, RECORD_TYPE_GENERIC};
 use crate::model::tree::RecordNode;
@@ -10,7 +9,7 @@ use crate::ui::dashboard::PSDashboard;
 use crate::ui::dialogs::ask::{confirm_likely, confirm_unlikely};
 use crate::ui::dialogs::ask_save::{ask_save, AskSave};
 use crate::ui::dialogs::change_password::change_password;
-use crate::ui::dialogs::file_chooser::{open_file, save_file};
+use crate::ui::dialogs::file_chooser;
 use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
@@ -364,7 +363,7 @@ impl PSMainWindow {
         )
         .await
         {
-            AskSave::Save => self.cb_save().await,
+            AskSave::Save => self.do_save().await,
             AskSave::Discard => true,
             AskSave::Cancel => false,
         }
@@ -466,11 +465,20 @@ impl PSMainWindow {
         get_usernames(&self.imp().file.borrow().data)
     }
 
-    async fn ensure_password_is_set(&self) -> Option<String> {
-        if self.file().password.is_none() {
-            (*self.file_mut()).password = new_password(self.upcast_ref()).await;
+    async fn get_file_path(&self) -> Option<PathBuf> {
+        if let Some(ref filename) = self.file().filename {
+            Some(filename.to_owned())
+        } else {
+            file_chooser::save_file(self.upcast_ref()).await
         }
-        self.file().password.clone()
+    }
+
+    async fn get_file_password(&self) -> Option<String> {
+        if let Some(ref password) = self.file().password {
+            Some(password.to_owned())
+        } else {
+            new_password(self.upcast_ref()).await
+        }
     }
 
     fn update_title(&self) {
@@ -500,18 +508,21 @@ impl PSMainWindow {
         }
     }
 
-    async fn save_data(&self, filename: &Path) -> Result<()> {
-        if let Some(password) = self.ensure_password_is_set().await {
-            format::save_file(filename, &password, &self.file().data)?;
-
-            self.imp()
-                .toast
-                .notify(&format!("File '{}' was saved", filename.display()));
-            (*self.file_mut()).filename = Some(filename.to_owned());
-            self.set_changed(false);
-            self.imp().cache.get().unwrap().add_file(filename);
+    async fn save_data(&self, filename: &Path, password: &str) -> bool {
+        if let Err(error) = format::save_file(filename, password, &self.file().data) {
+            say_error(self.upcast_ref(), &error.to_string()).await;
+            return false;
         }
-        Ok(())
+
+        self.imp()
+            .toast
+            .notify(&format!("File '{}' was saved", filename.display()));
+        (*self.file_mut()).filename = Some(filename.to_owned());
+        (*self.file_mut()).password = Some(password.to_owned());
+        self.set_changed(false);
+        self.imp().cache.get().unwrap().add_file(filename);
+
+        true
     }
 
     pub async fn new_file(&self) {
@@ -556,35 +567,16 @@ impl PSMainWindow {
 
     pub async fn open_file(&self) {
         if self.ensure_data_is_saved().await {
-            if let Some(filename) = open_file(self.upcast_ref()).await {
+            if let Some(filename) = file_chooser::open_file(self.upcast_ref()).await {
                 self.do_open_file(&filename).await;
             }
         }
     }
 
-    async fn cb_save_as(&self) -> bool {
-        let window = self.upcast_ref();
-        if let Some(ref filename) = save_file(window).await {
-            if let Err(error) = self.save_data(filename).await {
-                say_error(window, &error.to_string()).await;
-                return false;
-            }
-        }
-        true
-    }
-
-    async fn cb_save(&self) -> bool {
-        let filename = self.file().filename.clone();
-        if let Some(ref filename) = filename {
-            if let Err(error) = self.save_data(filename).await {
-                let window = self.upcast_ref();
-                say_error(window, &error.to_string()).await;
-                return false;
-            }
-            true
-        } else {
-            self.cb_save_as().await
-        }
+    async fn do_save(&self) -> bool {
+        let Some(ref filename) = self.get_file_path().await else { return false };
+        let Some(ref password) = self.get_file_password().await else { return false };
+        self.save_data(filename, &password).await
     }
 
     fn set_mode(&self, mode: imp::AppMode) {
@@ -669,12 +661,14 @@ impl PSMainWindow {
 
     #[action(name = "save")]
     async fn action_save(&self) {
-        let _saved = self.cb_save().await;
+        let _saved = self.do_save().await;
     }
 
     #[action(name = "save-as")]
     async fn action_save_as(&self) {
-        let _saved = self.cb_save_as().await;
+        let Some(ref filename) = file_chooser::save_file(self.upcast_ref()).await else { return };
+        let Some(ref password) = self.get_file_password().await else { return };
+        let _saved = self.save_data(filename, password).await;
     }
 
     #[action(name = "merge-file")]
@@ -682,7 +676,7 @@ impl PSMainWindow {
         self.imp().search_bar.reset();
 
         let window = self.upcast_ref();
-        let Some(filename) = open_file(window).await else { return };
+        let Some(filename) = file_chooser::open_file(window).await else { return };
         let Some((extra_records, _password)) = load_data(filename, window).await else { return };
 
         // TODO: maybe do merge into current folder?
