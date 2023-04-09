@@ -2,7 +2,7 @@ use crate::entropy::{password_entropy, AsciiClassifier};
 use crate::password::generate_password;
 use crate::ui::dialogs::ask::confirm_unlikely;
 use crate::ui::forms::base::FormWidget;
-use crate::ui::password_strength_bar::PasswordStrenthBar;
+use crate::ui::password_strength_bar::PasswordStrengthBar;
 use crate::utils::string::StringExt;
 use crate::utils::style::StaticCssExt;
 use gtk::{glib, prelude::*};
@@ -30,7 +30,7 @@ async fn generate_password_clicked(entry: gtk::Entry) {
 
 impl PasswordEditor {
     pub fn new() -> Self {
-        let level = PasswordStrenthBar::new();
+        let level = PasswordStrengthBar::default();
 
         let entry = gtk::Entry::builder()
             .visibility(false)
@@ -77,7 +77,7 @@ impl PasswordEditor {
         container.attach(&entry, 0, 0, 1, 1);
         container.attach(&square(visibility_toggle), 1, 0, 1, 1);
         container.attach(&square(generate_button), 2, 0, 1, 1);
-        container.attach(&level.get_widget(), 0, 1, 3, 1);
+        container.attach(&level, 0, 1, 3, 1);
 
         Self { container, entry }
     }
