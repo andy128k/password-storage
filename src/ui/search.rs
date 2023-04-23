@@ -217,9 +217,7 @@ impl PSSearchBar {
 }
 
 fn create_button(icon: &str) -> gtk::Button {
-    let button = gtk::Button::builder()
-        .icon_name(icon)
-        .css_classes(["image-button"])
-        .build();
+    let button = gtk::Button::builder().icon_name(icon).build();
+    button.add_css_class("image-button");
     button
 }
