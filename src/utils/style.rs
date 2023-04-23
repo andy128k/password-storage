@@ -10,7 +10,7 @@ fn add_static_css(display: &gdk::Display, css: &'static str, priority: u32) {
     let key = glib::Quark::from_str(format!("static_css_{:?}", css.as_ptr()));
     if unsafe { display.qdata::<bool>(key) }.is_none() {
         let provider = load_css_from_data(css);
-        gtk::StyleContext::add_provider_for_display(display, &provider, priority);
+        gtk::style_context_add_provider_for_display(display, &provider, priority);
         unsafe { display.set_qdata::<bool>(key, true) };
     }
 }
