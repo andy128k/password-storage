@@ -14,4 +14,3 @@ pub mod record_type_popover;
 pub mod record_view;
 pub mod search;
 pub mod toast;
-pub mod tree_view;

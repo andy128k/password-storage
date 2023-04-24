@@ -1,5 +1,3 @@
-use crate::model::tree::RecordNode;
-use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::pending;
 use gtk::{gdk, gio, glib, prelude::*, subclass::prelude::*};
 
@@ -9,7 +7,6 @@ mod imp {
     use crate::ui::record_view::item_factory::item_factory;
     use crate::utils::ui::scrolled;
     use crate::weak_map::WeakMap;
-    use awesome_gtk::widget::AwesomeWidgetTraverseExt;
     use once_cell::sync::Lazy;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -19,14 +16,14 @@ mod imp {
     pub const SIGNAL_SELECTION_CHANGED: &str = "ps-selection-changed";
     pub const SIGNAL_RECORD_ACTIVATED: &str = "ps-record-activated";
 
-    pub struct PSTreeView {
+    pub struct PSRecordView {
         pub list_view: gtk::ListView,
         pub selection: gtk::MultiSelection,
         pub popup_model: Rc<RefCell<Option<gio::MenuModel>>>,
         pub mapping: Rc<WeakMap<u32, PSRecordViewItem>>,
     }
 
-    impl Default for PSTreeView {
+    impl Default for PSRecordView {
         fn default() -> Self {
             Self {
                 list_view: Default::default(),
@@ -38,13 +35,13 @@ mod imp {
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for PSTreeView {
-        const NAME: &'static str = "PSTreeView";
-        type Type = super::PSTreeView;
+    impl ObjectSubclass for PSRecordView {
+        const NAME: &'static str = "PSRecordView";
+        type Type = super::PSRecordView;
         type ParentType = gtk::Widget;
     }
 
-    impl ObjectImpl for PSTreeView {
+    impl ObjectImpl for PSRecordView {
         fn constructed(&self) {
             self.parent_constructed();
 
@@ -95,39 +92,37 @@ mod imp {
         }
 
         fn dispose(&self) {
-            for child in self.obj().children() {
+            while let Some(child) = self.obj().first_child() {
                 child.unparent();
             }
         }
     }
 
-    impl WidgetImpl for PSTreeView {}
+    impl WidgetImpl for PSRecordView {}
 
-    impl PSTreeView {
-        pub fn find_record_position(&self, record: &RecordNode) -> Option<u32> {
+    impl PSRecordView {
+        pub fn find_position(&self, object: &glib::Object) -> Option<u32> {
             let model = self.selection.model()?;
-            let position = model
-                .iter::<glib::Object>()
-                .position(|r| r.as_ref() == Ok(record.upcast_ref()))?;
+            let position = model.iter().position(|r| r.as_ref() == Ok(object))?;
             position.try_into().ok()
         }
     }
 }
 
 glib::wrapper! {
-    pub struct PSTreeView(ObjectSubclass<imp::PSTreeView>)
+    pub struct PSRecordView(ObjectSubclass<imp::PSRecordView>)
         @extends gtk::Widget;
 }
 
-impl Default for PSTreeView {
+impl Default for PSRecordView {
     fn default() -> Self {
         glib::Object::builder().build()
     }
 }
 
-impl PSTreeView {
-    pub fn set_model(&self, model: &TypedListStore<RecordNode>) {
-        self.imp().selection.set_model(Some(model.untyped()));
+impl PSRecordView {
+    pub fn set_model(&self, model: &gio::ListModel) {
+        self.imp().selection.set_model(Some(model));
     }
 
     pub fn get_selected_positions(&self) -> gtk::Bitset {
@@ -151,8 +146,8 @@ impl PSTreeView {
         self.imp().selection.select_item(position, true);
     }
 
-    pub async fn select_record(&self, record: &RecordNode) {
-        if let Some(position) = self.imp().find_record_position(record) {
+    pub async fn select_object(&self, object: &glib::Object) {
+        if let Some(position) = self.imp().find_position(object) {
             self.select_position_async(position).await;
         }
     }
@@ -204,7 +199,7 @@ impl PSTreeView {
     }
 }
 
-impl PSTreeView {
+impl PSRecordView {
     fn emit_go_home(&self) {
         self.emit_by_name::<()>(imp::SIGNAL_GO_HOME, &[]);
     }

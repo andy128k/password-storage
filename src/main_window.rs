@@ -15,9 +15,9 @@ use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
 use crate::ui::group_selector::select_group;
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
+use crate::ui::record_view::view::PSRecordView;
 use crate::ui::search::{PSSearchBar, SearchEvent, SearchEventType};
 use crate::ui::toast::Toast;
-use crate::ui::tree_view::PSTreeView;
 use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::*;
 use awesome_gtk::bitset::BitSetIterExt;
@@ -66,7 +66,7 @@ mod imp {
         pub path_label: gtk::Label,
         pub up_button: gtk::Button,
         pub search_bar: PSSearchBar,
-        pub view: PSTreeView,
+        pub view: PSRecordView,
 
         pub delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
 
@@ -290,7 +290,7 @@ mod imp {
     impl PSMainWindow {
         pub fn set_view_model(&self, model: &TypedListStore<RecordNode>) {
             *self.current_records.borrow_mut() = model.clone();
-            self.view.set_model(model);
+            self.view.set_model(model.untyped().upcast_ref());
         }
 
         async fn go_home(&self) {
@@ -308,8 +308,8 @@ mod imp {
                 None => self.file.borrow().data.records.clone(),
             };
             self.set_view_model(&records);
-            if let Some(ref prev) = prev {
-                self.view.select_record(prev).await;
+            if let Some(prev) = prev {
+                self.view.select_object(prev.upcast_ref()).await;
             }
 
             self.update_path();
