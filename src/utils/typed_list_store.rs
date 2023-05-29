@@ -45,6 +45,13 @@ where
         self.0.splice(index, 1, &[value.upcast()]);
     }
 
+    pub fn truncate(&self, len: u32) {
+        if len < self.len() {
+            const NOTHING: &[glib::Object] = &[];
+            self.0.splice(len, self.len() - len, NOTHING);
+        }
+    }
+
     pub fn updated(self, index: u32, value: T) -> Self {
         if self.get(index).as_ref() == Some(&value) {
             self

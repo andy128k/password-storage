@@ -43,6 +43,7 @@ pub struct OpenedFile {
 
 mod imp {
     use super::*;
+    use crate::ui::nav_bar::PSNavBar;
 
     #[derive(Clone, Copy, Default)]
     pub enum AppMode {
@@ -62,10 +63,8 @@ mod imp {
         pub dashboard: PSDashboard,
 
         pub toast: Toast,
-        pub home_button: gtk::Button,
-        pub path_label: gtk::Label,
-        pub up_button: gtk::Button,
         pub search_bar: PSSearchBar,
+        pub nav_bar: PSNavBar,
         pub view: PSRecordView,
 
         pub delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
@@ -135,41 +134,22 @@ mod imp {
             save_box.append(&save_as_button);
             self.header_bar.pack_end(&save_box);
 
-            self.home_button.set_icon_name("navigate-home");
-            self.home_button.set_tooltip_text(Some("Go go the root"));
-            self.home_button.add_css_class("flat");
-            self.home_button.set_sensitive(false);
-            self.home_button.set_hexpand(false);
-            self.home_button.set_margin_top(5);
-            self.home_button.set_margin_bottom(5);
-            self.home_button.set_margin_start(5);
-            self.home_button.set_margin_end(5);
-            self.home_button
-                .connect_clicked(glib::clone!(@weak self as imp => move |_| {
+            self.nav_bar
+                .set_model(self.current_path.untyped().upcast_ref());
+            self.nav_bar
+                .connect_go_home(glib::clone!(@weak self as imp => move || {
                     glib::MainContext::default().spawn_local(async move {
                         imp.go_home().await
                     });
                 }));
-
-            self.path_label.set_xalign(0.0_f32);
-            self.path_label.set_yalign(0.5_f32);
-            self.path_label.set_hexpand(true);
-            self.path_label.set_margin_top(5);
-            self.path_label.set_margin_bottom(5);
-            self.path_label.set_margin_start(5);
-            self.path_label.set_margin_end(5);
-
-            self.up_button.set_icon_name("navigate-up");
-            self.up_button.set_tooltip_text(Some("Go go parent group"));
-            self.up_button.add_css_class("flat");
-            self.up_button.set_sensitive(false);
-            self.up_button.set_hexpand(false);
-            self.up_button.set_margin_top(5);
-            self.up_button.set_margin_bottom(5);
-            self.up_button.set_margin_start(5);
-            self.up_button.set_margin_end(5);
-            self.up_button
-                .connect_clicked(glib::clone!(@weak self as imp => move |_| {
+            self.nav_bar
+                .connect_go_path(glib::clone!(@weak self as imp => move |position| {
+                    glib::MainContext::default().spawn_local(async move {
+                        imp.go_path(position).await
+                    });
+                }));
+            self.nav_bar
+                .connect_go_up(glib::clone!(@weak self as imp => move || {
                     glib::MainContext::default().spawn_local(async move {
                         imp.go_up().await
                     });
@@ -178,9 +158,7 @@ mod imp {
             let tree_container = gtk::Grid::new();
             self.view.set_vexpand(true);
             tree_container.attach(&self.search_bar, 0, 0, 3, 1);
-            tree_container.attach(&self.home_button, 0, 1, 1, 1);
-            tree_container.attach(&self.path_label, 1, 1, 1, 1);
-            tree_container.attach(&self.up_button, 2, 1, 1, 1);
+            tree_container.attach(&self.nav_bar, 0, 1, 3, 1);
             tree_container.attach(&self.view, 0, 2, 3, 1);
             let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
             tree_action_bar.pack_start(&action_popover_button(
@@ -297,8 +275,22 @@ mod imp {
             self.current_path.remove_all();
             self.set_view_model(&self.file.borrow().data.records);
             self.view.select_position_async(0).await;
+        }
 
-            self.update_path();
+        async fn go_path(&self, position: u32) {
+            if position + 1 >= self.current_path.len() {
+                return;
+            }
+            let prev = self.current_path.get(position + 1);
+            self.current_path.truncate(position + 1);
+            let records = match self.current_path.last() {
+                Some(parent) => parent.children().unwrap().clone(),
+                None => self.file.borrow().data.records.clone(),
+            };
+            self.set_view_model(&records);
+            if let Some(prev) = prev {
+                self.view.select_object(prev.upcast_ref()).await;
+            }
         }
 
         async fn go_up(&self) {
@@ -311,23 +303,6 @@ mod imp {
             if let Some(prev) = prev {
                 self.view.select_object(prev.upcast_ref()).await;
             }
-
-            self.update_path();
-        }
-
-        pub fn update_path(&self) {
-            let mut label = String::new();
-            for record in &self.current_path {
-                if !label.is_empty() {
-                    label.push_str(" / ");
-                }
-                label.push_str(&record.record().name());
-            }
-            self.path_label.set_text(&label);
-
-            let has_parent = !self.current_path.is_empty();
-            self.home_button.set_sensitive(has_parent);
-            self.up_button.set_sensitive(has_parent);
         }
     }
 }
@@ -417,8 +392,6 @@ impl PSMainWindow {
             self.imp().current_path.append(&record);
             self.imp().set_view_model(children);
             self.imp().view.select_position_async(0).await;
-
-            self.imp().update_path();
         } else {
             self.action_edit().await;
         }
