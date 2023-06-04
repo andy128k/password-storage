@@ -115,7 +115,7 @@ impl Default for PSApplication {
     fn default() -> Self {
         glib::Object::builder()
             .property("application-id", APPLICATION_ID)
-            .property("flags", &gio::ApplicationFlags::HANDLES_OPEN)
+            .property("flags", gio::ApplicationFlags::HANDLES_OPEN)
             .build()
     }
 }

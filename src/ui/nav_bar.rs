@@ -106,7 +106,7 @@ mod imp {
             let layout = gtk::GridLayout::builder().column_spacing(5).build();
 
             let obj = self.obj();
-            obj.set_layout_manager(Some(layout.clone()));
+            obj.set_layout_manager(Some(layout));
             obj.set_margin_top(5);
             obj.set_margin_bottom(5);
             obj.set_margin_start(5);
