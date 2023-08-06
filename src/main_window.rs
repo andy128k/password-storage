@@ -10,10 +10,10 @@ use crate::ui::dialogs::ask::{confirm_likely, confirm_unlikely};
 use crate::ui::dialogs::ask_save::{ask_save, AskSave};
 use crate::ui::dialogs::change_password::change_password;
 use crate::ui::dialogs::file_chooser;
-use crate::ui::dialogs::read_file::read_file;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
 use crate::ui::group_selector::select_group;
+use crate::ui::open_file::OpenFile;
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
 use crate::ui::record_view::view::PSRecordView;
 use crate::ui::search::{PSSearchBar, SearchEvent, SearchEventType};
@@ -61,6 +61,8 @@ mod imp {
         pub entry_actions: gio::SimpleActionGroup,
 
         pub dashboard: PSDashboard,
+
+        pub open_file: OpenFile,
 
         pub toast: Toast,
         pub search_bar: PSSearchBar,
@@ -196,6 +198,7 @@ mod imp {
                 .set_transition_type(gtk::StackTransitionType::SlideLeftRight);
             self.stack
                 .add_named(&self.dashboard.get_widget(), Some("dashboard"));
+            self.stack.add_named(&self.open_file, Some("open_file"));
             self.stack.add_named(
                 &overlayed(&tree_container, &self.toast.as_widget()),
                 Some("file"),
@@ -517,8 +520,24 @@ impl PSMainWindow {
         }
     }
 
+    async fn load_data(&self, filename: PathBuf) -> Option<(RecordTree, String)> {
+        self.imp().stack.set_visible_child_name("open_file");
+
+        let result = self
+            .imp()
+            .open_file
+            .run(move |password| format::load_file(&filename, password))
+            .await;
+
+        if result.is_none() {
+            self.imp().stack.set_visible_child_name("dashboard");
+        }
+
+        result
+    }
+
     pub async fn do_open_file(&self, filename: &Path) {
-        if let Some((data, password)) = load_data(filename.to_owned(), self.upcast_ref()).await {
+        if let Some((data, password)) = self.load_data(filename.to_owned()).await {
             self.imp().cache.get().unwrap().add_file(filename);
 
             *self.file_mut() = OpenedFile {
@@ -651,7 +670,7 @@ impl PSMainWindow {
 
         let window = self.upcast_ref();
         let Some(filename) = file_chooser::open_file(window).await else { return };
-        let Some((extra_records, _password)) = load_data(filename, window).await else { return };
+        let Some((extra_records, _password)) = self.load_data(filename).await else { return };
 
         // TODO: maybe do merge into current folder?
         let merged_tree = crate::model::merge_trees::merge_trees(&self.file().data, &extra_records);
@@ -889,13 +908,6 @@ impl PSMainWindow {
         self.imp().view.select_position(position);
         self.listview_cursor_changed(gtk::Bitset::new_range(position, 1));
     }
-}
-
-async fn load_data(filename: PathBuf, parent_window: &gtk::Window) -> Option<(RecordTree, String)> {
-    read_file(parent_window, move |password| {
-        format::load_file(&filename, password)
-    })
-    .await
 }
 
 async fn new_password(parent_window: &gtk::Window) -> Option<String> {

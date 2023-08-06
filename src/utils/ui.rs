@@ -152,3 +152,19 @@ pub fn title_and_subtitle(title: &str, subtitle: &str) -> gtk::Widget {
     vbox.append(&title_label(subtitle, "subtitle"));
     vbox.upcast()
 }
+
+pub fn hexpander() -> gtk::Widget {
+    gtk::Label::builder()
+        .hexpand(true)
+        .vexpand(false)
+        .build()
+        .upcast()
+}
+
+pub fn vexpander() -> gtk::Widget {
+    gtk::Label::builder()
+        .hexpand(false)
+        .vexpand(true)
+        .build()
+        .upcast()
+}
