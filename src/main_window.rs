@@ -12,6 +12,7 @@ use crate::ui::dialogs::change_password::change_password;
 use crate::ui::dialogs::file_chooser;
 use crate::ui::dialogs::say::{say_error, say_info};
 use crate::ui::edit_record::edit_record;
+use crate::ui::forms::entry::form_password_entry;
 use crate::ui::group_selector::select_group;
 use crate::ui::open_file::OpenFile;
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
@@ -913,11 +914,7 @@ impl PSMainWindow {
 async fn new_password(parent_window: &gtk::Window) -> Option<String> {
     // TODO: ADD confirmation
     let mut form = ui::forms::form::Form::new();
-    form.add(
-        "Password",
-        Box::new(ui::forms::entry::Text::new().for_password()),
-        true,
-    );
+    form.add("Password", Box::new(form_password_entry()), true);
     let result = ui::edit_object::edit_object(
         None,
         form,

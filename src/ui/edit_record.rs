@@ -38,11 +38,11 @@ impl RecordForm {
         let mut form = Form::new();
         for field in &record_type.fields {
             let fw: Box<dyn FormWidget<String>> = match field.field_type {
-                FieldType::Text => Box::new(Text::new()),
+                FieldType::Text => Box::new(form_entry()),
                 FieldType::MultiLine => Box::new(MultiLine::new()),
-                FieldType::Name => Box::new(Text::new().with_completion(names)),
+                FieldType::Name => Box::new(form_entry_with_completion(names)),
                 FieldType::Password => Box::new(PasswordEditor::new()),
-                FieldType::Secret => Box::new(Text::new()),
+                FieldType::Secret => Box::new(form_password_entry()),
             };
             let required = field.name == "name";
             form.add(field.title, fw, required);

@@ -23,8 +23,13 @@ mod imp {
         pub mapping: Rc<WeakMap<u32, PSRecordViewItem>>,
     }
 
-    impl Default for PSRecordView {
-        fn default() -> Self {
+    #[glib::object_subclass]
+    impl ObjectSubclass for PSRecordView {
+        const NAME: &'static str = "PSRecordView";
+        type Type = super::PSRecordView;
+        type ParentType = gtk::Widget;
+
+        fn new() -> Self {
             Self {
                 list_view: Default::default(),
                 selection: gtk::MultiSelection::new(None::<gio::ListModel>),
@@ -32,13 +37,6 @@ mod imp {
                 mapping: Default::default(),
             }
         }
-    }
-
-    #[glib::object_subclass]
-    impl ObjectSubclass for PSRecordView {
-        const NAME: &'static str = "PSRecordView";
-        type Type = super::PSRecordView;
-        type ParentType = gtk::Widget;
     }
 
     impl ObjectImpl for PSRecordView {

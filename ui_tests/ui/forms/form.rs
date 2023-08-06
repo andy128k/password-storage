@@ -1,13 +1,13 @@
 use password_storage::ui::forms::base::FormWidget;
-use password_storage::ui::forms::entry::Text;
+use password_storage::ui::forms::entry::form_entry;
 use password_storage::ui::forms::form::Form;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 fn new_form() -> Form {
     let mut form = Form::new();
-    form.add("field #1", Box::new(Text::new()), false);
-    form.add("field #2", Box::new(Text::new()), false);
+    form.add("field #1", Box::new(form_entry()), false);
+    form.add("field #2", Box::new(form_entry()), false);
     form
 }
 
