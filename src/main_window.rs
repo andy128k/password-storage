@@ -193,6 +193,8 @@ mod imp {
             tree_container.attach(&tree_action_bar, 0, 3, 3, 1);
 
             self.stack
+                .set_transition_type(gtk::StackTransitionType::SlideLeftRight);
+            self.stack
                 .add_named(&self.dashboard.get_widget(), Some("dashboard"));
             self.stack.add_named(
                 &overlayed(&tree_container, &self.toast.as_widget()),
