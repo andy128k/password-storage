@@ -60,8 +60,8 @@ mod imp {
 
             let key_controller = gtk::EventControllerKey::new();
             key_controller.connect_key_pressed(
-                glib::clone!(@weak obj => @default-return glib::signal::Inhibit(false), move |_controller, key, _keycode, modifier| {
-                    glib::signal::Inhibit(obj.on_key_press(key, modifier))
+                glib::clone!(@weak obj => @default-return glib::Propagation::Proceed, move |_controller, key, _keycode, modifier| {
+                    obj.on_key_press(key, modifier)
                 }),
             );
             self.list_view.add_controller(key_controller);
@@ -176,25 +176,25 @@ impl PSRecordView {
         pending().await;
     }
 
-    fn on_key_press(&self, key: gdk::Key, modifier: gdk::ModifierType) -> bool {
+    fn on_key_press(&self, key: gdk::Key, modifier: gdk::ModifierType) -> glib::Propagation {
         match (modifier, key) {
             (gdk::ModifierType::ALT_MASK, gdk::Key::Home) => {
                 self.emit_go_home();
-                true
+                glib::Propagation::Stop
             }
             (gdk::ModifierType::ALT_MASK, gdk::Key::Up) => {
                 self.emit_go_up();
-                true
+                glib::Propagation::Stop
             }
             (gdk::ModifierType::ALT_MASK, gdk::Key::Down) => {
                 if let Some(position) = self.get_selected_position() {
                     self.emit_record_activated(position);
-                    true
+                    glib::Propagation::Stop
                 } else {
-                    false
+                    glib::Propagation::Proceed
                 }
             }
-            _ => false,
+            _ => glib::Propagation::Proceed,
         }
     }
 }

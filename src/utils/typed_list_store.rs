@@ -14,7 +14,7 @@ where
     }
 
     pub fn new() -> Self {
-        Self(gio::ListStore::new(T::static_type()), PhantomData)
+        Self(gio::ListStore::new::<T>(), PhantomData)
     }
 
     pub fn untyped(&self) -> &gio::ListStore {

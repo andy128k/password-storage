@@ -213,7 +213,7 @@ mod imp {
                 glib::MainContext::default().spawn_local(async move {
                     win.on_close().await;
                 });
-                glib::signal::Inhibit(true)
+                glib::Propagation::Stop
             });
             *self.delete_handler.borrow_mut() = Some(delete_handler);
 

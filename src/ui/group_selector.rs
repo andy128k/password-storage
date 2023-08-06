@@ -6,7 +6,7 @@ use crate::utils::ui::{scrolled, PSWidgetLookupExt};
 use gtk::{gio, glib, prelude::*};
 
 pub fn singleton_list(item: &impl glib::IsA<glib::Object>) -> gio::ListStore {
-    let list = gio::ListStore::new(item.type_());
+    let list = gio::ListStore::with_type(item.type_());
     list.append(item);
     list
 }

@@ -58,9 +58,9 @@ impl Default for Toast {
 
         glib::timeout_add_local(
             Duration::from_millis(100),
-            glib::clone!(@weak toast => @default-return glib::Continue(false), move || {
+            glib::clone!(@weak toast => @default-return glib::ControlFlow::Break, move || {
                 toast.tick();
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
 

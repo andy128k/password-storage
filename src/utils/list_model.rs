@@ -43,7 +43,7 @@ impl<T: glib::IsA<gio::ListModel>> ListModelImmutableExt for T {
             Bound::Included(index) => index + 1,
             Bound::Excluded(index) => *index,
         };
-        let result = gio::ListStore::new(self.item_type());
+        let result = gio::ListStore::with_type(self.item_type());
         for index in start_index..end_index {
             if let Some(item) = self.item(index) {
                 result.append(&item);
