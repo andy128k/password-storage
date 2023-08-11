@@ -5,6 +5,7 @@ use std::time::Duration;
 pub async fn pending() {
     glib::timeout_future(Duration::ZERO).await;
 }
+
 pub trait PSWidgetLookupExt {
     fn of_type<W: IsA<gtk::Widget>>(&self) -> Option<W>;
     fn of_type_and_name<W: IsA<gtk::Widget>>(&self, name: &str) -> Option<W>;

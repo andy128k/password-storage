@@ -310,6 +310,28 @@ mod imp {
                 self.view.select_object(prev.upcast_ref()).await;
             }
         }
+
+        pub fn set_mode(&self, mode: AppMode) {
+            match mode {
+                AppMode::Initial => {
+                    self.file_actions.set_enabled(false);
+                    self.entry_actions.set_enabled(false);
+
+                    self.stack.set_visible_child_name("dashboard");
+                    if let Some(cache) = self.cache.get() {
+                        self.dashboard.update(cache);
+                    }
+                }
+                AppMode::FileOpened => {
+                    self.file_actions.set_enabled(true);
+                    self.entry_actions.set_enabled(true);
+
+                    self.stack.set_visible_child_name("file");
+                }
+            }
+            self.search_bar.set_search_mode(false);
+            self.mode.set(mode);
+        }
     }
 }
 
@@ -512,7 +534,7 @@ impl PSMainWindow {
                 changed: false,
             };
 
-            self.set_mode(imp::AppMode::FileOpened);
+            self.imp().set_mode(imp::AppMode::FileOpened);
             self.reset_records_view();
 
             self.update_title();
@@ -548,7 +570,7 @@ impl PSMainWindow {
                 changed: false,
             };
 
-            self.set_mode(imp::AppMode::FileOpened);
+            self.imp().set_mode(imp::AppMode::FileOpened);
             self.reset_records_view();
 
             self.update_title();
@@ -571,28 +593,6 @@ impl PSMainWindow {
         let Some(ref filename) = self.get_file_path().await else { return false };
         let Some(ref password) = self.get_file_password().await else { return false };
         self.save_data(filename, password).await
-    }
-
-    fn set_mode(&self, mode: imp::AppMode) {
-        match mode {
-            imp::AppMode::Initial => {
-                self.imp().file_actions.set_enabled(false);
-                self.imp().entry_actions.set_enabled(false);
-
-                self.imp().stack.set_visible_child_name("dashboard");
-                if let Some(cache) = self.imp().cache.get() {
-                    self.imp().dashboard.update(cache);
-                }
-            }
-            imp::AppMode::FileOpened => {
-                self.imp().file_actions.set_enabled(true);
-                self.imp().entry_actions.set_enabled(true);
-
-                self.imp().stack.set_visible_child_name("file");
-            }
-        }
-        self.imp().search_bar.set_search_mode(false);
-        self.imp().mode.set(mode);
     }
 
     async fn on_close(&self) {
@@ -626,7 +626,7 @@ impl PSMainWindow {
             }));
 
         win.show();
-        win.set_mode(imp::AppMode::Initial);
+        win.imp().set_mode(imp::AppMode::Initial);
         crate::css::load_css(&win.display());
         win
     }
@@ -644,7 +644,7 @@ impl PSMainWindow {
                 changed: false,
             };
 
-            self.set_mode(imp::AppMode::Initial);
+            self.imp().set_mode(imp::AppMode::Initial);
             self.reset_records_view();
 
             self.update_title();
