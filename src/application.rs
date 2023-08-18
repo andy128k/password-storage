@@ -1,7 +1,8 @@
+use crate::compat::init::init;
 use crate::main_window::PSMainWindow;
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
-use crate::{compat::init::init, ui::dialogs::shortcuts::shortcuts_window};
+use crate::ui::dialogs::shortcuts::shortcuts_window;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 use os_str_bytes::OsStringBytes;
 use std::path::PathBuf;
