@@ -1,5 +1,6 @@
 use crate::cache::Cache;
 use crate::markup_builder::bold;
+use crate::primary_accel;
 use crate::utils::ui::centered;
 use awesome_gtk::widget::AwesomeWidgetTraverseExt;
 use gtk::{glib, prelude::*};
@@ -181,13 +182,13 @@ impl PSDashboard {
             "app.new",
             "New file",
             "document-new",
-            Some("<Primary>n"),
+            Some(primary_accel!("n")),
         ));
         self.listbox.append(&action_row(
             "app.open",
             "Open...",
             "document-open",
-            Some("<Primary>o"),
+            Some(primary_accel!("o")),
         ));
 
         let mut first_row = None;

@@ -1,3 +1,4 @@
+use crate::primary_accel;
 use crate::utils::menu_builder::*;
 use gtk::{gio, prelude::*};
 
@@ -33,7 +34,7 @@ pub fn create_main_menu() -> gio::MenuModel {
                     gio::MenuItem::create()
                         .action("app.shortcuts")
                         .label("_Keyboard shortcuts...")
-                        .accel("<Primary>question"),
+                        .accel(primary_accel!("question")),
                 )
                 .item(
                     gio::MenuItem::create()
@@ -52,13 +53,13 @@ pub fn create_tree_popup() -> gio::MenuModel {
                     gio::MenuItem::create()
                         .action("entry.copy-name")
                         .label("Copy _name")
-                        .accel("<Primary>c"),
+                        .accel(primary_accel!("c")),
                 )
                 .item(
                     gio::MenuItem::create()
                         .action("entry.copy-password")
                         .label("Copy pass_word")
-                        .accel("<Primary><Shift>c"),
+                        .accel(primary_accel!("<Shift>c")),
                 ),
         )
         .section(

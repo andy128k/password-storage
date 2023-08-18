@@ -5,3 +5,4 @@ pub mod change_password;
 pub mod file_chooser;
 pub mod preferences;
 pub mod say;
+pub mod shortcuts;

@@ -1,12 +1,10 @@
 use crate::main_window::PSMainWindow;
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
+use crate::{compat::init::init, ui::dialogs::shortcuts::shortcuts_window};
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 use os_str_bytes::OsStringBytes;
-use std::error::Error;
 use std::path::PathBuf;
-
-mod shortcuts;
 
 const APPLICATION_ID: &str = "dev.andy128k.password-storage";
 
@@ -34,15 +32,12 @@ mod imp {
     impl ApplicationImpl for PSApplication {
         fn startup(&self) {
             self.parent_startup();
+            init();
 
             self.cache.load();
 
-            if let Err(error) = configure() {
-                eprintln!("Failed to configure global settings: {error}.");
-            }
-
-            for (_group_title, actions) in shortcuts::SHORTCUTS {
-                for shortcuts::Shortcut { action, accel, .. } in actions.iter() {
+            for (_group_title, actions) in crate::shortcuts::SHORTCUTS {
+                for crate::shortcuts::Shortcut { action, accel, .. } in actions.iter() {
                     if let Some(action) = action {
                         self.obj().set_accels_for_action(action, &[accel]);
                     }
@@ -165,35 +160,7 @@ impl PSApplication {
 
     #[action(name = "shortcuts")]
     fn action_shortcuts(&self) {
-        let window = gtk::ShortcutsWindow::builder().modal(true).build();
-        window.set_transient_for(self.active_window().as_ref());
-        let section = gtk::ShortcutsSection::builder().visible(true).build();
-        for (group_title, actions) in shortcuts::SHORTCUTS {
-            let group = gtk::ShortcutsGroup::builder().title(*group_title).build();
-            for shortcut in actions.iter() {
-                let s = gtk::ShortcutsShortcut::builder()
-                    .shortcut_type(gtk::ShortcutType::Accelerator)
-                    .accelerator(shortcut.accel)
-                    .title(shortcut.title)
-                    .build();
-                s.set_action_name(shortcut.action);
-                group.append(&s);
-            }
-            section.append(&group);
-        }
-        window.set_child(Some(&section));
+        let window = shortcuts_window(self.active_window().as_ref(), crate::shortcuts::SHORTCUTS);
         window.show();
     }
-}
-
-#[cfg(not(target_os = "macos"))]
-fn configure() -> Result<(), Box<dyn Error>> {
-    Ok(())
-}
-
-#[cfg(target_os = "macos")]
-fn configure() -> Result<(), Box<dyn Error>> {
-    let settings = gtk::Settings::default().ok_or("No default settings found.")?;
-    settings.set_property("gtk-decoration-layout", "close,minimize,maximize");
-    Ok(())
 }

@@ -1,5 +1,6 @@
 pub mod application;
 pub mod cache;
+pub mod compat;
 pub mod config;
 pub mod css;
 pub mod entropy;
@@ -10,6 +11,7 @@ pub mod main_window;
 pub mod markup_builder;
 pub mod model;
 pub mod password;
+pub mod shortcuts;
 pub mod slot;
 pub mod ui;
 pub mod utils;
