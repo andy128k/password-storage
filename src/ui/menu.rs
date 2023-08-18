@@ -15,11 +15,6 @@ pub fn create_main_menu() -> gio::MenuModel {
                     gio::MenuItem::create()
                         .action("file.merge-file")
                         .label("_Merge another file into the current one"),
-                )
-                .item(
-                    gio::MenuItem::create()
-                        .action("doc.merge-mode")
-                        .label("_Merge mode"),
                 ),
         )
         .section(gio::Menu::new())
