@@ -1,0 +1,25 @@
+label.ps-keycap {
+  min-width: 20px;
+  min-height: 25px;
+  margin-top: 2px;
+  padding-bottom: 3px;
+  padding-left: 5px;
+  padding-right: 5px;
+
+  background-color: #fffdf0;
+  border: 1px solid;
+  border-color: #888;
+  border-radius: 5px;
+  box-shadow: inset -1px -3px #e0e0e0;
+  font-size: smaller;
+}
+
+label.ps-keycap.ps-keycap-1_25u {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+label.ps-keycap.ps-keycap-2_25u {
+  padding-left: 15px;
+  padding-right: 15px;
+}

@@ -1,5 +1,6 @@
 use crate::compat::accel::PRIMARY_MODIFIER;
 use crate::shortcuts::ShortcutGroup;
+use crate::ui::accel_label::AccelLabel;
 use gtk::{gdk, glib, prelude::*};
 
 pub fn shortcuts_window(
@@ -31,28 +32,43 @@ pub fn shortcuts_window(
     );
     window.add_controller(key_controller);
 
-    let section = gtk::Box::builder()
+    let grid = gtk::Grid::builder()
         .orientation(gtk::Orientation::Vertical)
-        .spacing(10)
+        .row_spacing(10)
+        .column_spacing(10)
         .margin_top(20)
-        .margin_bottom(20)
-        .margin_start(20)
-        .margin_end(20)
+        .margin_bottom(40)
+        .margin_start(40)
+        .margin_end(40)
         .build();
+    window.set_child(Some(&grid));
+
+    let mut row = 0;
     for (group_title, actions) in shortcuts {
-        let group = gtk::ShortcutsGroup::builder().title(*group_title).build();
+        let group_label = gtk::Label::builder()
+            .label(*group_title)
+            .margin_top(10)
+            .xalign(0_f32)
+            .yalign(1_f32)
+            .build();
+        group_label.add_css_class("bold");
+
+        grid.attach(&group_label, 0, row, 2, 1);
+        row += 1;
+
         for shortcut in actions.iter() {
-            let s = gtk::ShortcutsShortcut::builder()
-                .shortcut_type(gtk::ShortcutType::Accelerator)
-                .accelerator(shortcut.accel)
-                .title(shortcut.title)
+            let accel_label = AccelLabel::new(shortcut.display_accel);
+
+            let title_label = gtk::Label::builder()
+                .label(shortcut.title)
+                .xalign(0_f32)
                 .build();
-            s.set_action_name(shortcut.action);
-            group.append(&s);
+
+            grid.attach(&accel_label, 0, row, 1, 1);
+            grid.attach(&title_label, 1, row, 1, 1);
+            row += 1;
         }
-        section.append(&group);
     }
-    window.set_child(Some(&section));
 
     window.upcast()
 }

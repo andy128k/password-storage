@@ -1,3 +1,4 @@
+pub mod accel_label;
 pub mod dashboard;
 pub mod dialogs;
 pub mod edit_object;

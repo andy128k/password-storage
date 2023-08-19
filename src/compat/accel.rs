@@ -16,3 +16,9 @@ pub const PRIMARY_MODIFIER: gdk::ModifierType = if cfg!(target_os = "macos") {
 } else {
     gdk::ModifierType::CONTROL_MASK
 };
+
+pub const PRIMARY_MODIFIER_NAME: &str = if cfg!(target_os = "macos") {
+    "\u{2318}"
+} else {
+    "Ctrl"
+};
