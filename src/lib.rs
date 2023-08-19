@@ -8,7 +8,6 @@ pub mod error;
 pub mod format;
 pub mod id;
 pub mod main_window;
-pub mod markup_builder;
 pub mod model;
 pub mod password;
 pub mod shortcuts;

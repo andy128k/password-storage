@@ -1,5 +1,4 @@
 use crate::cache::Cache;
-use crate::markup_builder::bold;
 use crate::primary_accel;
 use crate::utils::ui::centered;
 use awesome_gtk::widget::AwesomeWidgetTraverseExt;
@@ -72,12 +71,12 @@ pub fn file_row(
         .build();
 
     let label1 = gtk::Label::builder()
-        .use_markup(true)
-        .label(bold(basename.to_string_lossy().as_ref()))
+        .label(basename.to_string_lossy().as_ref())
         .margin_bottom(5)
         .halign(gtk::Align::Start)
         .hexpand(true)
         .build();
+    label1.add_css_class("bold");
     grid.attach(&label1, 0, 0, 1, 1);
 
     let remove_button = gtk::Button::builder()
