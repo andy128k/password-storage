@@ -5,6 +5,7 @@ pub mod edit_object;
 pub mod edit_record;
 pub mod error_label;
 pub mod fancy_button;
+pub mod file_pane;
 pub mod flow_grid;
 pub mod forms;
 pub mod group_selector;

@@ -63,13 +63,13 @@ pub const DOCUMENT_SHORTCUTS: &[Shortcut<'static>] = &[
         display_accel: &["Shift", PRIMARY_MODIFIER_NAME, "G"],
     },
     Shortcut {
-        action: Some("entry.copy-name"),
+        action: None,
         title: "Copy name",
         accel: primary_accel!("c"),
         display_accel: &[PRIMARY_MODIFIER_NAME, "C"],
     },
     Shortcut {
-        action: Some("entry.copy-password"),
+        action: None,
         title: "Copy password",
         accel: primary_accel!("<Shift>c"),
         display_accel: &["Shift", PRIMARY_MODIFIER_NAME, "C"],
