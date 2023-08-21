@@ -195,7 +195,6 @@ mod imp {
             match mode {
                 AppMode::Initial => {
                     self.file_actions.set_enabled(false);
-                    self.file_pane.set_actions_enabled(false);
 
                     self.stack.set_visible_child_name("dashboard");
                     if let Some(cache) = self.cache.get() {
@@ -204,7 +203,6 @@ mod imp {
                 }
                 AppMode::FileOpened => {
                     self.file_actions.set_enabled(true);
-                    self.file_pane.set_actions_enabled(true);
 
                     self.stack.set_visible_child_name("file");
                 }

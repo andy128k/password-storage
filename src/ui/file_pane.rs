@@ -7,10 +7,20 @@ use crate::ui::group_selector::select_group;
 use crate::ui::nav_bar::PSNavBar;
 use crate::ui::record_view::view::PSRecordView;
 use crate::utils::menu_builder::*;
-use crate::utils::ui::PSSimpleActionGroupExt;
 use awesome_gtk::prelude::BitSetIterExt;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 use std::cell::Ref;
+
+const ACTION_COPY_NAME: &str = "copy-name";
+const ACTION_COPY_PASSWORD: &str = "copy-password";
+const ACTION_MOVE: &str = "move";
+const ACTION_EDIT: &str = "edit";
+const ACTION_DELETE: &str = "delete";
+const ACTION_MERGE: &str = "merge";
+
+const SIGNAL_USER_NOTIFICATION: &str = "user-notification";
+const SIGNAL_FILE_CHANGED: &str = "file-changed";
+const SIGNAL_EDIT_RECORD: &str = "edit-record";
 
 mod imp {
     use super::*;
@@ -26,9 +36,6 @@ mod imp {
     pub struct FilePane {
         pub nav_bar: PSNavBar,
         pub view: PSRecordView,
-
-        pub entry_actions: gio::SimpleActionGroup,
-
         pub file: RefCell<RecordTree>,
         pub current_path: TypedListStore<RecordNode>,
         pub current_records: RefCell<TypedListStore<RecordNode>>,
@@ -39,6 +46,27 @@ mod imp {
         const NAME: &'static str = "PSFilePane";
         type Type = super::FilePane;
         type ParentType = gtk::Widget;
+
+        fn class_init(klass: &mut Self::Class) {
+            klass.install_action(ACTION_COPY_NAME, None, |obj, _, _| {
+                obj.action_copy_name();
+            });
+            klass.install_action(ACTION_COPY_PASSWORD, None, |obj, _, _| {
+                obj.action_copy_password();
+            });
+            klass.install_action_async(ACTION_MOVE, None, |obj, _, _| async move {
+                obj.action_move().await;
+            });
+            klass.install_action_async(ACTION_EDIT, None, |obj, _, _| async move {
+                obj.action_edit().await;
+            });
+            klass.install_action_async(ACTION_DELETE, None, |obj, _, _| async move {
+                obj.action_delele().await;
+            });
+            klass.install_action_async(ACTION_MERGE, None, |obj, _, _| async move {
+                obj.action_merge().await;
+            });
+        }
     }
 
     impl ObjectImpl for FilePane {
@@ -51,8 +79,8 @@ mod imp {
             self.view.set_vexpand(true);
             self.view.set_popup(&create_popup());
 
-            let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
-            tree_action_bar.pack_start(&action_popover_button(
+            let action_bar = gtk::ActionBar::builder().hexpand(true).build();
+            action_bar.pack_start(&action_popover_button(
                 &RecordTypePopoverBuilder::default()
                     .record_types(&RECORD_TYPES)
                     .action_name_func(|record_type| format!("file.add::{}", record_type.name))
@@ -60,24 +88,20 @@ mod imp {
                 "ps-add",
                 "Add new record",
             ));
-            tree_action_bar.pack_start(&action_button(
-                "entry.delete",
-                "ps-remove",
-                "Remove record",
-            ));
-            tree_action_bar.pack_start(&action_button("entry.edit", "ps-edit", "Edit record"));
-            tree_action_bar.pack_start(&action_button(
-                "entry.merge",
+            action_bar.pack_start(&action_button(ACTION_DELETE, "ps-remove", "Remove record"));
+            action_bar.pack_start(&action_button(ACTION_EDIT, "ps-edit", "Edit record"));
+            action_bar.pack_start(&action_button(
+                ACTION_MERGE,
                 "merge",
                 "Merge selected records",
             ));
-            tree_action_bar.pack_end(&action_button(
-                "entry.copy-password",
+            action_bar.pack_end(&action_button(
+                ACTION_COPY_PASSWORD,
                 "dialog-password-symbolic",
                 "Copy password",
             ));
-            tree_action_bar.pack_end(&action_button(
-                "entry.copy-name",
+            action_bar.pack_end(&action_button(
+                ACTION_COPY_NAME,
                 "edit-copy-symbolic",
                 "Copy name",
             ));
@@ -85,7 +109,7 @@ mod imp {
             let grid = gtk::Grid::new();
             grid.attach(&self.nav_bar, 0, 0, 1, 1);
             grid.attach(&self.view, 0, 1, 1, 1);
-            grid.attach(&tree_action_bar, 0, 2, 1, 1);
+            grid.attach(&action_bar, 0, 2, 1, 1);
             grid.set_parent(&*obj);
 
             self.view.connect_selection_changed(
@@ -137,19 +161,16 @@ mod imp {
             self.nav_bar
                 .set_model(self.current_path.untyped().upcast_ref());
 
-            obj.register_entry_actions(&self.entry_actions);
-            obj.insert_action_group("entry", Some(&self.entry_actions));
-
             let shortcuts = gtk::ShortcutController::new();
             shortcuts.add_shortcut(
                 gtk::Shortcut::builder()
-                    .action(&gtk::NamedAction::new("entry.copy-name"))
+                    .action(&gtk::NamedAction::new(ACTION_COPY_NAME))
                     .trigger(&gtk::ShortcutTrigger::parse_string(primary_accel!("c")).unwrap())
                     .build(),
             );
             shortcuts.add_shortcut(
                 gtk::Shortcut::builder()
-                    .action(&gtk::NamedAction::new("entry.copy-password"))
+                    .action(&gtk::NamedAction::new(ACTION_COPY_PASSWORD))
                     .trigger(
                         &gtk::ShortcutTrigger::parse_string(primary_accel!("<Shift>c")).unwrap(),
                     )
@@ -161,11 +182,11 @@ mod imp {
         fn signals() -> &'static [glib::subclass::Signal] {
             static SIGNALS: Lazy<Vec<glib::subclass::Signal>> = Lazy::new(|| {
                 vec![
-                    glib::subclass::Signal::builder("user-notification")
+                    glib::subclass::Signal::builder(SIGNAL_USER_NOTIFICATION)
                         .param_types([glib::GString::static_type()])
                         .build(),
-                    glib::subclass::Signal::builder("file-changed").build(),
-                    glib::subclass::Signal::builder("edit-record")
+                    glib::subclass::Signal::builder(SIGNAL_FILE_CHANGED).build(),
+                    glib::subclass::Signal::builder(SIGNAL_EDIT_RECORD)
                         .param_types([u32::static_type(), RecordNode::static_type()])
                         .build(),
                 ]
@@ -247,10 +268,6 @@ impl Default for FilePane {
 }
 
 impl FilePane {
-    pub fn set_actions_enabled(&self, enabled: bool) {
-        self.imp().entry_actions.set_enabled(enabled);
-    }
-
     pub fn file(&self) -> Ref<'_, RecordTree> {
         self.imp().file.borrow()
     }
@@ -317,37 +334,26 @@ impl FilePane {
     }
 
     fn selection_changed(&self, selected: gtk::Bitset) {
-        let entry_actions = &self.imp().entry_actions;
         let selected_record = if selected.size() == 1 {
             self.get_record(selected.nth(0))
         } else {
             None
         };
 
-        entry_actions
-            .simple_action("copy-name")
-            .set_enabled(selected_record.is_some());
-        entry_actions.simple_action("copy-password").set_enabled(
+        self.action_set_enabled(ACTION_COPY_NAME, selected_record.is_some());
+        self.action_set_enabled(
+            ACTION_COPY_PASSWORD,
             selected_record
                 .as_ref()
                 .and_then(|r| r.record().password())
                 .is_some(),
         );
-        entry_actions
-            .simple_action("edit")
-            .set_enabled(selected_record.is_some());
-        entry_actions
-            .simple_action("delete")
-            .set_enabled(selected_record.is_some());
-        entry_actions
-            .simple_action("merge")
-            .set_enabled(selected.size() > 1);
+        self.action_set_enabled(ACTION_MOVE, selected.size() > 0);
+        self.action_set_enabled(ACTION_EDIT, selected_record.is_some());
+        self.action_set_enabled(ACTION_DELETE, selected_record.is_some());
+        self.action_set_enabled(ACTION_MERGE, selected.size() > 1);
     }
-}
 
-#[awesome_glib::actions(register_fn = "register_entry_actions")]
-impl FilePane {
-    #[action(name = "copy-name")]
     fn action_copy_name(&self) {
         let Some(position) = self.imp().view.get_selected_position() else { return };
         let Some(record_node) = self.get_record(position) else { return };
@@ -356,7 +362,6 @@ impl FilePane {
         self.emit_user_notification("Name is copied to clipboard");
     }
 
-    #[action(name = "copy-password")]
     fn action_copy_password(&self) {
         let Some(position) = self.imp().view.get_selected_position() else { return };
         let Some(record_node) = self.get_record(position) else { return };
@@ -365,7 +370,6 @@ impl FilePane {
         self.emit_user_notification("Secret (password) is copied to clipboard");
     }
 
-    #[action(name = "move")]
     async fn action_move(&self) {
         let positions = self.imp().view.get_selected_positions();
         if positions.size() < 1 {
@@ -397,14 +401,12 @@ impl FilePane {
         self.emit_file_changed();
     }
 
-    #[action(name = "edit")]
     async fn action_edit(&self) {
         let Some(position) = self.imp().view.get_selected_position() else { return };
         let Some(record_node) = self.get_record(position) else { return };
         self.emit_edit_record(position, &record_node);
     }
 
-    #[action(name = "delete")]
     async fn action_delele(&self) {
         let Some(position) = self.imp().view.get_selected_position() else { return };
 
@@ -417,7 +419,6 @@ impl FilePane {
         }
     }
 
-    #[action(name = "merge")]
     async fn action_merge(&self) {
         let positions = self.imp().view.get_selected_positions();
 
@@ -466,11 +467,9 @@ impl FilePane {
         self.append_record(&result_node);
         self.emit_file_changed();
     }
-}
 
-impl FilePane {
     fn emit_user_notification(&self, message: &str) {
-        self.emit_by_name::<()>("user-notification", &[&message]);
+        self.emit_by_name::<()>(SIGNAL_USER_NOTIFICATION, &[&message]);
     }
 
     pub fn connect_user_notification<F>(&self, f: F) -> glib::signal::SignalHandlerId
@@ -478,14 +477,14 @@ impl FilePane {
         F: Fn(&Self, &str) + 'static,
     {
         self.connect_closure(
-            "user-notification",
+            SIGNAL_USER_NOTIFICATION,
             false,
             glib::closure_local!(move |self_: &Self, message: glib::GString| (f)(self_, &message)),
         )
     }
 
     fn emit_file_changed(&self) {
-        self.emit_by_name::<()>("file-changed", &[]);
+        self.emit_by_name::<()>(SIGNAL_FILE_CHANGED, &[]);
     }
 
     pub fn connect_file_changed<F>(&self, f: F) -> glib::signal::SignalHandlerId
@@ -493,14 +492,14 @@ impl FilePane {
         F: Fn(&Self) + 'static,
     {
         self.connect_closure(
-            "file-changed",
+            SIGNAL_FILE_CHANGED,
             false,
             glib::closure_local!(move |self_: &Self| (f)(self_)),
         )
     }
 
     fn emit_edit_record(&self, position: u32, record_node: &RecordNode) {
-        self.emit_by_name::<()>("edit-record", &[&position, &record_node]);
+        self.emit_by_name::<()>(SIGNAL_EDIT_RECORD, &[&position, &record_node]);
     }
 
     pub fn connect_edit_record<F>(&self, f: F) -> glib::signal::SignalHandlerId
@@ -508,7 +507,7 @@ impl FilePane {
         F: Fn(&Self, u32, RecordNode) + 'static,
     {
         self.connect_closure(
-            "edit-record",
+            SIGNAL_EDIT_RECORD,
             false,
             glib::closure_local!(move |self_: &Self, position, record_node| (f)(
                 self_,
@@ -525,13 +524,13 @@ fn create_popup() -> gio::MenuModel {
             gio::Menu::new()
                 .item(
                     gio::MenuItem::create()
-                        .action("entry.copy-name")
+                        .action(ACTION_COPY_NAME)
                         .label("Copy _name")
                         .accel(primary_accel!("c")),
                 )
                 .item(
                     gio::MenuItem::create()
-                        .action("entry.copy-password")
+                        .action(ACTION_COPY_PASSWORD)
                         .label("Copy pass_word")
                         .accel(primary_accel!("<Shift>c")),
                 ),
@@ -539,16 +538,16 @@ fn create_popup() -> gio::MenuModel {
         .section(
             gio::Menu::new().item(
                 gio::MenuItem::create()
-                    .action("entry.move")
+                    .action(ACTION_MOVE)
                     .label("_Move to..."),
             ),
         )
         .section(
             gio::Menu::new()
-                .item(gio::MenuItem::create().action("entry.edit").label("_Edit"))
+                .item(gio::MenuItem::create().action(ACTION_EDIT).label("_Edit"))
                 .item(
                     gio::MenuItem::create()
-                        .action("entry.delete")
+                        .action(ACTION_DELETE)
                         .label("_Delete"),
                 ),
         )
