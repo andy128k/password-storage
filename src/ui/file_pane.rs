@@ -1,15 +1,16 @@
 use crate::model::record::Record;
 use crate::model::tree::{RecordNode, RecordTree};
+use crate::primary_accel;
+use crate::ui::dialogs::ask::{confirm_likely, confirm_unlikely};
+use crate::ui::dialogs::say::say_info;
+use crate::ui::group_selector::select_group;
 use crate::ui::nav_bar::PSNavBar;
 use crate::ui::record_view::view::PSRecordView;
+use crate::utils::menu_builder::*;
 use crate::utils::ui::PSSimpleActionGroupExt;
 use awesome_gtk::prelude::BitSetIterExt;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 use std::cell::Ref;
-
-use super::dialogs::ask::{confirm_likely, confirm_unlikely};
-use super::dialogs::say::say_info;
-use super::group_selector::select_group;
 
 mod imp {
     use super::*;
@@ -48,8 +49,7 @@ mod imp {
             obj.set_layout_manager(Some(gtk::BinLayout::new()));
 
             self.view.set_vexpand(true);
-            let popup = crate::ui::menu::create_tree_popup();
-            self.view.set_popup(&popup);
+            self.view.set_popup(&create_popup());
 
             let tree_action_bar = gtk::ActionBar::builder().hexpand(true).build();
             tree_action_bar.pack_start(&action_popover_button(
@@ -517,4 +517,40 @@ impl FilePane {
             )),
         )
     }
+}
+
+fn create_popup() -> gio::MenuModel {
+    gio::Menu::new()
+        .section(
+            gio::Menu::new()
+                .item(
+                    gio::MenuItem::create()
+                        .action("entry.copy-name")
+                        .label("Copy _name")
+                        .accel(primary_accel!("c")),
+                )
+                .item(
+                    gio::MenuItem::create()
+                        .action("entry.copy-password")
+                        .label("Copy pass_word")
+                        .accel(primary_accel!("<Shift>c")),
+                ),
+        )
+        .section(
+            gio::Menu::new().item(
+                gio::MenuItem::create()
+                    .action("entry.move")
+                    .label("_Move to..."),
+            ),
+        )
+        .section(
+            gio::Menu::new()
+                .item(gio::MenuItem::create().action("entry.edit").label("_Edit"))
+                .item(
+                    gio::MenuItem::create()
+                        .action("entry.delete")
+                        .label("_Delete"),
+                ),
+        )
+        .upcast()
 }

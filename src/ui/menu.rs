@@ -39,39 +39,3 @@ pub fn create_main_menu() -> gio::MenuModel {
         )
         .upcast()
 }
-
-pub fn create_tree_popup() -> gio::MenuModel {
-    gio::Menu::new()
-        .section(
-            gio::Menu::new()
-                .item(
-                    gio::MenuItem::create()
-                        .action("entry.copy-name")
-                        .label("Copy _name")
-                        .accel(primary_accel!("c")),
-                )
-                .item(
-                    gio::MenuItem::create()
-                        .action("entry.copy-password")
-                        .label("Copy pass_word")
-                        .accel(primary_accel!("<Shift>c")),
-                ),
-        )
-        .section(
-            gio::Menu::new().item(
-                gio::MenuItem::create()
-                    .action("entry.move")
-                    .label("_Move to..."),
-            ),
-        )
-        .section(
-            gio::Menu::new()
-                .item(gio::MenuItem::create().action("entry.edit").label("_Edit"))
-                .item(
-                    gio::MenuItem::create()
-                        .action("entry.delete")
-                        .label("_Delete"),
-                ),
-        )
-        .upcast()
-}
