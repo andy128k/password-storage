@@ -193,7 +193,6 @@ pub async fn select_group(
     dlg.content_area().set_margin_bottom(8);
     dlg.content_area().append(&scrolled_window);
 
-    dlg.set_response_sensitive(gtk::ResponseType::Ok, false);
     selection_model.connect_selection_changed(glib::clone!(@weak dlg => move |selection_model, _, _| {
         dlg.set_response_sensitive(gtk::ResponseType::Ok, get_selected_record(selection_model).is_some());
     }));
