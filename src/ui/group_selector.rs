@@ -20,7 +20,7 @@ fn fake_root(record_tree: &RecordTree) -> RecordNode {
 fn make_groups_model(record_tree: &RecordTree) -> gtk::TreeListModel {
     let toplevel = singleton_list(&singleton_list(&fake_root(record_tree)));
     gtk::TreeListModel::new(toplevel, false, true, |obj| {
-        let item = obj.clone().downcast::<gio::ListStore>().ok()?;
+        let item = obj.downcast_ref::<gio::ListStore>()?;
 
         let children: TypedListStore<_> = item
             .last()?
@@ -43,12 +43,10 @@ fn get_selected_record(
     selection_model: &gtk::SingleSelection,
 ) -> Option<TypedListStore<RecordNode>> {
     let path = selection_model
-        .selected_item()?
-        .downcast::<gtk::TreeListRow>()
-        .ok()?
-        .item()?
-        .downcast::<gio::ListStore>()
-        .ok()?;
+        .selected_item()
+        .and_downcast::<gtk::TreeListRow>()?
+        .item()
+        .and_downcast::<gio::ListStore>()?;
     Some(TypedListStore::from_untyped(path.sliced(1..)))
 }
 
