@@ -208,7 +208,9 @@ impl RecordWidget {
     }
 
     fn open(&self) {
-        let Some(record) = self.get_value() else { return };
+        let Some(record) = self.get_value() else {
+            return;
+        };
         let Some(url) = record.url() else { return };
         let window = self.0.grid.root().and_downcast::<gtk::Window>();
         gtk::show_uri(window.as_ref(), url, 0);

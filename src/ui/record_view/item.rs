@@ -144,8 +144,12 @@ mod imp {
             self.obj().grab_focus();
 
             let record_ref = self.record.borrow();
-            let Some(record_node) = record_ref.as_ref() else { return };
-            let Some(popup_model) = self.emit_context_menu(record_node) else { return };
+            let Some(record_node) = record_ref.as_ref() else {
+                return;
+            };
+            let Some(popup_model) = self.emit_context_menu(record_node) else {
+                return;
+            };
 
             let context_menu = gtk::PopoverMenu::builder()
                 .autohide(true)

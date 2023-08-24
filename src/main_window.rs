@@ -411,8 +411,12 @@ impl PSMainWindow {
     }
 
     async fn do_save(&self) -> bool {
-        let Some(ref filename) = self.get_file_path().await else { return false };
-        let Some(ref password) = self.get_file_password().await else { return false };
+        let Some(ref filename) = self.get_file_path().await else {
+            return false;
+        };
+        let Some(ref password) = self.get_file_password().await else {
+            return false;
+        };
         self.save_data(filename, password).await
     }
 
@@ -476,16 +480,24 @@ impl PSMainWindow {
 
     #[action(name = "save-as")]
     async fn action_save_as(&self) {
-        let Some(ref filename) = file_chooser::save_file(self.upcast_ref()).await else { return };
-        let Some(ref password) = self.get_file_password().await else { return };
+        let Some(ref filename) = file_chooser::save_file(self.upcast_ref()).await else {
+            return;
+        };
+        let Some(ref password) = self.get_file_password().await else {
+            return;
+        };
         let _saved = self.save_data(filename, password).await;
     }
 
     #[action(name = "merge-file")]
     async fn action_merge_file(&self) {
         let window = self.upcast_ref();
-        let Some(filename) = file_chooser::open_file(window).await else { return };
-        let Some((extra_records, _password)) = self.load_data(filename).await else { return };
+        let Some(filename) = file_chooser::open_file(window).await else {
+            return;
+        };
+        let Some((extra_records, _password)) = self.load_data(filename).await else {
+            return;
+        };
 
         // TODO: maybe do merge into current folder?
         let merged_tree =
@@ -519,7 +531,11 @@ impl PSMainWindow {
             self.upcast_ref(),
             "Add record",
             self.get_usernames(),
-        ).await else { return };
+        )
+        .await
+        else {
+            return;
+        };
 
         let record_node = if new_record.record_type.is_group {
             RecordNode::group(new_record, &Default::default())
@@ -539,7 +555,10 @@ impl PSMainWindow {
             "Edit record",
             self.get_usernames(),
         )
-        .await else { return };
+        .await
+        else {
+            return;
+        };
 
         self.imp()
             .file_pane

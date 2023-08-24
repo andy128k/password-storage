@@ -67,7 +67,9 @@ fn name_factory() -> gtk::SignalListItemFactory {
         list_item.set_child(Some(&expander));
     });
     factory.connect_bind(|_factory, list_item| {
-        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else { return };
+        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else {
+            return;
+        };
 
         let row = list_item.item().and_downcast::<gtk::TreeListRow>();
         expander.set_list_row(row.as_ref());
@@ -88,13 +90,17 @@ fn name_factory() -> gtk::SignalListItemFactory {
         }
     });
     factory.connect_unbind(|_factory, list_item| {
-        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else { return };
+        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else {
+            return;
+        };
         if let Some(label) = expander.child().and_then(|c| c.of_type::<gtk::Label>()) {
             label.set_text("");
         }
     });
     factory.connect_teardown(|_factory, list_item| {
-        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else { return };
+        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else {
+            return;
+        };
         if let Some(label) = expander.child().and_then(|c| c.of_type::<gtk::Label>()) {
             label.set_text("");
         }
@@ -109,7 +115,9 @@ fn description_factory() -> gtk::SignalListItemFactory {
         list_item.set_child(Some(&child));
     });
     factory.connect_bind(|_factory, list_item| {
-        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else { return };
+        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else {
+            return;
+        };
         let row = list_item.item().and_downcast::<gtk::TreeListRow>();
         let item = row
             .and_then(|row| row.item())
@@ -131,11 +139,15 @@ fn description_factory() -> gtk::SignalListItemFactory {
         );
     });
     factory.connect_unbind(|_factory, list_item| {
-        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else { return };
+        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else {
+            return;
+        };
         label.set_text("");
     });
     factory.connect_teardown(|_factory, list_item| {
-        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else { return };
+        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else {
+            return;
+        };
         label.set_text("");
     });
     factory

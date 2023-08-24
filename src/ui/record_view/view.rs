@@ -167,7 +167,9 @@ impl PSRecordView {
 
         pending().await;
 
-        let Some(item) = self.imp().mapping.find(position) else { return };
+        let Some(item) = self.imp().mapping.find(position) else {
+            return;
+        };
         let Some(parent) = item.parent() else { return };
         parent.grab_focus();
 

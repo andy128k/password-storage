@@ -244,7 +244,9 @@ mod imp {
         }
 
         async fn row_activated(&self, position: u32) {
-            let Some(record) = self.current_records.borrow().get(position) else { return };
+            let Some(record) = self.current_records.borrow().get(position) else {
+                return;
+            };
             if let Some(children) = record.children() {
                 self.current_path.append(&record);
                 self.set_view_model(children);
@@ -355,17 +357,29 @@ impl FilePane {
     }
 
     fn action_copy_name(&self) {
-        let Some(position) = self.imp().view.get_selected_position() else { return };
-        let Some(record_node) = self.get_record(position) else { return };
-        let Some(username) = record_node.record().username() else { return };
+        let Some(position) = self.imp().view.get_selected_position() else {
+            return;
+        };
+        let Some(record_node) = self.get_record(position) else {
+            return;
+        };
+        let Some(username) = record_node.record().username() else {
+            return;
+        };
         self.clipboard().set_text(username);
         self.emit_user_notification("Name is copied to clipboard");
     }
 
     fn action_copy_password(&self) {
-        let Some(position) = self.imp().view.get_selected_position() else { return };
-        let Some(record_node) = self.get_record(position) else { return };
-        let Some(password) = record_node.record().password() else { return };
+        let Some(position) = self.imp().view.get_selected_position() else {
+            return;
+        };
+        let Some(record_node) = self.get_record(position) else {
+            return;
+        };
+        let Some(password) = record_node.record().password() else {
+            return;
+        };
         self.clipboard().set_text(password);
         self.emit_user_notification("Secret (password) is copied to clipboard");
     }
@@ -376,13 +390,12 @@ impl FilePane {
             return;
         }
 
-        let Some(window) = self.root().and_downcast::<gtk::Window>() else { return };
-        let Some(dest) = select_group(
-            &window,
-            "Move to...",
-            &self.file(),
-        )
-        .await else { return };
+        let Some(window) = self.root().and_downcast::<gtk::Window>() else {
+            return;
+        };
+        let Some(dest) = select_group(&window, "Move to...", &self.file()).await else {
+            return;
+        };
 
         let (positions, records): (Vec<u32>, Vec<RecordNode>) = positions
             .iter_asc()
@@ -402,15 +415,23 @@ impl FilePane {
     }
 
     async fn action_edit(&self) {
-        let Some(position) = self.imp().view.get_selected_position() else { return };
-        let Some(record_node) = self.get_record(position) else { return };
+        let Some(position) = self.imp().view.get_selected_position() else {
+            return;
+        };
+        let Some(record_node) = self.get_record(position) else {
+            return;
+        };
         self.emit_edit_record(position, &record_node);
     }
 
     async fn action_delele(&self) {
-        let Some(position) = self.imp().view.get_selected_position() else { return };
+        let Some(position) = self.imp().view.get_selected_position() else {
+            return;
+        };
 
-        let Some(window) = self.root().and_downcast::<gtk::Window>() else { return };
+        let Some(window) = self.root().and_downcast::<gtk::Window>() else {
+            return;
+        };
         let confirmed =
             confirm_unlikely(&window, "Do you really want to delete selected entry?").await;
         if confirmed {
@@ -434,7 +455,9 @@ impl FilePane {
             })
             .unzip();
 
-        let Some(window) = self.root().and_downcast::<gtk::Window>() else { return };
+        let Some(window) = self.root().and_downcast::<gtk::Window>() else {
+            return;
+        };
         if records.len() < 2 {
             say_info(&window, "Nothing to merge. Select few items and try again.").await;
             return;
