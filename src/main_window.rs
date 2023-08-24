@@ -10,7 +10,6 @@ use crate::ui::dialogs::ask_save::{ask_save, AskSave};
 use crate::ui::dialogs::change_password::change_password;
 use crate::ui::dialogs::file_chooser;
 use crate::ui::dialogs::say::say;
-use crate::ui::edit_record::dialog::edit_record;
 use crate::ui::forms::entry::form_password_entry;
 use crate::ui::open_file::OpenFile;
 use crate::ui::search::SearchEvent;
@@ -36,6 +35,7 @@ pub struct OpenedFile {
 
 mod imp {
     use super::*;
+    use crate::ui::edit_record::edit_record_pane::EditRecordPane;
     use crate::ui::file_pane::FilePane;
     use crate::ui::search::PSSearchBar;
     use crate::ui::toast::Toast;
@@ -60,6 +60,7 @@ mod imp {
         pub open_file: OpenFile,
         pub search_bar: PSSearchBar,
         pub file_pane: FilePane,
+        pub edit_record_pane: EditRecordPane,
 
         pub delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
 
@@ -138,6 +139,7 @@ mod imp {
                 .add_named(&self.dashboard.get_widget(), Some("dashboard"));
             self.stack.add_named(&self.open_file, Some("open_file"));
             self.stack.add_named(&main_pane, Some("file"));
+            self.stack.add_named(&self.edit_record_pane, Some("edit"));
 
             let overlay = overlayed(&self.stack, &self.toast.as_widget());
             win.set_child(Some(&overlay));
@@ -526,7 +528,7 @@ impl PSMainWindow {
         let record_type = RecordType::find(&record_type_name).unwrap_or(&RECORD_TYPE_GENERIC);
 
         let empty_record = record_type.new_record();
-        let Some(new_record) = self.edit_record("Add record", &empty_record).await else {
+        let Some(new_record) = self.edit_record(&empty_record).await else {
             return;
         };
 
@@ -541,15 +543,21 @@ impl PSMainWindow {
 }
 
 impl PSMainWindow {
-    async fn edit_record(&self, title: &str, record: &Record) -> Option<Record> {
-        let result = edit_record(record, self.upcast_ref(), title, self.get_usernames()).await;
-        self.imp().file_pane.grab_focus_to_view();
+    async fn edit_record(&self, record: &Record) -> Option<Record> {
+        self.imp().stack.set_visible_child_name("edit");
+        let result = self
+            .imp()
+            .edit_record_pane
+            .run(record, self.get_usernames())
+            .await;
+        self.imp().stack.set_visible_child_name("file");
         pending().await;
+        self.imp().file_pane.grab_focus_to_view();
         result
     }
 
     async fn action_edit(&self, position: u32, record_node: RecordNode) {
-        let Some(new_record) = self.edit_record("Edit record", record_node.record()).await else {
+        let Some(new_record) = self.edit_record(record_node.record()).await else {
             return;
         };
 
