@@ -328,7 +328,7 @@ impl FilePane {
                 // move to a group
                 let children = group.children().expect("Only a group can be a destination");
                 for record in records {
-                    children.append(&record);
+                    children.append(record);
                 }
             }
         }

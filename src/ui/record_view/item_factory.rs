@@ -19,7 +19,7 @@ pub fn item_factory(
 ) -> gtk::ListItemFactory {
     let factory = gtk::SignalListItemFactory::new();
     factory.connect_setup(move |_factory, list_item| {
-        let child = PSRecordViewItem::new();
+        let child = PSRecordViewItem::default();
         let popup_model = popup_model.clone();
         child.connect_context_menu(move |_record| popup_model.borrow().clone());
         list_item.set_child(Some(&child));

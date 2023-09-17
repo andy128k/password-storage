@@ -180,11 +180,13 @@ glib::wrapper! {
         @extends gtk::Widget;
 }
 
-impl PSRecordViewItem {
-    pub fn new() -> Self {
+impl Default for PSRecordViewItem {
+    fn default() -> Self {
         glib::Object::builder().build()
     }
+}
 
+impl PSRecordViewItem {
     pub fn set_record_node(&self, record_node: Option<RecordNode>) {
         self.imp().set_record_node(record_node);
     }

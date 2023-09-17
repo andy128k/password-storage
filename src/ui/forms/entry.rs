@@ -48,7 +48,7 @@ impl FormWidget<String> for gtk::Entry {
     }
 
     fn get_value(&self) -> Option<String> {
-        get_value(&self)
+        get_value(self)
     }
 
     fn set_value(&self, value: Option<&String>) {
