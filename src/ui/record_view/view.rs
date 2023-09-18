@@ -44,6 +44,7 @@ mod imp {
             self.parent_constructed();
 
             let obj = self.obj();
+            obj.set_focusable(true);
             obj.set_layout_manager(Some(gtk::BinLayout::new()));
 
             self.list_view

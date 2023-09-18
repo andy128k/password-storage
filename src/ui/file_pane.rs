@@ -270,6 +270,10 @@ impl Default for FilePane {
 }
 
 impl FilePane {
+    pub fn grab_focus_to_view(&self) {
+        self.imp().view.grab_focus();
+    }
+
     pub fn file(&self) -> Ref<'_, RecordTree> {
         self.imp().file.borrow()
     }
@@ -281,7 +285,7 @@ impl FilePane {
 
         self.imp().view.select_position_async(0).await;
         self.selection_changed(gtk::Bitset::new_empty());
-        self.imp().view.grab_focus();
+        self.grab_focus_to_view();
     }
 
     fn get_record(&self, position: u32) -> Option<RecordNode> {

@@ -1,12 +1,12 @@
-use super::edit_object::edit_object;
-use super::forms::base::*;
-use super::forms::entry::*;
-use super::forms::form::*;
-use super::forms::multiline::*;
-use super::password_editor::PasswordEditor;
 use crate::model::record::FIELD_NAME;
 use crate::model::record::RECORD_TYPES;
 use crate::model::record::{FieldType, Record, RecordType};
+use crate::ui::edit_object::edit_object;
+use crate::ui::forms::base::*;
+use crate::ui::forms::entry::*;
+use crate::ui::forms::form::*;
+use crate::ui::forms::multiline::*;
+use crate::ui::password_editor::PasswordEditor;
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
 use gtk::{glib, prelude::*};
 use std::cell::RefCell;

@@ -1,7 +1,7 @@
 use crate::cache::Cache;
 use crate::config::ConfigService;
 use crate::format;
-use crate::model::record::{RecordType, RECORD_TYPE_GENERIC};
+use crate::model::record::{Record, RecordType, RECORD_TYPE_GENERIC};
 use crate::model::tree::RecordNode;
 use crate::model::tree::RecordTree;
 use crate::ui;
@@ -10,7 +10,7 @@ use crate::ui::dialogs::ask_save::{ask_save, AskSave};
 use crate::ui::dialogs::change_password::change_password;
 use crate::ui::dialogs::file_chooser;
 use crate::ui::dialogs::say::say_error;
-use crate::ui::edit_record::edit_record;
+use crate::ui::edit_record::dialog::edit_record;
 use crate::ui::forms::entry::form_password_entry;
 use crate::ui::open_file::OpenFile;
 use crate::ui::search::SearchEvent;
@@ -526,14 +526,7 @@ impl PSMainWindow {
         let record_type = RecordType::find(&record_type_name).unwrap_or(&*RECORD_TYPE_GENERIC);
 
         let empty_record = record_type.new_record();
-        let Some(new_record) = edit_record(
-            &empty_record,
-            self.upcast_ref(),
-            "Add record",
-            self.get_usernames(),
-        )
-        .await
-        else {
+        let Some(new_record) = self.edit_record("Add record", &empty_record).await else {
             return;
         };
 
@@ -548,15 +541,15 @@ impl PSMainWindow {
 }
 
 impl PSMainWindow {
+    async fn edit_record(&self, title: &str, record: &Record) -> Option<Record> {
+        let result = edit_record(record, self.upcast_ref(), title, self.get_usernames()).await;
+        self.imp().file_pane.grab_focus_to_view();
+        pending().await;
+        result
+    }
+
     async fn action_edit(&self, position: u32, record_node: RecordNode) {
-        let Some(new_record) = edit_record(
-            record_node.record(),
-            self.upcast_ref(),
-            "Edit record",
-            self.get_usernames(),
-        )
-        .await
-        else {
+        let Some(new_record) = self.edit_record("Edit record", record_node.record()).await else {
             return;
         };
 
