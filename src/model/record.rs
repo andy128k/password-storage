@@ -1,5 +1,4 @@
 use crate::utils::algorithm::all_equal_by_key;
-use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,7 +37,7 @@ impl Field {
 pub struct RecordType {
     pub name: &'static str,
     pub title: &'static str,
-    pub fields: Vec<Field>,
+    pub fields: &'static [Field],
     pub is_group: bool,
     pub icon: &'static str,
     username_field: Option<&'static str>,
@@ -57,20 +56,20 @@ pub const FIELD_HOSTNAME: Field = Field::new("hostname", "Hostname", FieldType::
 pub const FIELD_USERNAME: Field = Field::new("username", "Username", FieldType::Name);
 pub const FIELD_PASSWORD: Field = Field::new("password", "Password", FieldType::Password);
 
-pub static RECORD_TYPE_GROUP: Lazy<RecordType> = Lazy::new(|| RecordType {
+pub const RECORD_TYPE_GROUP: RecordType = RecordType {
     name: "group",
     title: "group",
     is_group: true,
-    fields: vec![FIELD_NAME, FIELD_DESCRIPTION],
+    fields: &[FIELD_NAME, FIELD_DESCRIPTION],
     icon: "folder",
     username_field: None,
     password_field: None,
-});
-pub static RECORD_TYPE_GENERIC: Lazy<RecordType> = Lazy::new(|| RecordType {
+};
+pub const RECORD_TYPE_GENERIC: RecordType = RecordType {
     name: "generic",
     title: "generic entry",
     is_group: false,
-    fields: vec![
+    fields: &[
         FIELD_NAME,
         FIELD_HOSTNAME,
         FIELD_USERNAME,
@@ -80,12 +79,12 @@ pub static RECORD_TYPE_GENERIC: Lazy<RecordType> = Lazy::new(|| RecordType {
     icon: "entry-generic",
     username_field: Some("username"),
     password_field: Some("password"),
-});
-pub static RECORD_TYPE_CREDITCARD: Lazy<RecordType> = Lazy::new(|| RecordType {
+};
+pub const RECORD_TYPE_CREDITCARD: RecordType = RecordType {
     name: "creditcard",
     title: "credit card",
     is_group: false,
-    fields: vec![
+    fields: &[
         FIELD_NAME,
         Field::new("cardtype", "Card type", FieldType::Text),
         Field::new("cardnumber", "Card number", FieldType::Text),
@@ -97,12 +96,12 @@ pub static RECORD_TYPE_CREDITCARD: Lazy<RecordType> = Lazy::new(|| RecordType {
     icon: "entry-creditcard",
     username_field: Some("cardnumber"),
     password_field: Some("ccv"),
-});
-pub static RECORD_TYPE_CRYPTOKEY: Lazy<RecordType> = Lazy::new(|| RecordType {
+};
+pub const RECORD_TYPE_CRYPTOKEY: RecordType = RecordType {
     name: "cryptokey",
     title: "crypto key",
     is_group: false,
-    fields: vec![
+    fields: &[
         FIELD_NAME,
         FIELD_HOSTNAME,
         Field::new("certificate", "Certificate", FieldType::Text),
@@ -113,12 +112,12 @@ pub static RECORD_TYPE_CRYPTOKEY: Lazy<RecordType> = Lazy::new(|| RecordType {
     icon: "entry-keyring",
     username_field: Some("hostname"),
     password_field: Some("password"),
-});
-pub static RECORD_TYPE_DATABASE: Lazy<RecordType> = Lazy::new(|| RecordType {
+};
+pub const RECORD_TYPE_DATABASE: RecordType = RecordType {
     name: "database",
     title: "database",
     is_group: false,
-    fields: vec![
+    fields: &[
         FIELD_NAME,
         FIELD_HOSTNAME,
         Field::new("database", "Database", FieldType::Text),
@@ -129,12 +128,12 @@ pub static RECORD_TYPE_DATABASE: Lazy<RecordType> = Lazy::new(|| RecordType {
     icon: "entry-database",
     username_field: Some("username"),
     password_field: Some("password"),
-});
-pub static RECORD_TYPE_DOOR: Lazy<RecordType> = Lazy::new(|| RecordType {
+};
+pub const RECORD_TYPE_DOOR: RecordType = RecordType {
     name: "door",
     title: "door",
     is_group: false,
-    fields: vec![
+    fields: &[
         FIELD_NAME,
         Field::new("location", "Location", FieldType::Text),
         Field::new("code", "Code", FieldType::Secret),
@@ -143,12 +142,12 @@ pub static RECORD_TYPE_DOOR: Lazy<RecordType> = Lazy::new(|| RecordType {
     icon: "entry-door",
     username_field: Some("location"),
     password_field: Some("code"),
-});
-pub static RECORD_TYPE_EMAIL: Lazy<RecordType> = Lazy::new(|| RecordType {
+};
+pub const RECORD_TYPE_EMAIL: RecordType = RecordType {
     name: "email",
     title: "e-mail",
     is_group: false,
-    fields: vec![
+    fields: &[
         FIELD_NAME,
         Field::new("email", "E-mail", FieldType::Text),
         FIELD_HOSTNAME,
@@ -159,12 +158,12 @@ pub static RECORD_TYPE_EMAIL: Lazy<RecordType> = Lazy::new(|| RecordType {
     icon: "entry-email",
     username_field: Some("username"),
     password_field: Some("password"),
-});
-pub static RECORD_TYPE_FTP: Lazy<RecordType> = Lazy::new(|| RecordType {
+};
+pub const RECORD_TYPE_FTP: RecordType = RecordType {
     name: "ftp",
     title: "FTP",
     is_group: false,
-    fields: vec![
+    fields: &[
         FIELD_NAME,
         FIELD_HOSTNAME,
         Field::new("port", "Port", FieldType::Text),
@@ -175,12 +174,12 @@ pub static RECORD_TYPE_FTP: Lazy<RecordType> = Lazy::new(|| RecordType {
     icon: "entry-ftp",
     username_field: Some("username"),
     password_field: Some("password"),
-});
-pub static RECORD_TYPE_PHONE: Lazy<RecordType> = Lazy::new(|| RecordType {
+};
+pub const RECORD_TYPE_PHONE: RecordType = RecordType {
     name: "phone",
     title: "phone",
     is_group: false,
-    fields: vec![
+    fields: &[
         FIELD_NAME,
         Field::new("phonenumber", "Number", FieldType::Text),
         Field::new("pin", "PIN", FieldType::Secret),
@@ -189,12 +188,12 @@ pub static RECORD_TYPE_PHONE: Lazy<RecordType> = Lazy::new(|| RecordType {
     icon: "entry-phone",
     username_field: Some("phonenumber"),
     password_field: Some("pin"),
-});
-pub static RECORD_TYPE_SHELL: Lazy<RecordType> = Lazy::new(|| RecordType {
+};
+pub const RECORD_TYPE_SHELL: RecordType = RecordType {
     name: "shell",
     title: "shell",
     is_group: false,
-    fields: vec![
+    fields: &[
         FIELD_NAME,
         FIELD_HOSTNAME,
         Field::new("domain", "Domain", FieldType::Text),
@@ -205,12 +204,12 @@ pub static RECORD_TYPE_SHELL: Lazy<RecordType> = Lazy::new(|| RecordType {
     icon: "entry-shell",
     username_field: Some("username"),
     password_field: Some("password"),
-});
-pub static RECORD_TYPE_WEBSITE: Lazy<RecordType> = Lazy::new(|| RecordType {
+};
+pub const RECORD_TYPE_WEBSITE: RecordType = RecordType {
     name: "website",
     title: "website",
     is_group: false,
-    fields: vec![
+    fields: &[
         FIELD_NAME,
         Field::new("url", "URL", FieldType::Text),
         FIELD_USERNAME,
@@ -220,22 +219,20 @@ pub static RECORD_TYPE_WEBSITE: Lazy<RecordType> = Lazy::new(|| RecordType {
     icon: "entry-website",
     username_field: Some("username"),
     password_field: Some("password"),
-});
-pub static RECORD_TYPES: Lazy<Vec<&'static RecordType>> = Lazy::new(|| {
-    vec![
-        &RECORD_TYPE_GROUP,
-        &RECORD_TYPE_GENERIC,
-        &RECORD_TYPE_CREDITCARD,
-        &RECORD_TYPE_CRYPTOKEY,
-        &RECORD_TYPE_DATABASE,
-        &RECORD_TYPE_DOOR,
-        &RECORD_TYPE_EMAIL,
-        &RECORD_TYPE_FTP,
-        &RECORD_TYPE_PHONE,
-        &RECORD_TYPE_SHELL,
-        &RECORD_TYPE_WEBSITE,
-    ]
-});
+};
+pub const RECORD_TYPES: &'static [&RecordType] = &[
+    &RECORD_TYPE_GROUP,
+    &RECORD_TYPE_GENERIC,
+    &RECORD_TYPE_CREDITCARD,
+    &RECORD_TYPE_CRYPTOKEY,
+    &RECORD_TYPE_DATABASE,
+    &RECORD_TYPE_DOOR,
+    &RECORD_TYPE_EMAIL,
+    &RECORD_TYPE_FTP,
+    &RECORD_TYPE_PHONE,
+    &RECORD_TYPE_SHELL,
+    &RECORD_TYPE_WEBSITE,
+];
 
 impl RecordType {
     pub fn find(name: &str) -> Option<&'static RecordType> {
@@ -250,7 +247,7 @@ impl RecordType {
 impl Record {
     pub fn new(record_type: &'static RecordType) -> Self {
         let mut values = HashMap::new();
-        for field in &record_type.fields {
+        for field in record_type.fields {
             values.insert(field.name.to_owned(), String::new());
         }
         Self {
@@ -302,7 +299,7 @@ impl Record {
 
     pub fn has_text(&self, text: &str, look_at_secrets: bool) -> bool {
         let needle = text.to_lowercase();
-        for field in &self.record_type.fields {
+        for field in self.record_type.fields {
             let is_field_searchable = look_at_secrets || !field.field_type.is_secret();
             if is_field_searchable {
                 let field_value = self.get_field(field);
@@ -346,7 +343,7 @@ impl Record {
 
     pub fn join(&mut self, record: &Record) {
         let mut unmapped = Vec::new();
-        for src_field in &record.record_type.fields {
+        for src_field in record.record_type.fields {
             if src_field.name != FIELD_NAME.name && src_field.name != FIELD_DESCRIPTION.name {
                 let value = record.get_field(src_field);
                 if !value.is_empty() {

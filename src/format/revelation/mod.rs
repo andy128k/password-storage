@@ -5,7 +5,7 @@ mod xml;
 
 use crate::error::*;
 use crate::model::tree::RecordTree;
-use crate::version::{Version, VERSION_PARSED};
+use crate::version::{version, Version};
 use std::io::{Read, Write};
 
 enum CryptoContainer {
@@ -70,7 +70,7 @@ pub fn save_revelation_file(
     tree: &RecordTree,
 ) -> Result<()> {
     let data_version = 1;
-    let app_version = *VERSION_PARSED;
+    let app_version = version();
     let (container, format) = version_impl(data_version).expect("Version 1 must be supported.");
     let header = file_header::FileHeader {
         data_version,

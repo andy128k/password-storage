@@ -3,9 +3,8 @@ use crate::utils::typed_list_store::TypedListStore;
 use gtk::glib::{self, subclass::prelude::*};
 
 mod imp {
-    use once_cell::sync::OnceCell;
-
     use super::*;
+    use std::cell::OnceCell;
 
     #[derive(Default)]
     pub struct RecordNode {

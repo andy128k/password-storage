@@ -7,7 +7,8 @@ mod imp {
     use crate::ui::forms::entry::*;
     use crate::ui::forms::multiline::*;
     use crate::ui::password_editor::PasswordEditor;
-    use once_cell::sync::{Lazy, OnceCell};
+    use std::cell::OnceCell;
+    use std::sync::OnceLock;
 
     struct FormEntry {
         field: &'static Field,
@@ -49,9 +50,8 @@ mod imp {
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
-            static SIGNALS: Lazy<Vec<glib::subclass::Signal>> =
-                Lazy::new(|| vec![glib::subclass::Signal::builder("record-changed").build()]);
-            &SIGNALS
+            static SIGNALS: OnceLock<Vec<glib::subclass::Signal>> = OnceLock::new();
+            SIGNALS.get_or_init(|| vec![glib::subclass::Signal::builder("record-changed").build()])
         }
 
         fn dispose(&self) {

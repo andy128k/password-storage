@@ -3,7 +3,6 @@ use crate::model::record::*;
 use crate::model::tree::{RecordNode, RecordTree};
 use crate::utils::typed_list_store::TypedListStore;
 use crate::version::Version;
-use once_cell::sync::Lazy;
 use quick_xml::{
     events::{attributes::Attributes, BytesDecl, BytesEnd, BytesStart, BytesText, Event},
     Reader, Writer,
@@ -290,104 +289,102 @@ struct TypeMapping<'a> {
     fields: &'a [(&'a str, &'a str)],
 }
 
-static KNOWN_TYPES: Lazy<Vec<TypeMapping<'static>>> = Lazy::new(|| {
-    vec![
-        TypeMapping {
-            xml_type_name: "folder",
-            record_type: &RECORD_TYPE_GROUP,
-            fields: &[],
-        },
-        TypeMapping {
-            xml_type_name: "generic",
-            record_type: &RECORD_TYPE_GENERIC,
-            fields: &[
-                ("hostname", "generic-hostname"),
-                ("username", "generic-username"),
-                ("password", "generic-password"),
-            ],
-        },
-        TypeMapping {
-            xml_type_name: "creditcard",
-            record_type: &RECORD_TYPE_CREDITCARD,
-            fields: &[
-                ("cardtype", "creditcard-cardtype"),
-                ("cardnumber", "creditcard-cardnumber"),
-                ("expirydate", "creditcard-expirydate"),
-                ("ccv", "creditcard-ccv"),
-                ("pin", "generic-pin"),
-            ],
-        },
-        TypeMapping {
-            xml_type_name: "cryptokey",
-            record_type: &RECORD_TYPE_CRYPTOKEY,
-            fields: &[
-                ("hostname", "generic-hostname"),
-                ("certificate", "generic-certificate"),
-                ("keyfile", "generic-keyfile"),
-                ("password", "generic-password"),
-            ],
-        },
-        TypeMapping {
-            xml_type_name: "database",
-            record_type: &RECORD_TYPE_DATABASE,
-            fields: &[
-                ("hostname", "generic-hostname"),
-                ("username", "generic-username"),
-                ("password", "generic-password"),
-                ("database", "generic-database"),
-            ],
-        },
-        TypeMapping {
-            xml_type_name: "door",
-            record_type: &RECORD_TYPE_DOOR,
-            fields: &[("location", "generic-location"), ("code", "generic-code")],
-        },
-        TypeMapping {
-            xml_type_name: "email",
-            record_type: &RECORD_TYPE_EMAIL,
-            fields: &[
-                ("email", "generic-email"),
-                ("hostname", "generic-hostname"),
-                ("username", "generic-username"),
-                ("password", "generic-password"),
-            ],
-        },
-        TypeMapping {
-            xml_type_name: "ftp",
-            record_type: &RECORD_TYPE_FTP,
-            fields: &[
-                ("hostname", "generic-hostname"),
-                ("port", "generic-port"),
-                ("username", "generic-username"),
-                ("password", "generic-password"),
-            ],
-        },
-        TypeMapping {
-            xml_type_name: "phone",
-            record_type: &RECORD_TYPE_PHONE,
-            fields: &[("phonenumber", "phone-phonenumber"), ("pin", "generic-pin")],
-        },
-        TypeMapping {
-            xml_type_name: "shell",
-            record_type: &RECORD_TYPE_SHELL,
-            fields: &[
-                ("hostname", "generic-hostname"),
-                ("domain", "generic-domain"),
-                ("username", "generic-username"),
-                ("password", "generic-password"),
-            ],
-        },
-        TypeMapping {
-            xml_type_name: "website",
-            record_type: &RECORD_TYPE_WEBSITE,
-            fields: &[
-                ("url", "generic-url"),
-                ("username", "generic-username"),
-                ("password", "generic-password"),
-            ],
-        },
-    ]
-});
+const KNOWN_TYPES: &[TypeMapping<'static>] = &[
+    TypeMapping {
+        xml_type_name: "folder",
+        record_type: &RECORD_TYPE_GROUP,
+        fields: &[],
+    },
+    TypeMapping {
+        xml_type_name: "generic",
+        record_type: &RECORD_TYPE_GENERIC,
+        fields: &[
+            ("hostname", "generic-hostname"),
+            ("username", "generic-username"),
+            ("password", "generic-password"),
+        ],
+    },
+    TypeMapping {
+        xml_type_name: "creditcard",
+        record_type: &RECORD_TYPE_CREDITCARD,
+        fields: &[
+            ("cardtype", "creditcard-cardtype"),
+            ("cardnumber", "creditcard-cardnumber"),
+            ("expirydate", "creditcard-expirydate"),
+            ("ccv", "creditcard-ccv"),
+            ("pin", "generic-pin"),
+        ],
+    },
+    TypeMapping {
+        xml_type_name: "cryptokey",
+        record_type: &RECORD_TYPE_CRYPTOKEY,
+        fields: &[
+            ("hostname", "generic-hostname"),
+            ("certificate", "generic-certificate"),
+            ("keyfile", "generic-keyfile"),
+            ("password", "generic-password"),
+        ],
+    },
+    TypeMapping {
+        xml_type_name: "database",
+        record_type: &RECORD_TYPE_DATABASE,
+        fields: &[
+            ("hostname", "generic-hostname"),
+            ("username", "generic-username"),
+            ("password", "generic-password"),
+            ("database", "generic-database"),
+        ],
+    },
+    TypeMapping {
+        xml_type_name: "door",
+        record_type: &RECORD_TYPE_DOOR,
+        fields: &[("location", "generic-location"), ("code", "generic-code")],
+    },
+    TypeMapping {
+        xml_type_name: "email",
+        record_type: &RECORD_TYPE_EMAIL,
+        fields: &[
+            ("email", "generic-email"),
+            ("hostname", "generic-hostname"),
+            ("username", "generic-username"),
+            ("password", "generic-password"),
+        ],
+    },
+    TypeMapping {
+        xml_type_name: "ftp",
+        record_type: &RECORD_TYPE_FTP,
+        fields: &[
+            ("hostname", "generic-hostname"),
+            ("port", "generic-port"),
+            ("username", "generic-username"),
+            ("password", "generic-password"),
+        ],
+    },
+    TypeMapping {
+        xml_type_name: "phone",
+        record_type: &RECORD_TYPE_PHONE,
+        fields: &[("phonenumber", "phone-phonenumber"), ("pin", "generic-pin")],
+    },
+    TypeMapping {
+        xml_type_name: "shell",
+        record_type: &RECORD_TYPE_SHELL,
+        fields: &[
+            ("hostname", "generic-hostname"),
+            ("domain", "generic-domain"),
+            ("username", "generic-username"),
+            ("password", "generic-password"),
+        ],
+    },
+    TypeMapping {
+        xml_type_name: "website",
+        record_type: &RECORD_TYPE_WEBSITE,
+        fields: &[
+            ("url", "generic-url"),
+            ("username", "generic-username"),
+            ("password", "generic-password"),
+        ],
+    },
+];
 
 #[cfg(test)]
 mod test {

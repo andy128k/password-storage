@@ -6,7 +6,7 @@ use std::cell::RefCell;
 
 mod imp {
     use super::*;
-    use once_cell::sync::Lazy;
+    use std::sync::OnceLock;
 
     pub struct RecordWidget {
         grid: gtk::Grid,
@@ -82,9 +82,8 @@ mod imp {
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
-            static SIGNALS: Lazy<Vec<glib::subclass::Signal>> =
-                Lazy::new(|| vec![glib::subclass::Signal::builder("record-changed").build()]);
-            &SIGNALS
+            static SIGNALS: OnceLock<Vec<glib::subclass::Signal>> = OnceLock::new();
+            SIGNALS.get_or_init(|| vec![glib::subclass::Signal::builder("record-changed").build()])
         }
 
         fn dispose(&self) {

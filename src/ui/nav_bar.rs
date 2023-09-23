@@ -1,12 +1,11 @@
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 
 mod imp {
-    use std::cell::Cell;
-
     use super::*;
     use crate::model::tree::RecordNode;
     use crate::utils::grid_layout::PSGridLayoutExt;
-    use once_cell::sync::Lazy;
+    use std::cell::Cell;
+    use std::sync::OnceLock;
 
     pub fn item_factory() -> gtk::ListItemFactory {
         let factory = gtk::SignalListItemFactory::new();
@@ -141,7 +140,8 @@ mod imp {
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
-            static SIGNALS: Lazy<Vec<glib::subclass::Signal>> = Lazy::new(|| {
+            static SIGNALS: OnceLock<Vec<glib::subclass::Signal>> = OnceLock::new();
+            SIGNALS.get_or_init(|| {
                 vec![
                     glib::subclass::Signal::builder(SIGNAL_GO_HOME).build(),
                     glib::subclass::Signal::builder(SIGNAL_GO_PATH)
@@ -149,8 +149,7 @@ mod imp {
                         .build(),
                     glib::subclass::Signal::builder(SIGNAL_GO_UP).build(),
                 ]
-            });
-            &SIGNALS
+            })
         }
 
         fn dispose(&self) {

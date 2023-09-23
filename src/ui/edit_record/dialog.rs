@@ -14,7 +14,7 @@ use std::rc::Rc;
 
 fn record_to_vec(record_type: &'static RecordType, record: &Record) -> Vec<String> {
     let mut values = Vec::new();
-    for field in &record_type.fields {
+    for field in record_type.fields {
         values.push(record.get_field(field).to_string());
     }
     values
@@ -36,7 +36,7 @@ struct RecordForm {
 impl RecordForm {
     fn new(record_type: &'static RecordType, names: &[String]) -> Self {
         let mut form = Form::new();
-        for field in &record_type.fields {
+        for field in record_type.fields {
             let fw: Box<dyn FormWidget<String>> = match field.field_type {
                 FieldType::Text => Box::new(form_entry()),
                 FieldType::MultiLine => Box::new(MultiLine::new()),

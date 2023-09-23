@@ -657,7 +657,6 @@ dependencies = [
  "glib-build-tools",
  "gtk4",
  "inflate",
- "once_cell",
  "os_str_bytes",
  "quick-xml",
  "rand",

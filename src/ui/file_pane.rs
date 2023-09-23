@@ -29,8 +29,8 @@ mod imp {
     use crate::ui::record_type_popover::RecordTypePopoverBuilder;
     use crate::utils::typed_list_store::TypedListStore;
     use crate::utils::ui::{action_button, action_popover_button};
-    use once_cell::sync::Lazy;
     use std::cell::RefCell;
+    use std::sync::OnceLock;
 
     #[derive(Default)]
     pub struct FilePane {
@@ -180,7 +180,8 @@ mod imp {
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
-            static SIGNALS: Lazy<Vec<glib::subclass::Signal>> = Lazy::new(|| {
+            static SIGNALS: OnceLock<Vec<glib::subclass::Signal>> = OnceLock::new();
+            SIGNALS.get_or_init(|| {
                 vec![
                     glib::subclass::Signal::builder(SIGNAL_USER_NOTIFICATION)
                         .param_types([glib::GString::static_type()])
@@ -190,8 +191,7 @@ mod imp {
                         .param_types([u32::static_type(), RecordNode::static_type()])
                         .build(),
                 ]
-            });
-            &SIGNALS
+            })
         }
 
         fn dispose(&self) {

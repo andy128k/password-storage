@@ -29,7 +29,7 @@ pub struct SearchConfig {
 
 mod imp {
     use super::*;
-    use once_cell::sync::Lazy;
+    use std::sync::OnceLock;
 
     #[derive(Default)]
     pub struct PSSearchBar {
@@ -113,7 +113,8 @@ mod imp {
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
-            static SIGNALS: Lazy<Vec<glib::subclass::Signal>> = Lazy::new(|| {
+            static SIGNALS: OnceLock<Vec<glib::subclass::Signal>> = OnceLock::new();
+            SIGNALS.get_or_init(|| {
                 vec![
                     glib::subclass::Signal::builder("configure")
                         .param_types([bool::static_type()])
@@ -128,8 +129,7 @@ mod imp {
                         .return_type::<()>()
                         .build(),
                 ]
-            });
-            &SIGNALS
+            })
         }
 
         fn dispose(&self) {

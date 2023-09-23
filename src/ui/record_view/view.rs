@@ -7,9 +7,9 @@ mod imp {
     use crate::ui::record_view::item_factory::item_factory;
     use crate::utils::ui::scrolled;
     use crate::weak_map::WeakMap;
-    use once_cell::sync::Lazy;
     use std::cell::RefCell;
     use std::rc::Rc;
+    use std::sync::OnceLock;
 
     pub const SIGNAL_GO_HOME: &str = "ps-go-home";
     pub const SIGNAL_GO_UP: &str = "ps-go-up";
@@ -75,7 +75,8 @@ mod imp {
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
-            static SIGNALS: Lazy<Vec<glib::subclass::Signal>> = Lazy::new(|| {
+            static SIGNALS: OnceLock<Vec<glib::subclass::Signal>> = OnceLock::new();
+            SIGNALS.get_or_init(|| {
                 vec![
                     glib::subclass::Signal::builder(SIGNAL_GO_HOME).build(),
                     glib::subclass::Signal::builder(SIGNAL_GO_UP).build(),
@@ -86,8 +87,7 @@ mod imp {
                         .param_types([gtk::Bitset::static_type()])
                         .build(),
                 ]
-            });
-            &SIGNALS
+            })
         }
 
         fn dispose(&self) {

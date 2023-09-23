@@ -9,7 +9,6 @@ description = "Password storing program"
 readme = "README.md"
 
 [dependencies]
-once_cell = "1"
 futures = "0.3"
 os_str_bytes = "6"
 

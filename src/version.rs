@@ -1,6 +1,6 @@
-use once_cell::sync::Lazy;
 use std::fmt;
 use std::str::FromStr;
+use std::sync::OnceLock;
 
 #[derive(PartialEq, Eq, Default, Debug, Clone, Copy)]
 pub struct Version {
@@ -39,7 +39,10 @@ impl fmt::Display for Version {
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub static VERSION_PARSED: Lazy<Version> = Lazy::new(|| VERSION.parse().unwrap());
+pub fn version() -> Version {
+    static VERSION_PARSED: OnceLock<Version> = OnceLock::new();
+    *VERSION_PARSED.get_or_init(|| VERSION.parse().unwrap())
+}
 
 #[cfg(test)]
 mod test {
@@ -71,6 +74,6 @@ mod test {
 
     #[test]
     fn test_crate_version() {
-        assert_eq!(VERSION_PARSED.to_string(), VERSION);
+        assert_eq!(version().to_string(), VERSION);
     }
 }

@@ -17,7 +17,6 @@ use crate::ui::search::SearchEvent;
 use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::*;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
-use once_cell::unsync::OnceCell;
 use std::cell::Ref;
 use std::cell::RefMut;
 use std::cell::{Cell, RefCell};
@@ -40,6 +39,7 @@ mod imp {
     use crate::ui::file_pane::FilePane;
     use crate::ui::search::PSSearchBar;
     use crate::ui::toast::Toast;
+    use std::cell::OnceCell;
 
     #[derive(Clone, Copy, Default)]
     pub enum AppMode {
@@ -523,7 +523,7 @@ impl PSMainWindow {
 
     #[action(name = "add")]
     async fn action_add_record(&self, record_type_name: String) {
-        let record_type = RecordType::find(&record_type_name).unwrap_or(&*RECORD_TYPE_GENERIC);
+        let record_type = RecordType::find(&record_type_name).unwrap_or(&RECORD_TYPE_GENERIC);
 
         let empty_record = record_type.new_record();
         let Some(new_record) = self.edit_record("Add record", &empty_record).await else {

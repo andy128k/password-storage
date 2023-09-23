@@ -12,8 +12,8 @@ mod imp {
     use super::*;
     use crate::entropy::{password_entropy, AsciiClassifier};
     use awesome_gtk::widget::AwesomeWidgetTraverseExt;
-    use once_cell::sync::Lazy;
     use std::cell::RefCell;
+    use std::sync::OnceLock;
 
     #[derive(Default)]
     pub struct PSRecordViewItem {
@@ -85,13 +85,13 @@ mod imp {
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
-            static SIGNALS: Lazy<Vec<glib::subclass::Signal>> = Lazy::new(|| {
+            static SIGNALS: OnceLock<Vec<glib::subclass::Signal>> = OnceLock::new();
+            SIGNALS.get_or_init(|| {
                 vec![glib::subclass::Signal::builder("context-menu")
                     .param_types([RecordNode::static_type()])
                     .return_type::<Option<gio::MenuModel>>()
                     .build()]
-            });
-            &SIGNALS
+            })
         }
 
         fn dispose(&self) {
