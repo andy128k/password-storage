@@ -10,16 +10,16 @@ readme = "README.md"
 
 [dependencies]
 futures = "0.3"
-os_str_bytes = "6"
+os_str_bytes = { version = "6", features = ["conversions"] }
 
 rand = "0.8"
 aes = "0.8"
 cbc = "0.1"
 deflate = "1"
 inflate = "0.4"
-quick-xml = "0.30"
+quick-xml = "0.31"
 
-toml = "0.7"
+toml = "0.8"
 serde = { version = "1", features = ["derive"] }
 
 gtk = { package = "gtk4", version = "0.7", features = ["v4_6"] }
