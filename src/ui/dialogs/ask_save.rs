@@ -1,5 +1,3 @@
-use gtk::prelude::*;
-
 pub enum AskSave {
     Discard,
     Cancel,
@@ -7,24 +5,18 @@ pub enum AskSave {
 }
 
 pub async fn ask_save(parent_window: &gtk::Window, message: &str) -> AskSave {
-    let dlg = gtk::MessageDialog::builder()
+    let answer = gtk::AlertDialog::builder()
         .modal(true)
-        .transient_for(parent_window)
-        .title("Password Storage")
-        .icon_name("password-storage")
-        .message_type(gtk::MessageType::Warning)
-        .use_markup(false)
-        .text(message)
-        .build();
-    dlg.add_button("_Discard changes", gtk::ResponseType::Reject);
-    dlg.add_button("_Cancel", gtk::ResponseType::Cancel);
-    dlg.add_button("_Save", gtk::ResponseType::Ok);
-    dlg.set_default_response(gtk::ResponseType::Ok);
-    let answer = dlg.run_future().await;
-    dlg.close();
+        .buttons(["Discard changes", "Cancel", "Save"])
+        .default_button(2)
+        .cancel_button(1)
+        .message(message)
+        .build()
+        .choose_future(Some(parent_window))
+        .await;
     match answer {
-        gtk::ResponseType::Reject => AskSave::Discard,
-        gtk::ResponseType::Ok => AskSave::Save,
+        Ok(0) => AskSave::Discard,
+        Ok(2) => AskSave::Save,
         _ => AskSave::Cancel,
     }
 }

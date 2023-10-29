@@ -1,30 +1,24 @@
 use gtk::prelude::*;
 use std::path::PathBuf;
 
-async fn choose_file(
-    action: gtk::FileChooserAction,
-    title: &str,
-    parent_window: &gtk::Window,
-) -> Option<PathBuf> {
-    let dlg = gtk::FileChooserNative::builder()
-        .modal(true)
-        .action(action)
-        .title(title)
-        .transient_for(parent_window)
-        .build();
-    let answer = dlg.run_future().await;
-    dlg.hide();
-    if answer == gtk::ResponseType::Accept {
-        dlg.file().and_then(|f| f.path())
-    } else {
-        None
-    }
-}
-
 pub async fn open_file(parent_window: &gtk::Window) -> Option<PathBuf> {
-    choose_file(gtk::FileChooserAction::Open, "Open file", parent_window).await
+    gtk::FileDialog::builder()
+        .modal(true)
+        .title("Open file")
+        .build()
+        .open_future(Some(parent_window))
+        .await
+        .ok()
+        .and_then(|f| f.path())
 }
 
 pub async fn save_file(parent_window: &gtk::Window) -> Option<PathBuf> {
-    choose_file(gtk::FileChooserAction::Save, "Save file", parent_window).await
+    gtk::FileDialog::builder()
+        .modal(true)
+        .title("Save file")
+        .build()
+        .save_future(Some(parent_window))
+        .await
+        .ok()
+        .and_then(|f| f.path())
 }

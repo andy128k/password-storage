@@ -190,7 +190,7 @@ impl OpenFile {
         T: 'static,
         R: Fn(&str) -> Result<T> + 'static,
     {
-        self.show();
+        self.set_visible(true);
         self.imp().reset();
         self.imp().entry.grab_focus();
 

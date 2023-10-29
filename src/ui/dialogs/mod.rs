@@ -1,8 +1,9 @@
 pub mod about;
-pub mod ask;
 pub mod ask_save;
 pub mod change_password;
 pub mod file_chooser;
+pub mod generic_dialog;
 pub mod preferences;
 pub mod say;
 pub mod shortcuts;
+pub mod show_uri;

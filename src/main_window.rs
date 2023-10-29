@@ -9,7 +9,7 @@ use crate::ui::dashboard::PSDashboard;
 use crate::ui::dialogs::ask_save::{ask_save, AskSave};
 use crate::ui::dialogs::change_password::change_password;
 use crate::ui::dialogs::file_chooser;
-use crate::ui::dialogs::say::say_error;
+use crate::ui::dialogs::say::say;
 use crate::ui::edit_record::dialog::edit_record;
 use crate::ui::forms::entry::form_password_entry;
 use crate::ui::open_file::OpenFile;
@@ -340,7 +340,7 @@ impl PSMainWindow {
     async fn save_data(&self, filename: &Path, password: &str) -> bool {
         let save_result = format::save_file(filename, password, &self.imp().file_pane.file());
         if let Err(error) = save_result {
-            say_error(self.upcast_ref(), &error.to_string()).await;
+            say(self.upcast_ref(), &error.to_string()).await;
             return false;
         }
 
@@ -450,7 +450,7 @@ impl PSMainWindow {
                 win.imp().search_bar.configure(new_config.search_in_secrets);
             }));
 
-        win.show();
+        win.present();
         win.imp().set_mode(imp::AppMode::Initial);
         crate::css::load_css(&win.display());
         win
@@ -564,14 +564,7 @@ async fn new_password(parent_window: &gtk::Window) -> Option<String> {
     // TODO: ADD confirmation
     let mut form = ui::forms::form::Form::new();
     form.add("Password", Box::new(form_password_entry()), true);
-    let result = ui::edit_object::edit_object(
-        None,
-        form,
-        parent_window,
-        "Enter password",
-        "password-storage",
-    )
-    .await;
+    let result = ui::edit_object::edit_object(None, form, parent_window, "Enter password").await;
     result.map(|mut values| values.remove(0))
 }
 

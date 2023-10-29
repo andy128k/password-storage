@@ -170,7 +170,7 @@ impl Default for PSDashboard {
 
 impl PSDashboard {
     pub fn update(&self, cache: &Cache) {
-        self.listbox.hide();
+        self.listbox.set_visible(false);
         for child in self.listbox.children() {
             if let Some(row) = child.downcast_ref::<gtk::ListBoxRow>() {
                 self.listbox.remove(row);
@@ -205,7 +205,7 @@ impl PSDashboard {
                 }
             }
         }
-        self.listbox.show();
+        self.listbox.set_visible(true);
         if let Some(row) = first_row {
             self.listbox.select_row(Some(&row));
             row.grab_focus();

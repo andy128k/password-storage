@@ -1,8 +1,7 @@
 use crate::model::record::Record;
 use crate::model::tree::{RecordNode, RecordTree};
 use crate::primary_accel;
-use crate::ui::dialogs::ask::{confirm_likely, confirm_unlikely};
-use crate::ui::dialogs::say::say_info;
+use crate::ui::dialogs::say::say;
 use crate::ui::group_selector::select_group;
 use crate::ui::nav_bar::PSNavBar;
 use crate::ui::record_view::view::PSRecordView;
@@ -436,9 +435,16 @@ impl FilePane {
         let Some(window) = self.root().and_downcast::<gtk::Window>() else {
             return;
         };
-        let confirmed =
-            confirm_unlikely(&window, "Do you really want to delete selected entry?").await;
-        if confirmed {
+        let answer = gtk::AlertDialog::builder()
+            .modal(true)
+            .buttons(["Cancel", "Delete"])
+            .default_button(0)
+            .cancel_button(0)
+            .message("Do you really want to delete selected entry?")
+            .build()
+            .choose_future(Some(&window))
+            .await;
+        if answer == Ok(1) {
             self.remove_record(position);
             self.emit_file_changed();
         }
@@ -463,7 +469,7 @@ impl FilePane {
             return;
         };
         if records.len() < 2 {
-            say_info(&window, "Nothing to merge. Select few items and try again.").await;
+            say(&window, "Nothing to merge. Select few items and try again.").await;
             return;
         }
 
@@ -474,7 +480,16 @@ impl FilePane {
                 message.push_str(&record.record().name());
             }
 
-            if !confirm_likely(&window, &message).await {
+            let answer = gtk::AlertDialog::builder()
+                .modal(true)
+                .buttons(["Cancel", "Merge"])
+                .default_button(1)
+                .cancel_button(0)
+                .message(&message)
+                .build()
+                .choose_future(Some(&window))
+                .await;
+            if answer != Ok(1) {
                 return;
             }
         }

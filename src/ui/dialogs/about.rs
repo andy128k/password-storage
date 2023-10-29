@@ -14,5 +14,5 @@ pub async fn about(parent: Option<&gtk::Window>) {
         .website("https://password-storage.andy128k.dev")
         .build();
     dlg.set_transient_for(parent);
-    dlg.show();
+    dlg.present();
 }

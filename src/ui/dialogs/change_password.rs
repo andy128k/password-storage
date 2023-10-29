@@ -13,13 +13,6 @@ pub async fn change_password(parent_window: &gtk::Window) -> Option<String> {
             ValidationResult::Invalid("Passwords are not identical".to_string())
         }
     }));
-    let result = edit_object(
-        None,
-        form,
-        parent_window,
-        "Change password",
-        "password-storage",
-    )
-    .await;
+    let result = edit_object(None, form, parent_window, "Change password").await;
     result.map(|values| values[0].clone())
 }

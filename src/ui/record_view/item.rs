@@ -11,6 +11,7 @@ use gtk::{
 mod imp {
     use super::*;
     use crate::entropy::{password_entropy, AsciiClassifier};
+    use crate::ui::dialogs::show_uri::show_uri;
     use awesome_gtk::widget::AwesomeWidgetTraverseExt;
     use std::cell::RefCell;
     use std::sync::OnceLock;
@@ -79,7 +80,11 @@ mod imp {
                 .button(GDK_BUTTON_PRIMARY as u32)
                 .build();
             open_click.connect_pressed(
-                glib::clone!(@weak self as imp => move |_gesture, _n, _x, _y| imp.on_open_clicked()),
+                glib::clone!(@weak self as imp => move |_gesture, _n, _x, _y| {
+                    glib::MainContext::default().spawn_local(async move {
+                        imp.on_open_clicked().await
+                    });
+                }),
             );
             self.open.add_controller(open_click);
         }
@@ -160,12 +165,12 @@ mod imp {
             context_menu.popup();
         }
 
-        fn on_open_clicked(&self) {
+        async fn on_open_clicked(&self) {
             self.obj().grab_focus();
 
             let record_ref = self.record.borrow();
             if let Some(url) = record_ref.as_ref().and_then(|n| n.record().url()) {
-                gtk::show_uri(self.root_window().as_ref(), url, 0);
+                show_uri(self.root_window().as_ref(), url).await;
             }
         }
 

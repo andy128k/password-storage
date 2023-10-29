@@ -1,6 +1,5 @@
 use crate::entropy::{password_entropy, AsciiClassifier};
 use crate::password::generate_password;
-use crate::ui::dialogs::ask::confirm_unlikely;
 use crate::ui::forms::base::FormWidget;
 use crate::ui::password_strength_bar::PasswordStrengthBar;
 use crate::utils::string::StringExt;
@@ -13,11 +12,19 @@ pub struct PasswordEditor {
 }
 
 async fn confirm_password_overwrite<P: WidgetExt>(widget: &P) -> bool {
-    if let Some(window) = widget.root().and_downcast() {
-        confirm_unlikely(&window, "Do you want to overwrite current password?").await
-    } else {
-        false
-    }
+    let Some(window) = widget.root().and_downcast::<gtk::Window>() else {
+        return false;
+    };
+    let answer = gtk::AlertDialog::builder()
+        .modal(true)
+        .buttons(["No", "Yes"])
+        .default_button(0)
+        .cancel_button(0)
+        .message("Do you want to overwrite current password?")
+        .build()
+        .choose_future(Some(&window))
+        .await;
+    answer == Ok(1)
 }
 
 async fn generate_password_clicked(entry: gtk::Entry) {

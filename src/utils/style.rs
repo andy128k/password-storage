@@ -2,7 +2,7 @@ use gtk::{gdk, glib, prelude::*};
 
 pub fn load_css_from_data(data: &str) -> gtk::CssProvider {
     let provider = gtk::CssProvider::new();
-    provider.load_from_data(data);
+    provider.load_from_string(data);
     provider
 }
 

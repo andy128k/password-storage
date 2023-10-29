@@ -1,6 +1,7 @@
 use crate::model::record::FIELD_NAME;
 use crate::model::record::RECORD_TYPES;
 use crate::model::record::{FieldType, Record, RecordType};
+use crate::ui::dialogs::show_uri::show_uri;
 use crate::ui::edit_object::edit_object;
 use crate::ui::forms::base::*;
 use crate::ui::forms::entry::*;
@@ -146,7 +147,11 @@ impl RecordWidget {
             callback: RefCell::new(Box::new(no_op)),
         }));
 
-        open_button.connect_clicked(glib::clone!(@weak widget => move |_| widget.open()));
+        open_button.connect_clicked(glib::clone!(@weak widget => move |_| {
+            glib::MainContext::default().spawn_local(async move {
+                widget.open().await;
+            });
+        }));
 
         widget
     }
@@ -173,9 +178,9 @@ impl RecordWidget {
                 .build();
 
             self.0.convert_button.set_popover(Some(&popover));
-            self.0.convert_button.show();
+            self.0.convert_button.set_visible(true);
         } else {
-            self.0.convert_button.hide();
+            self.0.convert_button.set_visible(false);
         }
 
         if let Some(old_form) = self.0.grid.child_at(2, 0) {
@@ -207,13 +212,13 @@ impl RecordWidget {
         self.set_value(Some(&new_record));
     }
 
-    fn open(&self) {
+    async fn open(&self) {
         let Some(record) = self.get_value() else {
             return;
         };
         let Some(url) = record.url() else { return };
         let window = self.0.grid.root().and_downcast::<gtk::Window>();
-        gtk::show_uri(window.as_ref(), url, 0);
+        show_uri(window.as_ref(), url).await;
     }
 }
 
@@ -246,12 +251,5 @@ pub async fn edit_record(
     title: &str,
     names: Vec<String>,
 ) -> Option<Record> {
-    edit_object(
-        Some(record),
-        RecordWidget::new(names),
-        parent_window,
-        title,
-        "password-storage",
-    )
-    .await
+    edit_object(Some(record), RecordWidget::new(names), parent_window, title).await
 }

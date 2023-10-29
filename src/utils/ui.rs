@@ -140,8 +140,8 @@ fn title_label(label: &str, class: &str) -> gtk::Label {
         .build()
 }
 
-pub fn title(title: &str) -> gtk::Widget {
-    title_label(title, "title").upcast()
+pub fn title(title: &str) -> gtk::Label {
+    title_label(title, "title")
 }
 
 pub fn title_and_subtitle(title: &str, subtitle: &str) -> gtk::Widget {

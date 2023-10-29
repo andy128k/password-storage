@@ -1,3 +1,4 @@
+use super::dialogs::generic_dialog::GenericDialog;
 use crate::model::record::{FIELD_NAME, RECORD_TYPE_GENERIC};
 use crate::model::tree::{RecordNode, RecordTree};
 use crate::utils::list_model::ListModelImmutableExt;
@@ -146,20 +147,13 @@ impl PSListItemFactory for DescriptionFactory {
 
 pub async fn select_group(
     parent_window: &gtk::Window,
-    title: &str,
+    window_title: &str,
     tree: &RecordTree,
 ) -> Option<TypedListStore<RecordNode>> {
-    let dlg = gtk::Dialog::builder()
-        .transient_for(parent_window)
-        .use_header_bar(1)
-        .modal(true)
-        .resizable(true)
-        .title(title)
-        .icon_name("password-storage")
-        .build();
-    dlg.add_button("_Cancel", gtk::ResponseType::Cancel);
-    dlg.add_button("_Ok", gtk::ResponseType::Ok);
-    dlg.set_default_response(gtk::ResponseType::Ok);
+    let dlg = GenericDialog::default();
+    dlg.set_ok_label("Move");
+    dlg.set_title(window_title);
+    dlg.set_transient_for(Some(parent_window));
 
     let model = make_groups_model(tree);
 
@@ -185,24 +179,23 @@ pub async fn select_group(
             .build(),
     );
 
+    tree_view.connect_activate(
+        glib::clone!(@weak dlg => move |_, _| dlg.emit_response(gtk::ResponseType::Ok)),
+    );
+
     let scrolled_window = scrolled(&tree_view);
     scrolled_window.set_size_request(500, 400);
+    dlg.set_child(Some(&scrolled_window));
 
-    dlg.content_area().set_margin_start(8);
-    dlg.content_area().set_margin_end(8);
-    dlg.content_area().set_margin_top(8);
-    dlg.content_area().set_margin_bottom(8);
-    dlg.content_area().append(&scrolled_window);
+    selection_model.connect_selection_changed(
+        glib::clone!(@weak dlg => move |selection_model, _, _| {
+            dlg.set_ok_sensitive(get_selected_record(selection_model).is_some());
+        }),
+    );
 
-    selection_model.connect_selection_changed(glib::clone!(@weak dlg => move |selection_model, _, _| {
-        dlg.set_response_sensitive(gtk::ResponseType::Ok, get_selected_record(selection_model).is_some());
-    }));
-
-    let answer = dlg.run_future().await;
-    dlg.close();
-    if answer == gtk::ResponseType::Ok {
-        get_selected_record(&selection_model)
-    } else {
-        None
-    }
+    let result = match dlg.run().await {
+        Some(gtk::ResponseType::Ok) => get_selected_record(&selection_model),
+        _ => None,
+    };
+    result
 }

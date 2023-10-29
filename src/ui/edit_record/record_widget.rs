@@ -5,6 +5,8 @@ use gtk::{glib, prelude::*, subclass::prelude::*};
 use std::cell::RefCell;
 
 mod imp {
+    use crate::ui::dialogs::show_uri::show_uri;
+
     use super::*;
     use std::sync::OnceLock;
 
@@ -78,7 +80,11 @@ mod imp {
             self.grid.attach(&separator, 1, 0, 1, 5);
 
             self.open_button
-                .connect_clicked(glib::clone!(@weak self as imp => move |_| imp.open()));
+                .connect_clicked(glib::clone!(@weak self as imp => move |_| {
+                    glib::MainContext::default().spawn_local(async move {
+                        imp.open().await
+                    });
+                }));
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
@@ -122,9 +128,9 @@ mod imp {
                     .build();
 
                 self.convert_button.set_popover(Some(&popover));
-                self.convert_button.show();
+                self.convert_button.set_visible(true);
             } else {
-                self.convert_button.hide();
+                self.convert_button.set_visible(false);
             }
 
             if let Some(old_form) = self.grid.child_at(2, 0) {
@@ -160,13 +166,13 @@ mod imp {
             self.form.borrow().as_ref().unwrap().set_record(record);
         }
 
-        fn open(&self) {
+        async fn open(&self) {
             let Some(record) = self.raw_record() else {
                 return;
             };
             let Some(url) = record.url() else { return };
             let window = self.obj().root().and_downcast::<gtk::Window>();
-            gtk::show_uri(window.as_ref(), url, 0);
+            show_uri(window.as_ref(), url).await;
         }
 
         fn convert_to(&self, dest_record_type: &'static RecordType) {

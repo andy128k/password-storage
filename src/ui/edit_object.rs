@@ -1,3 +1,4 @@
+use super::dialogs::generic_dialog::GenericDialog;
 use super::forms::base::FormWidget;
 use gtk::{glib, prelude::*};
 
@@ -6,34 +7,28 @@ pub async fn edit_object<T: 'static, W: FormWidget<T> + 'static>(
     mut widget: W,
     parent_window: &gtk::Window,
     title: &str,
-    icon: &str,
 ) -> Option<T> {
-    let dlg = gtk::Dialog::builder()
-        .transient_for(parent_window)
-        .use_header_bar(1)
-        .modal(true)
-        .resizable(true)
-        .title(title)
-        .icon_name(icon)
-        .build();
-    dlg.add_button("_Cancel", gtk::ResponseType::Cancel);
-    dlg.add_button("_Ok", gtk::ResponseType::Ok);
-    dlg.set_default_response(gtk::ResponseType::Ok);
+    let form = widget.get_widget();
+    form.set_hexpand(true);
+    form.set_vexpand(true);
+    form.set_margin_top(8);
+    form.set_margin_bottom(8);
+    form.set_margin_start(8);
+    form.set_margin_end(8);
 
-    dlg.content_area().set_margin_start(8);
-    dlg.content_area().set_margin_end(8);
-    dlg.content_area().set_margin_top(8);
-    dlg.content_area().set_margin_bottom(8);
-    dlg.content_area().append(&widget.get_widget());
+    let dlg = GenericDialog::default();
+    dlg.set_transient_for(Some(parent_window));
+    dlg.set_title(title);
+    dlg.set_child(Some(&form));
 
-    dlg.set_response_sensitive(gtk::ResponseType::Ok, widget.get_value().is_some());
+    dlg.set_ok_sensitive(widget.get_value().is_some());
     widget.connect_changed(Box::new(glib::clone!(@weak dlg => move |value| {
-        dlg.set_response_sensitive(gtk::ResponseType::Ok, value.is_some());
+        dlg.set_ok_sensitive(value.is_some());
     })));
 
     widget.set_value(object);
 
-    let answer = dlg.run_future().await;
+    let answer = dlg.run().await?;
     dlg.close();
     if answer == gtk::ResponseType::Ok {
         widget.get_value()

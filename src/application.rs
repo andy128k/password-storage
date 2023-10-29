@@ -162,6 +162,6 @@ impl PSApplication {
     #[action(name = "shortcuts")]
     fn action_shortcuts(&self) {
         let window = shortcuts_window(self.active_window().as_ref(), crate::shortcuts::SHORTCUTS);
-        window.show();
+        window.present();
     }
 }
