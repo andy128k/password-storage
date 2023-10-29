@@ -102,12 +102,13 @@ mod imp {
     impl WidgetImpl for RecordWidget {}
 
     impl RecordWidget {
-        fn record_type(&self) -> Option<&'static RecordType> {
-            self.form.borrow().as_ref().map(|form| form.record_type())
-        }
-
         fn set_record_type(&self, record_type: &'static RecordType) {
-            if self.record_type() == Some(record_type) {
+            if self
+                .form
+                .borrow()
+                .as_ref()
+                .map_or(false, |form| form.record_type() == record_type)
+            {
                 return;
             }
 
