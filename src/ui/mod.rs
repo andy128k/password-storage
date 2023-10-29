@@ -9,6 +9,7 @@ pub mod file_pane;
 pub mod flow_grid;
 pub mod forms;
 pub mod group_selector;
+pub mod list_item_factory;
 pub mod menu;
 pub mod nav_bar;
 pub mod open_file;

@@ -5,6 +5,8 @@ use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::{scrolled, PSWidgetLookupExt};
 use gtk::{gio, glib, prelude::*};
 
+use super::list_item_factory::PSListItemFactory;
+
 pub fn singleton_list(item: &impl glib::IsA<glib::Object>) -> gio::ListStore {
     let list = gio::ListStore::with_type(item.type_());
     list.append(item);
@@ -50,9 +52,20 @@ fn get_selected_record(
     Some(TypedListStore::from_untyped(path.sliced(1..)))
 }
 
-fn name_factory() -> gtk::SignalListItemFactory {
-    let factory = gtk::SignalListItemFactory::new();
-    factory.connect_setup(|_factory, list_item| {
+struct NameFactory;
+
+impl NameFactory {
+    fn set_text(expander: &gtk::TreeExpander, text: &str) {
+        if let Some(label) = expander.child().and_then(|c| c.of_type::<gtk::Label>()) {
+            label.set_text(text);
+        }
+    }
+}
+
+impl PSListItemFactory for NameFactory {
+    type Child = gtk::TreeExpander;
+
+    fn setup(&self) -> gtk::TreeExpander {
         let b = gtk::Box::new(gtk::Orientation::Horizontal, 8);
 
         let image = gtk::Image::from_icon_name("folder");
@@ -64,13 +77,10 @@ fn name_factory() -> gtk::SignalListItemFactory {
         let expander = gtk::TreeExpander::new();
         expander.set_child(Some(&b));
 
-        list_item.set_child(Some(&expander));
-    });
-    factory.connect_bind(|_factory, list_item| {
-        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else {
-            return;
-        };
+        expander
+    }
 
+    fn bind(&self, list_item: &gtk::ListItem, expander: &gtk::TreeExpander) {
         let row = list_item.item().and_downcast::<gtk::TreeListRow>();
         expander.set_list_row(row.as_ref());
 
@@ -81,43 +91,33 @@ fn name_factory() -> gtk::SignalListItemFactory {
             .and_then(|item| item.last())
             .and_downcast::<RecordNode>();
 
-        if let Some(label) = expander.child().and_then(|c| c.of_type::<gtk::Label>()) {
-            label.set_text(
-                &record
-                    .map(|r| r.record().name())
-                    .unwrap_or_else(|| "/".to_string()),
-            );
-        }
-    });
-    factory.connect_unbind(|_factory, list_item| {
-        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else {
-            return;
-        };
-        if let Some(label) = expander.child().and_then(|c| c.of_type::<gtk::Label>()) {
-            label.set_text("");
-        }
-    });
-    factory.connect_teardown(|_factory, list_item| {
-        let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else {
-            return;
-        };
-        if let Some(label) = expander.child().and_then(|c| c.of_type::<gtk::Label>()) {
-            label.set_text("");
-        }
-    });
-    factory
+        Self::set_text(
+            expander,
+            &record
+                .map(|r| r.record().name())
+                .unwrap_or_else(|| "/".to_string()),
+        );
+    }
+
+    fn unbind(&self, _list_item: &gtk::ListItem, expander: &gtk::TreeExpander) {
+        Self::set_text(expander, "");
+    }
+
+    fn teardown(&self, _list_item: &gtk::ListItem, expander: &gtk::TreeExpander) {
+        Self::set_text(expander, "");
+    }
 }
 
-fn description_factory() -> gtk::SignalListItemFactory {
-    let factory = gtk::SignalListItemFactory::new();
-    factory.connect_setup(|_factory, list_item| {
-        let child = gtk::Label::builder().halign(gtk::Align::Start).build();
-        list_item.set_child(Some(&child));
-    });
-    factory.connect_bind(|_factory, list_item| {
-        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else {
-            return;
-        };
+struct DescriptionFactory;
+
+impl PSListItemFactory for DescriptionFactory {
+    type Child = gtk::Label;
+
+    fn setup(&self) -> gtk::Label {
+        gtk::Label::builder().halign(gtk::Align::Start).build()
+    }
+
+    fn bind(&self, list_item: &gtk::ListItem, label: &gtk::Label) {
         let row = list_item.item().and_downcast::<gtk::TreeListRow>();
         let item = row
             .and_then(|row| row.item())
@@ -137,20 +137,11 @@ fn description_factory() -> gtk::SignalListItemFactory {
                 })
                 .unwrap_or_default(),
         );
-    });
-    factory.connect_unbind(|_factory, list_item| {
-        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else {
-            return;
-        };
+    }
+
+    fn unbind(&self, _list_item: &gtk::ListItem, label: &gtk::Label) {
         label.set_text("");
-    });
-    factory.connect_teardown(|_factory, list_item| {
-        let Some(label) = list_item.child().and_downcast::<gtk::Label>() else {
-            return;
-        };
-        label.set_text("");
-    });
-    factory
+    }
 }
 
 pub async fn select_group(
@@ -182,14 +173,14 @@ pub async fn select_group(
     tree_view.append_column(
         &gtk::ColumnViewColumn::builder()
             .title("Name")
-            .factory(&name_factory())
+            .factory(&NameFactory.into_factory())
             .build(),
     );
 
     tree_view.append_column(
         &gtk::ColumnViewColumn::builder()
             .title("Description")
-            .factory(&description_factory())
+            .factory(&DescriptionFactory.into_factory())
             .expand(true)
             .build(),
     );

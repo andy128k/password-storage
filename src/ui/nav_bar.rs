@@ -3,14 +3,18 @@ use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 mod imp {
     use super::*;
     use crate::model::tree::RecordNode;
+    use crate::ui::list_item_factory::PSListItemFactory;
     use crate::utils::grid_layout::PSGridLayoutExt;
     use std::cell::Cell;
     use std::sync::OnceLock;
 
-    pub fn item_factory() -> gtk::ListItemFactory {
-        let factory = gtk::SignalListItemFactory::new();
-        factory.connect_setup(move |_factory, list_item| {
-            let label = gtk::Label::builder()
+    struct ItemFactory;
+
+    impl PSListItemFactory for ItemFactory {
+        type Child = gtk::Label;
+
+        fn setup(&self) -> gtk::Label {
+            gtk::Label::builder()
                 .xalign(0.0_f32)
                 .yalign(0.5_f32)
                 .hexpand(true)
@@ -18,30 +22,20 @@ mod imp {
                 .margin_bottom(5)
                 .margin_start(5)
                 .margin_end(5)
-                .build();
-            list_item.set_child(Some(&label));
-        });
-        factory.connect_bind(move |_factory, list_item| {
-            if let Some(label) = list_item.child().and_downcast::<gtk::Label>() {
-                if let Some(record_node) = list_item.item().and_downcast::<RecordNode>() {
-                    label.set_label(&record_node.record().name());
-                } else {
-                    label.set_label("");
-                }
-            }
-        });
-        factory.connect_unbind(move |_factory, list_item| {
-            if let Some(label) = list_item.child().and_downcast::<gtk::Label>() {
+                .build()
+        }
+
+        fn bind(&self, list_item: &gtk::ListItem, label: &gtk::Label) {
+            if let Some(record_node) = list_item.item().and_downcast::<RecordNode>() {
+                label.set_label(&record_node.record().name());
+            } else {
                 label.set_label("");
             }
-        });
-        factory.connect_teardown(move |_factory, list_item| {
-            if let Some(label) = list_item.child().and_downcast::<gtk::Label>() {
-                label.set_label("");
-            }
-            list_item.set_child(gtk::Widget::NONE);
-        });
-        factory.upcast()
+        }
+
+        fn unbind(&self, _list_item: &gtk::ListItem, label: &gtk::Label) {
+            label.set_label("");
+        }
     }
 
     pub const SIGNAL_GO_HOME: &str = "ps-go-home";
@@ -75,7 +69,7 @@ mod imp {
 
             let list_view = gtk::ListView::builder()
                 .orientation(gtk::Orientation::Horizontal)
-                .factory(&item_factory())
+                .factory(&ItemFactory.into_factory())
                 .model(&selection)
                 .show_separators(true)
                 .build();

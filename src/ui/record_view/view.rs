@@ -48,7 +48,7 @@ mod imp {
             obj.set_layout_manager(Some(gtk::BinLayout::new()));
 
             self.list_view
-                .set_factory(Some(&item_factory(self.popup_model.clone(), &self.mapping)));
+                .set_factory(Some(&item_factory(&self.popup_model, &self.mapping)));
             self.list_view.set_model(Some(&self.selection));
 
             self.list_view.connect_activate(
