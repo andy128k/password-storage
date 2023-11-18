@@ -3,9 +3,8 @@ use crate::main_window::PSMainWindow;
 use crate::ui::dialogs::about::about;
 use crate::ui::dialogs::preferences::preferences;
 use crate::ui::dialogs::shortcuts::shortcuts_window;
+use crate::utils::path::path_from_bytes;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
-use os_str_bytes::OsStringBytes;
-use std::path::PathBuf;
 
 const APPLICATION_ID: &str = "dev.andy128k.password-storage";
 
@@ -154,7 +153,7 @@ impl PSApplication {
 
     #[action(name = "open-file")]
     async fn open_file_by_name(&self, buffer: Vec<u8>) {
-        let filename = PathBuf::assert_from_raw_vec(buffer);
+        let filename = path_from_bytes(buffer);
         let win = self.imp().activate_main_window();
         win.do_open_file(&filename).await;
     }

@@ -1,9 +1,9 @@
 use crate::cache::Cache;
 use crate::primary_accel;
+use crate::utils::path::path_as_bytes;
 use crate::utils::ui::centered;
 use awesome_gtk::widget::AwesomeWidgetTraverseExt;
 use gtk::{glib, prelude::*};
-use os_str_bytes::OsStrBytes;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone)]
@@ -100,7 +100,7 @@ pub fn file_row(
 
     let row = gtk::ListBoxRow::builder()
         .action_name("app.open-file")
-        .action_target(&filename.to_raw_bytes().as_ref().into())
+        .action_target(&path_as_bytes(&filename).to_variant())
         .css_classes(["frame"])
         .child(&grid)
         .build();
