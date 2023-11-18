@@ -165,12 +165,17 @@ mod imp {
             context_menu.popup();
         }
 
+        fn record_url(&self) -> Option<String> {
+            let record = self.record.borrow();
+            let url = record.as_ref()?.record().url()?;
+            Some(url.to_string())
+        }
+
         async fn on_open_clicked(&self) {
             self.obj().grab_focus();
 
-            let record_ref = self.record.borrow();
-            if let Some(url) = record_ref.as_ref().and_then(|n| n.record().url()) {
-                show_uri(self.root_window().as_ref(), url).await;
+            if let Some(url) = self.record_url() {
+                show_uri(self.root_window().as_ref(), &url).await;
             }
         }
 

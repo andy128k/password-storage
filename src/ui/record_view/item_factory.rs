@@ -25,20 +25,20 @@ impl PSListItemFactory for RecordListItemFactory {
         let Some(record_node) = get_record_node(list_item) else {
             return;
         };
-        self.mapping.remove_value(&record_item);
-        self.mapping.add(list_item.position(), &record_item);
+        self.mapping.remove_value(record_item);
+        self.mapping.add(list_item.position(), record_item);
         record_item.set_record_node(Some(record_node));
     }
 
     fn unbind(&self, list_item: &gtk::ListItem, record_item: &PSRecordViewItem) {
         self.mapping.remove_key(list_item.position());
-        self.mapping.remove_value(&record_item);
+        self.mapping.remove_value(record_item);
         record_item.set_record_node(None);
     }
 
     fn teardown(&self, _list_item: &gtk::ListItem, record_item: &PSRecordViewItem) {
         record_item.set_record_node(None);
-        self.mapping.remove_value(&record_item);
+        self.mapping.remove_value(record_item);
     }
 }
 

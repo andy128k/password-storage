@@ -220,7 +220,8 @@ pub const RECORD_TYPE_WEBSITE: RecordType = RecordType {
     username_field: Some("username"),
     password_field: Some("password"),
 };
-pub const RECORD_TYPES: &'static [&RecordType] = &[
+
+pub const RECORD_TYPES: &[&RecordType] = &[
     &RECORD_TYPE_GROUP,
     &RECORD_TYPE_GENERIC,
     &RECORD_TYPE_CREDITCARD,

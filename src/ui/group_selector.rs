@@ -193,9 +193,8 @@ pub async fn select_group(
         }),
     );
 
-    let result = match dlg.run().await {
+    match dlg.run().await {
         Some(gtk::ResponseType::Ok) => get_selected_record(&selection_model),
         _ => None,
-    };
-    result
+    }
 }
