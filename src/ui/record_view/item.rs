@@ -1,5 +1,6 @@
 use crate::entropy::PasswordStrength;
 use crate::model::tree::RecordNode;
+use crate::utils::style::PSStyleContextExt;
 use gtk::{
     gdk,
     gdk::ffi::{GDK_BUTTON_PRIMARY, GDK_BUTTON_SECONDARY},
@@ -8,12 +9,39 @@ use gtk::{
     subclass::prelude::*,
 };
 
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum DropOption {
+    Above = -1,
+    Into = 0,
+    Below = 1,
+}
+
+impl From<i8> for DropOption {
+    fn from(value: i8) -> Self {
+        if value < 0 {
+            Self::Above
+        } else if value == 0 {
+            Self::Into
+        } else {
+            Self::Below
+        }
+    }
+}
+
+pub struct MoveRecord {
+    pub src: RecordNode,
+    pub dst: RecordNode,
+    pub option: DropOption,
+}
+
 mod imp {
     use super::*;
     use crate::entropy::{password_entropy, AsciiClassifier};
     use crate::ui::dialogs::show_uri::show_uri;
+    use crate::ui::record_view::compose_paintable::PSBackgroundPaintable;
+    use crate::utils::style::StaticCssExt;
     use awesome_gtk::widget::AwesomeWidgetTraverseExt;
-    use std::cell::RefCell;
+    use std::cell::{Cell, RefCell};
     use std::sync::OnceLock;
 
     #[derive(Default)]
@@ -23,6 +51,7 @@ mod imp {
         strength: gtk::Image,
         open: gtk::Image,
         record: RefCell<Option<RecordNode>>,
+        pub position: Cell<Option<u32>>,
         context_click: gtk::GestureClick,
     }
 
@@ -37,19 +66,25 @@ mod imp {
         fn constructed(&self) {
             self.parent_constructed();
 
-            let layout = gtk::ConstraintLayout::new();
-            self.obj().set_layout_manager(Some(layout.clone()));
+            let obj = self.obj();
 
-            self.icon.set_parent(&*self.obj());
+            obj.add_static_css(
+                include_str!("item.css"),
+                gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+            );
+            obj.add_css_class("ps-list-item");
+
+            self.icon.set_parent(&*obj);
             self.icon.set_icon_size(gtk::IconSize::Large);
 
-            self.name.set_parent(&*self.obj());
+            self.name.set_parent(&*obj);
             self.name.set_margin_top(0);
             self.name.set_halign(gtk::Align::Start);
 
-            self.strength.set_parent(&*self.obj());
-            self.open.set_parent(&*self.obj());
+            self.strength.set_parent(&*obj);
+            self.open.set_parent(&*obj);
 
+            let layout = gtk::ConstraintLayout::new();
             layout
                 .add_constraints_from_description(
                     [
@@ -69,12 +104,13 @@ mod imp {
                     ],
                 )
                 .expect("layout is ok");
+            obj.set_layout_manager(Some(layout));
 
             self.context_click.set_button(GDK_BUTTON_SECONDARY as u32);
             self.context_click.connect_pressed(
                 glib::clone!(@weak self as imp => move |_gesture, _n, x, y| imp.on_context_click(x, y)),
             );
-            self.obj().add_controller(self.context_click.clone());
+            obj.add_controller(self.context_click.clone());
 
             let open_click = gtk::GestureClick::builder()
                 .button(GDK_BUTTON_PRIMARY as u32)
@@ -87,15 +123,50 @@ mod imp {
                 }),
             );
             self.open.add_controller(open_click);
+
+            let drag_source = gtk::DragSource::builder()
+                .actions(gdk::DragAction::MOVE)
+                .build();
+            drag_source.connect_prepare(
+                glib::clone!(@weak self as imp => @default-return None, move |_source, _x, _y| imp.drag_prepare()),
+            );
+            drag_source.connect_drag_begin(glib::clone!(@weak self as imp => move |source, _drag| source.set_icon(imp.drag_begin().as_ref(), 0, 0)));
+            obj.add_controller(drag_source);
+
+            let drop_target =
+                gtk::DropTarget::new(RecordNode::static_type(), gdk::DragAction::MOVE);
+            drop_target.set_preload(true);
+            drop_target.connect_enter(
+                glib::clone!(@weak self as imp => @default-return gdk::DragAction::empty(), move |target, x, y| imp.drop_motion(target, x, y)),
+            );
+            drop_target.connect_motion(
+                glib::clone!(@weak self as imp => @default-return gdk::DragAction::empty(), move |target, x, y| imp.drop_motion(target, x, y)),
+            );
+            drop_target.connect_leave(
+                glib::clone!(@weak self as imp => move |_target| imp.set_drop_style(None)),
+            );
+            drop_target.connect_drop(
+                glib::clone!(@weak self as imp => @default-return false, move |_target, value, x, y| imp.drop(value, x, y)),
+            );
+            obj.add_controller(drop_target);
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
             static SIGNALS: OnceLock<Vec<glib::subclass::Signal>> = OnceLock::new();
             SIGNALS.get_or_init(|| {
-                vec![glib::subclass::Signal::builder("context-menu")
-                    .param_types([RecordNode::static_type()])
-                    .return_type::<Option<gio::MenuModel>>()
-                    .build()]
+                vec![
+                    glib::subclass::Signal::builder("context-menu")
+                        .param_types([RecordNode::static_type()])
+                        .return_type::<Option<gio::MenuModel>>()
+                        .build(),
+                    glib::subclass::Signal::builder("move-record")
+                        .param_types([
+                            RecordNode::static_type(),
+                            RecordNode::static_type(),
+                            i8::static_type(),
+                        ])
+                        .build(),
+                ]
             })
         }
 
@@ -182,6 +253,84 @@ mod imp {
         fn root_window(&self) -> Option<gtk::Window> {
             self.obj().root().and_downcast::<gtk::Window>()
         }
+
+        fn drag_prepare(&self) -> Option<gdk::ContentProvider> {
+            let record_ref = self.record.borrow();
+            let value = record_ref.as_ref()?.to_value();
+            Some(gdk::ContentProvider::for_value(&value))
+        }
+
+        fn drag_begin(&self) -> Option<gdk::Paintable> {
+            let obj = self.obj();
+            let paintable = gtk::WidgetPaintable::new(Some(&*obj));
+            let paintable = PSBackgroundPaintable::new(paintable);
+            Some(paintable.upcast())
+        }
+
+        fn drop_motion(&self, target: &gtk::DropTarget, x: f64, y: f64) -> gdk::DragAction {
+            let Some(value) = target.value() else {
+                return gdk::DragAction::empty();
+            };
+            match self.drop_result(&value, x, y) {
+                Some(move_record) => {
+                    self.set_drop_style(Some(move_record.option));
+                    gdk::DragAction::MOVE
+                }
+                None => {
+                    self.set_drop_style(None);
+                    gdk::DragAction::empty()
+                }
+            }
+        }
+
+        fn drop_result(&self, value: &glib::Value, _x: f64, y: f64) -> Option<MoveRecord> {
+            let src = value.get::<RecordNode>().ok()?;
+
+            let record_ref = self.record.borrow();
+            let dst = record_ref.as_ref()?;
+            if src == *dst {
+                return None;
+            }
+
+            let height = f64::from(self.obj().height());
+            let option = if dst.record().record_type.is_group {
+                if y < height / 3.0 && self.position.get() == Some(0) {
+                    DropOption::Above
+                } else if y < height * 2.0 / 3.0 {
+                    DropOption::Into
+                } else {
+                    DropOption::Below
+                }
+            } else {
+                if y < height / 2.0 && self.position.get() == Some(0) {
+                    DropOption::Above
+                } else {
+                    DropOption::Below
+                }
+            };
+
+            Some(MoveRecord {
+                src,
+                dst: dst.clone(),
+                option,
+            })
+        }
+
+        fn set_drop_style(&self, drop_option: Option<DropOption>) {
+            self.obj()
+                .set_css_class("drop-above", drop_option == Some(DropOption::Above));
+            self.obj()
+                .set_css_class("drop-below", drop_option == Some(DropOption::Below));
+            self.obj()
+                .set_css_class("drop-into", drop_option == Some(DropOption::Into));
+        }
+
+        fn drop(&self, value: &glib::Value, x: f64, y: f64) -> bool {
+            if let Some(move_record) = self.drop_result(value, x, y) {
+                self.obj().emit_move_record(move_record);
+            }
+            false
+        }
     }
 }
 
@@ -197,8 +346,10 @@ impl Default for PSRecordViewItem {
 }
 
 impl PSRecordViewItem {
-    pub fn set_record_node(&self, record_node: Option<RecordNode>) {
+    pub fn set_record_node(&self, record_node: Option<(RecordNode, u32)>) {
+        let (record_node, position) = record_node.unzip();
         self.imp().set_record_node(record_node);
+        self.imp().position.set(position);
     }
 
     pub fn connect_context_menu<F>(&self, f: F) -> glib::signal::SignalHandlerId
@@ -210,6 +361,30 @@ impl PSRecordViewItem {
             false,
             glib::closure_local!(move |_self: &Self, node: &RecordNode| (f)(node)),
         )
+    }
+
+    pub fn connect_move_record<F>(&self, f: F) -> glib::signal::SignalHandlerId
+    where
+        F: Fn(&Self, &RecordNode, &RecordNode, DropOption) + 'static,
+    {
+        self.connect_closure(
+            "move-record",
+            false,
+            glib::closure_local!(move |cell: &Self,
+                                       src: &RecordNode,
+                                       dst: &RecordNode,
+                                       option: i8| {
+                (f)(cell, src, dst, option.into());
+            }),
+        )
+    }
+
+    fn emit_move_record(&self, move_record: MoveRecord) {
+        let drop_option = move_record.option as i8;
+        self.emit_by_name::<()>(
+            "move-record",
+            &[&move_record.src, &move_record.dst, &drop_option],
+        );
     }
 }
 

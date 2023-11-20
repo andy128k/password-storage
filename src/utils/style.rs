@@ -26,3 +26,17 @@ impl<W: glib::IsA<gtk::Widget>> StaticCssExt for W {
         });
     }
 }
+
+pub trait PSStyleContextExt {
+    fn set_css_class(&self, class_name: &str, set: bool);
+}
+
+impl<O: glib::IsA<gtk::Widget>> PSStyleContextExt for O {
+    fn set_css_class(&self, class_name: &str, set: bool) {
+        if set {
+            self.add_css_class(class_name);
+        } else {
+            self.remove_css_class(class_name);
+        }
+    }
+}

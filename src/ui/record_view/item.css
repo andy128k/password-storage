@@ -1,0 +1,10 @@
+.ps-list-item.drop-above:drop(active) {
+  box-shadow: inset 0 2px 0 0 #08c;
+}
+.ps-list-item.drop-into:drop(active) {
+  box-shadow: inset 0 0 0 0 #08c;
+  background-color: #5ac;
+}
+.ps-list-item.drop-below:drop(active) {
+  box-shadow: inset 0 -2px 0 0 #08c;
+}

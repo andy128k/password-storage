@@ -26,6 +26,7 @@ mod imp {
     use crate::model::record::RECORD_TYPES;
     use crate::primary_accel;
     use crate::ui::record_type_popover::RecordTypePopoverBuilder;
+    use crate::ui::record_view::item::DropOption;
     use crate::utils::typed_list_store::TypedListStore;
     use crate::utils::ui::{action_button, action_popover_button};
     use std::cell::RefCell;
@@ -154,6 +155,7 @@ mod imp {
                         imp.go_up().await
                     });
                 }));
+            self.view.connect_move_record(glib::clone!(@weak self as imp => move |_, src, dst, opt| imp.move_record(src, dst, opt)));
 
             self.set_view_model(&self.file.borrow().records);
 
@@ -253,6 +255,31 @@ mod imp {
             } else {
                 self.obj().emit_edit_record(position, &record);
             }
+        }
+
+        fn move_record(&self, src: &RecordNode, dst: &RecordNode, option: DropOption) {
+            let Some(src_pos) = self.current_records.borrow().iter().position(|r| r == *src) else {
+                return;
+            };
+            self.current_records.borrow().remove(src_pos as u32);
+
+            let dst_pos = self.current_records.borrow().iter().position(|r| r == *dst);
+            match option {
+                DropOption::Above => {
+                    self.current_records
+                        .borrow()
+                        .insert(dst_pos.unwrap_or(0), src);
+                }
+                DropOption::Below => {
+                    self.current_records
+                        .borrow()
+                        .insert(dst_pos.map(|p| p + 1), src);
+                }
+                DropOption::Into => {
+                    self.obj().append_records_to(Some(dst), &[src.clone()]);
+                }
+            }
+            self.obj().emit_file_changed();
         }
     }
 }
