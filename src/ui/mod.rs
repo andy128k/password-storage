@@ -15,6 +15,7 @@ pub mod nav_bar;
 pub mod open_file;
 pub mod password_editor;
 pub mod password_strength_bar;
+pub mod record_context_menu;
 pub mod record_type_popover;
 pub mod record_view;
 pub mod search;
