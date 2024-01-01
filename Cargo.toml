@@ -30,7 +30,7 @@ awesome-gtk = "0.3"
 glib-build-tools = "0.18"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
-winres = "0.1"
+embed-resource = "2"
 
 [profile.release]
 strip = true
