@@ -74,37 +74,26 @@ mod imp {
             );
             obj.add_css_class("ps-list-item");
 
+            let layout = gtk::BoxLayout::builder()
+                .orientation(gtk::Orientation::Horizontal)
+                .spacing(4)
+                .build();
+            obj.set_layout_manager(Some(layout));
+
+            self.icon.set_width_request(30);
             self.icon.set_parent(&*obj);
             self.icon.set_icon_size(gtk::IconSize::Large);
 
             self.name.set_parent(&*obj);
+            self.name.set_hexpand(true);
             self.name.set_margin_top(0);
             self.name.set_halign(gtk::Align::Start);
 
+            self.strength.set_width_request(50);
             self.strength.set_parent(&*obj);
-            self.open.set_parent(&*obj);
 
-            let layout = gtk::ConstraintLayout::new();
-            layout
-                .add_constraints_from_description(
-                    [
-                        "H:|-[icon(==30)]-[name]-[strength(==50)]-[share(==50)]-|",
-                        "V:|-[icon]-|",
-                        "V:|-[name]-|",
-                        "V:|-[strength]-|",
-                        "V:|-[share]-|",
-                    ],
-                    4,
-                    0,
-                    [
-                        ("icon", self.icon.upcast_ref::<gtk::Widget>()),
-                        ("name", self.name.upcast_ref()),
-                        ("strength", self.strength.upcast_ref()),
-                        ("share", self.open.upcast_ref()),
-                    ],
-                )
-                .expect("layout is ok");
-            obj.set_layout_manager(Some(layout));
+            self.open.set_width_request(50);
+            self.open.set_parent(&*obj);
 
             self.context_click.set_button(GDK_BUTTON_SECONDARY as u32);
             self.context_click.connect_pressed(
