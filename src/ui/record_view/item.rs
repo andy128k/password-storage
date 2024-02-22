@@ -18,12 +18,11 @@ pub enum DropOption {
 
 impl From<i8> for DropOption {
     fn from(value: i8) -> Self {
-        if value < 0 {
-            Self::Above
-        } else if value == 0 {
-            Self::Into
-        } else {
-            Self::Below
+        use std::cmp::Ordering::*;
+        match value.cmp(&0) {
+            Less => Self::Above,
+            Equal => Self::Into,
+            Greater => Self::Below,
         }
     }
 }

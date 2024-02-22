@@ -187,10 +187,9 @@ mod imp {
         }
 
         pub fn grab_focus_to_editor(&self) {
-            self.form
-                .borrow()
-                .as_ref()
-                .map(|w| w.grab_focus_to_editor());
+            if let Some(w) = self.form.borrow().as_ref() {
+                w.grab_focus_to_editor()
+            }
         }
     }
 }
