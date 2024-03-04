@@ -7,8 +7,7 @@ use std::error::Error;
 
 mod imp {
     use super::*;
-    use crate::utils::ui::{hexpander, vexpander};
-    use awesome_gtk::widget::AwesomeWidgetTraverseExt;
+    use crate::utils::ui::{hexpander, orphan_all_children, vexpander};
 
     pub struct OpenFile {
         pub entry: gtk::Entry,
@@ -146,9 +145,7 @@ mod imp {
         }
 
         fn dispose(&self) {
-            for child in self.obj().children() {
-                child.unparent();
-            }
+            orphan_all_children(&*self.obj());
         }
     }
 

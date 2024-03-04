@@ -1,11 +1,11 @@
 use gtk::{glib, glib::prelude::*};
 use std::cell::RefCell;
 
-pub struct WeakMap<K: Copy, V: glib::ObjectType> {
+pub struct WeakMap<K: Copy, V: ObjectType> {
     mappings: RefCell<Vec<(K, glib::WeakRef<V>)>>,
 }
 
-impl<K: Copy, V: glib::ObjectType> Default for WeakMap<K, V> {
+impl<K: Copy, V: ObjectType> Default for WeakMap<K, V> {
     fn default() -> Self {
         Self {
             mappings: Default::default(),
@@ -13,7 +13,7 @@ impl<K: Copy, V: glib::ObjectType> Default for WeakMap<K, V> {
     }
 }
 
-impl<K: Copy + PartialEq, V: glib::ObjectType> WeakMap<K, V> {
+impl<K: Copy + PartialEq, V: ObjectType> WeakMap<K, V> {
     pub fn add(&self, key: K, value: &V) {
         self.clean_expired();
         let position = self

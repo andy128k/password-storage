@@ -7,6 +7,7 @@ mod imp {
     use crate::ui::forms::entry::*;
     use crate::ui::forms::multiline::*;
     use crate::ui::password_editor::PasswordEditor;
+    use crate::utils::ui::orphan_all_children;
     use std::cell::OnceCell;
     use std::sync::OnceLock;
 
@@ -55,9 +56,7 @@ mod imp {
         }
 
         fn dispose(&self) {
-            while let Some(child) = self.obj().first_child() {
-                child.unparent();
-            }
+            orphan_all_children(&*self.obj());
         }
     }
 

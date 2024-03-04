@@ -19,7 +19,7 @@ pub trait StaticCssExt {
     fn add_static_css(&self, css: &'static str, priority: u32);
 }
 
-impl<W: glib::IsA<gtk::Widget>> StaticCssExt for W {
+impl<W: IsA<gtk::Widget>> StaticCssExt for W {
     fn add_static_css(&self, css: &'static str, priority: u32) {
         self.connect_realize(move |this| {
             add_static_css(&this.display(), css, priority);
@@ -31,7 +31,7 @@ pub trait PSStyleContextExt {
     fn set_css_class(&self, class_name: &str, set: bool);
 }
 
-impl<O: glib::IsA<gtk::Widget>> PSStyleContextExt for O {
+impl<O: IsA<gtk::Widget>> PSStyleContextExt for O {
     fn set_css_class(&self, class_name: &str, set: bool) {
         if set {
             self.add_css_class(class_name);

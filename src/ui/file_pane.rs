@@ -27,7 +27,7 @@ mod imp {
     use crate::ui::record_type_popover::RecordTypePopoverBuilder;
     use crate::ui::record_view::item::DropOption;
     use crate::utils::typed_list_store::TypedListStore;
-    use crate::utils::ui::{action_button, action_popover_button};
+    use crate::utils::ui::{action_button, action_popover_button, orphan_all_children};
     use std::cell::RefCell;
     use std::sync::OnceLock;
 
@@ -195,9 +195,7 @@ mod imp {
         }
 
         fn dispose(&self) {
-            while let Some(child) = self.obj().first_child() {
-                child.unparent();
-            }
+            orphan_all_children(&*self.obj());
         }
     }
 

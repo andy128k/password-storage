@@ -6,14 +6,14 @@ pub trait ListModelImmutableExt {
     fn last(&self) -> Option<glib::Object>;
     fn sliced(&self, range: impl RangeBounds<u32>) -> gio::ListStore;
 
-    fn appended<T: glib::IsA<glib::Object>>(&self, new_item: &T) -> gio::ListStore {
+    fn appended<T: IsA<glib::Object>>(&self, new_item: &T) -> gio::ListStore {
         let result = self.sliced(..);
         result.append(new_item);
         result
     }
 }
 
-impl<T: glib::IsA<gio::ListModel>> ListModelImmutableExt for T {
+impl<T: IsA<gio::ListModel>> ListModelImmutableExt for T {
     fn first(&self) -> Option<glib::Object> {
         let size = self.n_items();
         if size > 0 {

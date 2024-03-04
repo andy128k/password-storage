@@ -52,7 +52,7 @@ glib::wrapper! {
 }
 
 impl PSBackgroundPaintable {
-    pub fn new(next: impl glib::IsA<gdk::Paintable>) -> Self {
+    pub fn new(next: impl IsA<gdk::Paintable>) -> Self {
         let obj: Self = glib::Object::builder().build();
         obj.imp().next.set(next.upcast()).unwrap();
         obj

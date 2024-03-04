@@ -8,7 +8,7 @@ use gtk::{gio, glib, prelude::*};
 
 use super::list_item_factory::PSListItemFactory;
 
-pub fn singleton_list(item: &impl glib::IsA<glib::Object>) -> gio::ListStore {
+pub fn singleton_list(item: &impl IsA<glib::Object>) -> gio::ListStore {
     let list = gio::ListStore::with_type(item.type_());
     list.append(item);
     list

@@ -6,7 +6,7 @@ use gtk::{gdk, gio, glib, prelude::*, subclass::prelude::*};
 mod imp {
     use super::*;
     use crate::ui::record_view::item::PSRecordViewItem;
-    use crate::utils::ui::scrolled;
+    use crate::utils::ui::{orphan_all_children, scrolled};
     use crate::weak_map::WeakMap;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -112,9 +112,7 @@ mod imp {
         }
 
         fn dispose(&self) {
-            while let Some(child) = self.obj().first_child() {
-                child.unparent();
-            }
+            orphan_all_children(&*self.obj());
         }
     }
 

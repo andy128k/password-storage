@@ -4,7 +4,7 @@ use crate::ui::accel_label::AccelLabel;
 use gtk::{gdk, glib, prelude::*};
 
 pub fn shortcuts_window(
-    parent: Option<&impl glib::IsA<gtk::Window>>,
+    parent: Option<&impl IsA<gtk::Window>>,
     shortcuts: &[ShortcutGroup<'static>],
 ) -> gtk::Window {
     let window = gtk::Window::builder()

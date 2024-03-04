@@ -33,6 +33,12 @@ impl PSWidgetLookupExt for Option<gtk::Widget> {
     }
 }
 
+pub fn orphan_all_children(widget: &impl IsA<gtk::Widget>) {
+    while let Some(child) = widget.first_child() {
+        child.unparent();
+    }
+}
+
 pub fn centered<W: IsA<gtk::Widget>>(widget: &W) -> gtk::Widget {
     widget.set_hexpand(true);
     widget.set_halign(gtk::Align::Center);

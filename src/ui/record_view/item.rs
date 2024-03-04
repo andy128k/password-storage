@@ -39,7 +39,7 @@ mod imp {
     use crate::ui::dialogs::show_uri::show_uri;
     use crate::ui::record_view::compose_paintable::PSBackgroundPaintable;
     use crate::utils::style::StaticCssExt;
-    use awesome_gtk::widget::AwesomeWidgetTraverseExt;
+    use crate::utils::ui::orphan_all_children;
     use std::cell::{Cell, RefCell};
     use std::sync::OnceLock;
 
@@ -159,9 +159,7 @@ mod imp {
         }
 
         fn dispose(&self) {
-            for child in self.obj().children() {
-                child.unparent();
-            }
+            orphan_all_children(&*self.obj());
         }
     }
 

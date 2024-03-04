@@ -4,6 +4,7 @@ use gtk::{glib, prelude::*, subclass::prelude::*};
 
 mod imp {
     use super::*;
+    use crate::utils::ui::orphan_all_children;
 
     #[derive(Default)]
     pub struct PasswordStrengthBar {
@@ -43,9 +44,7 @@ mod imp {
         }
 
         fn dispose(&self) {
-            while let Some(child) = self.obj().first_child() {
-                child.unparent();
-            }
+            orphan_all_children(&*self.obj());
         }
     }
 

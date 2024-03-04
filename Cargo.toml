@@ -10,7 +10,7 @@ readme = "README.md"
 
 [dependencies]
 futures = "0.3"
-os_str_bytes = { version = "6", features = ["conversions"] }
+os_str_bytes = { version = "7", features = ["conversions"] }
 
 rand = "0.8"
 aes = "0.8"
@@ -22,12 +22,12 @@ quick-xml = "0.31"
 toml = "0.8"
 serde = { version = "1", features = ["derive"] }
 
-gtk = { package = "gtk4", version = "0.7", features = ["v4_12"] }
-awesome-glib = "0.3"
-awesome-gtk = "0.3"
+gtk = { package = "gtk4", version = "0.8", features = ["v4_12"] }
+awesome-glib = "0.4"
+awesome-gtk = "0.4"
 
 [build-dependencies]
-glib-build-tools = "0.18"
+glib-build-tools = "0.19"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
 embed-resource = "2"

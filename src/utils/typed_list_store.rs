@@ -7,7 +7,7 @@ pub struct TypedListStore<T>(gio::ListStore, PhantomData<T>);
 
 impl<T> TypedListStore<T>
 where
-    T: glib::IsA<glib::Object>,
+    T: IsA<glib::Object>,
 {
     pub fn from_untyped(list: gio::ListStore) -> Self {
         Self(list, PhantomData)
@@ -165,7 +165,7 @@ where
 
 impl<T> std::default::Default for TypedListStore<T>
 where
-    T: glib::IsA<glib::Object>,
+    T: IsA<glib::Object>,
 {
     fn default() -> Self {
         Self::new()
@@ -179,7 +179,7 @@ pub struct ListStoreIterator<T> {
 
 impl<T> std::iter::Iterator for ListStoreIterator<T>
 where
-    T: glib::IsA<glib::Object>,
+    T: IsA<glib::Object>,
 {
     type Item = T;
 
@@ -194,7 +194,7 @@ where
 
 impl<T> std::iter::IntoIterator for &TypedListStore<T>
 where
-    T: glib::IsA<glib::Object>,
+    T: IsA<glib::Object>,
 {
     type Item = T;
     type IntoIter = ListStoreIterator<T>;
@@ -206,7 +206,7 @@ where
 
 impl<T> std::iter::FromIterator<T> for TypedListStore<T>
 where
-    T: glib::IsA<glib::Object>,
+    T: IsA<glib::Object>,
 {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let list = TypedListStore::new();
@@ -219,7 +219,7 @@ where
 
 impl<T> std::cmp::PartialEq for TypedListStore<T>
 where
-    T: glib::IsA<glib::Object> + PartialEq,
+    T: IsA<glib::Object> + PartialEq,
 {
     fn eq(&self, other: &TypedListStore<T>) -> bool {
         let len = self.len();

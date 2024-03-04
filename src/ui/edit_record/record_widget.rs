@@ -5,9 +5,9 @@ use gtk::{glib, prelude::*, subclass::prelude::*};
 use std::cell::RefCell;
 
 mod imp {
-    use crate::ui::dialogs::show_uri::show_uri;
-
     use super::*;
+    use crate::ui::dialogs::show_uri::show_uri;
+    use crate::utils::ui::orphan_all_children;
     use std::sync::OnceLock;
 
     pub struct RecordWidget {
@@ -93,9 +93,7 @@ mod imp {
         }
 
         fn dispose(&self) {
-            while let Some(child) = self.obj().first_child() {
-                child.unparent();
-            }
+            orphan_all_children(&*self.obj());
         }
     }
 

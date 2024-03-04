@@ -5,6 +5,7 @@ mod imp {
     use crate::model::tree::RecordNode;
     use crate::ui::list_item_factory::PSListItemFactory;
     use crate::utils::grid_layout::PSGridLayoutExt;
+    use crate::utils::ui::orphan_all_children;
     use std::cell::Cell;
     use std::sync::OnceLock;
 
@@ -147,9 +148,7 @@ mod imp {
         }
 
         fn dispose(&self) {
-            while let Some(child) = self.obj().first_child() {
-                child.unparent();
-            }
+            orphan_all_children(&*self.obj());
             self.disconnect_model_change_handler();
         }
     }

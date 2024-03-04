@@ -1,11 +1,11 @@
-use gtk::{glib, prelude::*};
+use gtk::prelude::*;
 
 pub trait PSGridLayoutExt {
-    fn grid_attach(&self, child: &impl glib::IsA<gtk::Widget>) -> gtk::GridLayoutChild;
+    fn grid_attach(&self, child: &impl IsA<gtk::Widget>) -> gtk::GridLayoutChild;
 }
 
-impl<T: glib::IsA<gtk::Widget>> PSGridLayoutExt for T {
-    fn grid_attach(&self, child: &impl glib::IsA<gtk::Widget>) -> gtk::GridLayoutChild {
+impl<T: IsA<gtk::Widget>> PSGridLayoutExt for T {
+    fn grid_attach(&self, child: &impl IsA<gtk::Widget>) -> gtk::GridLayoutChild {
         child.set_parent(self);
         self.layout_manager()
             .and_downcast::<gtk::GridLayout>()
