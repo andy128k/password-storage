@@ -1,5 +1,5 @@
+use super::has_record::{HasRecord, PSRecordViewOptions};
 use crate::entropy::PasswordStrength;
-use crate::model::tree::RecordNode;
 use crate::utils::style::PSStyleContextExt;
 use gtk::{
     gdk,
@@ -28,8 +28,8 @@ impl From<i8> for DropOption {
 }
 
 pub struct MoveRecord {
-    pub src: RecordNode,
-    pub dst: RecordNode,
+    pub src: glib::Object,
+    pub dst: glib::Object,
     pub option: DropOption,
 }
 
@@ -40,7 +40,7 @@ mod imp {
     use crate::ui::record_view::compose_paintable::PSBackgroundPaintable;
     use crate::utils::style::StaticCssExt;
     use crate::utils::ui::orphan_all_children;
-    use std::cell::{Cell, RefCell};
+    use std::cell::{Cell, OnceCell, RefCell};
     use std::sync::OnceLock;
 
     #[derive(Default)]
@@ -49,7 +49,8 @@ mod imp {
         name: gtk::Label,
         strength: gtk::Image,
         open: gtk::Image,
-        record: RefCell<Option<RecordNode>>,
+        record: RefCell<Option<glib::Object>>,
+        pub has_record: OnceCell<&'static dyn HasRecord>,
         pub position: Cell<Option<u32>>,
         context_click: gtk::GestureClick,
     }
@@ -111,32 +112,6 @@ mod imp {
                 }),
             );
             self.open.add_controller(open_click);
-
-            let drag_source = gtk::DragSource::builder()
-                .actions(gdk::DragAction::MOVE)
-                .build();
-            drag_source.connect_prepare(
-                glib::clone!(@weak self as imp => @default-return None, move |_source, _x, _y| imp.drag_prepare()),
-            );
-            drag_source.connect_drag_begin(glib::clone!(@weak self as imp => move |source, _drag| source.set_icon(imp.drag_begin().as_ref(), 0, 0)));
-            obj.add_controller(drag_source);
-
-            let drop_target =
-                gtk::DropTarget::new(RecordNode::static_type(), gdk::DragAction::MOVE);
-            drop_target.set_preload(true);
-            drop_target.connect_enter(
-                glib::clone!(@weak self as imp => @default-return gdk::DragAction::empty(), move |target, x, y| imp.drop_motion(target, x, y)),
-            );
-            drop_target.connect_motion(
-                glib::clone!(@weak self as imp => @default-return gdk::DragAction::empty(), move |target, x, y| imp.drop_motion(target, x, y)),
-            );
-            drop_target.connect_leave(
-                glib::clone!(@weak self as imp => move |_target| imp.set_drop_style(None)),
-            );
-            drop_target.connect_drop(
-                glib::clone!(@weak self as imp => @default-return false, move |_target, value, x, y| imp.drop(value, x, y)),
-            );
-            obj.add_controller(drop_target);
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
@@ -144,13 +119,13 @@ mod imp {
             SIGNALS.get_or_init(|| {
                 vec![
                     glib::subclass::Signal::builder("context-menu")
-                        .param_types([RecordNode::static_type()])
+                        .param_types([glib::Object::static_type()])
                         .return_type::<Option<gio::MenuModel>>()
                         .build(),
                     glib::subclass::Signal::builder("move-record")
                         .param_types([
-                            RecordNode::static_type(),
-                            RecordNode::static_type(),
+                            glib::Object::static_type(),
+                            glib::Object::static_type(),
                             i8::static_type(),
                         ])
                         .build(),
@@ -166,9 +141,41 @@ mod imp {
     impl WidgetImpl for PSRecordViewItem {}
 
     impl PSRecordViewItem {
-        pub fn set_record_node(&self, record_node: Option<RecordNode>) {
+        fn record_type(&self) -> &'static dyn HasRecord {
+            *self.has_record.get().unwrap()
+        }
+
+        pub fn setup_drag_and_drop(&self) {
+            let drag_source = gtk::DragSource::builder()
+                .actions(gdk::DragAction::MOVE)
+                .build();
+            drag_source.connect_prepare(
+                glib::clone!(@weak self as imp => @default-return None, move |_source, _x, _y| imp.drag_prepare()),
+            );
+            drag_source.connect_drag_begin(glib::clone!(@weak self as imp => move |source, _drag| source.set_icon(imp.drag_begin().as_ref(), 0, 0)));
+            self.obj().add_controller(drag_source);
+
+            let drop_target =
+                gtk::DropTarget::new(self.record_type().get_type(), gdk::DragAction::MOVE);
+            drop_target.set_preload(true);
+            drop_target.connect_enter(
+                glib::clone!(@weak self as imp => @default-return gdk::DragAction::empty(), move |target, x, y| imp.drop_motion(target, x, y)),
+            );
+            drop_target.connect_motion(
+                glib::clone!(@weak self as imp => @default-return gdk::DragAction::empty(), move |target, x, y| imp.drop_motion(target, x, y)),
+            );
+            drop_target.connect_leave(
+                glib::clone!(@weak self as imp => move |_target| imp.set_drop_style(None)),
+            );
+            drop_target.connect_drop(
+                glib::clone!(@weak self as imp => @default-return false, move |_target, value, x, y| imp.drop(value, x, y)),
+            );
+            self.obj().add_controller(drop_target);
+        }
+
+        pub fn set_record_node(&self, record_node: Option<glib::Object>) {
             if let Some(ref record_node) = record_node {
-                let record = record_node.record();
+                let record = self.record_type().get_record(record_node);
 
                 self.icon.set_icon_name(Some(record.record_type.icon));
 
@@ -197,7 +204,7 @@ mod imp {
             *self.record.borrow_mut() = record_node;
         }
 
-        fn emit_context_menu(&self, record_node: &RecordNode) -> Option<gio::MenuModel> {
+        fn emit_context_menu(&self, record_node: &glib::Object) -> Option<gio::MenuModel> {
             self.obj()
                 .emit_by_name::<Option<gio::MenuModel>>("context-menu", &[record_node])
         }
@@ -224,7 +231,7 @@ mod imp {
 
         fn record_url(&self) -> Option<String> {
             let record = self.record.borrow();
-            let url = record.as_ref()?.record().url()?;
+            let url = self.record_type().get_record(record.as_ref()?).url()?;
             Some(url.to_string())
         }
 
@@ -270,7 +277,7 @@ mod imp {
         }
 
         fn drop_result(&self, value: &glib::Value, _x: f64, y: f64) -> Option<MoveRecord> {
-            let src = value.get::<RecordNode>().ok()?;
+            let src = value.get::<glib::Object>().ok()?;
 
             let record_ref = self.record.borrow();
             let dst = record_ref.as_ref()?;
@@ -279,7 +286,7 @@ mod imp {
             }
 
             let height = f64::from(self.obj().height());
-            let option = if dst.record().record_type.is_group {
+            let option = if self.record_type().get_record(dst).record_type.is_group {
                 if y < height / 3.0 && self.position.get() == Some(0) {
                     DropOption::Above
                 } else if y < height * 2.0 / 3.0 {
@@ -325,14 +332,17 @@ glib::wrapper! {
         @extends gtk::Widget;
 }
 
-impl Default for PSRecordViewItem {
-    fn default() -> Self {
-        glib::Object::builder().build()
-    }
-}
-
 impl PSRecordViewItem {
-    pub fn set_record_node(&self, record_node: Option<(RecordNode, u32)>) {
+    pub fn new(options: PSRecordViewOptions) -> Self {
+        let obj: Self = glib::Object::builder().build();
+        obj.imp().has_record.set(options.has_record).ok().unwrap();
+        if options.drag_and_drop {
+            obj.imp().setup_drag_and_drop();
+        }
+        obj
+    }
+
+    pub fn set_record_node(&self, record_node: Option<(glib::Object, u32)>) {
         let (record_node, position) = record_node.unzip();
         self.imp().set_record_node(record_node);
         self.imp().position.set(position);
@@ -340,25 +350,25 @@ impl PSRecordViewItem {
 
     pub fn connect_context_menu<F>(&self, f: F) -> glib::signal::SignalHandlerId
     where
-        F: Fn(&RecordNode) -> Option<gio::MenuModel> + 'static,
+        F: Fn(&glib::Object) -> Option<gio::MenuModel> + 'static,
     {
         self.connect_closure(
             "context-menu",
             false,
-            glib::closure_local!(move |_self: &Self, node: &RecordNode| (f)(node)),
+            glib::closure_local!(move |_self: &Self, node: &glib::Object| (f)(node)),
         )
     }
 
     pub fn connect_move_record<F>(&self, f: F) -> glib::signal::SignalHandlerId
     where
-        F: Fn(&Self, &RecordNode, &RecordNode, DropOption) + 'static,
+        F: Fn(&Self, &glib::Object, &glib::Object, DropOption) + 'static,
     {
         self.connect_closure(
             "move-record",
             false,
             glib::closure_local!(move |cell: &Self,
-                                       src: &RecordNode,
-                                       dst: &RecordNode,
+                                       src: &glib::Object,
+                                       dst: &glib::Object,
                                        option: i8| {
                 (f)(cell, src, dst, option.into());
             }),

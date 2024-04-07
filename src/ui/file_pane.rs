@@ -25,13 +25,13 @@ mod imp {
     use crate::primary_accel;
     use crate::ui::record_context_menu::record_context_menu;
     use crate::ui::record_type_popover::RecordTypePopoverBuilder;
+    use crate::ui::record_view::has_record::{PSRecordViewOptions, RECORD_NODE_HAS_RECORD};
     use crate::ui::record_view::item::DropOption;
     use crate::utils::typed_list_store::TypedListStore;
     use crate::utils::ui::{action_button, action_popover_button, orphan_all_children};
     use std::cell::RefCell;
     use std::sync::OnceLock;
 
-    #[derive(Default)]
     pub struct FilePane {
         pub nav_bar: PSNavBar,
         pub view: PSRecordView,
@@ -65,6 +65,19 @@ mod imp {
             klass.install_action_async(ACTION_MERGE, None, |obj, _, _| async move {
                 obj.action_merge().await;
             });
+        }
+
+        fn new() -> Self {
+            Self {
+                nav_bar: Default::default(),
+                view: PSRecordView::new(PSRecordViewOptions {
+                    has_record: RECORD_NODE_HAS_RECORD,
+                    drag_and_drop: true,
+                }),
+                file: Default::default(),
+                current_path: Default::default(),
+                current_records: Default::default(),
+            }
         }
     }
 
@@ -154,7 +167,11 @@ mod imp {
                         imp.go_up().await
                     });
                 }));
-            self.view.connect_move_record(glib::clone!(@weak self as imp => move |_, src, dst, opt| imp.move_record(src, dst, opt)));
+            self.view.connect_move_record(
+                glib::clone!(@weak self as imp => move |_, src, dst, opt| {
+                    imp.move_record(src.downcast_ref().unwrap(), dst.downcast_ref().unwrap(), opt);
+                }),
+            );
 
             self.set_view_model(&self.file.borrow().records);
 
@@ -310,6 +327,10 @@ impl FilePane {
         self.selection_changed(gtk::Bitset::new_empty());
         self.grab_focus_to_view();
     }
+
+    // pub async fn reset(&self) {
+    //     self.set_model(Default::default()).await;
+    // }
 
     fn get_record(&self, position: u32) -> Option<RecordNode> {
         self.imp().current_records.borrow().get(position)

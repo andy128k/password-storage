@@ -18,5 +18,6 @@ pub mod password_strength_bar;
 pub mod record_context_menu;
 pub mod record_type_popover;
 pub mod record_view;
-pub mod search;
+pub mod search_bar;
+pub mod search_pane;
 pub mod toast;

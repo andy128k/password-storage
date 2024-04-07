@@ -1,5 +1,5 @@
+use super::has_record::PSRecordViewOptions;
 use super::item::DropOption;
-use crate::model::tree::RecordNode;
 use crate::utils::ui::pending;
 use gtk::{gdk, gio, glib, prelude::*, subclass::prelude::*};
 
@@ -8,7 +8,7 @@ mod imp {
     use crate::ui::record_view::item::PSRecordViewItem;
     use crate::utils::ui::{orphan_all_children, scrolled};
     use crate::weak_map::WeakMap;
-    use std::cell::RefCell;
+    use std::cell::{OnceCell, RefCell};
     use std::rc::Rc;
     use std::sync::OnceLock;
 
@@ -19,6 +19,7 @@ mod imp {
     pub const SIGNAL_MOVE_RECORD: &str = "ps-record-move";
 
     pub struct PSRecordView {
+        pub options: OnceCell<PSRecordViewOptions>,
         pub list_view: gtk::ListView,
         pub selection: gtk::MultiSelection,
         pub popup_model: Rc<RefCell<Option<gio::MenuModel>>>,
@@ -33,6 +34,7 @@ mod imp {
 
         fn new() -> Self {
             Self {
+                options: Default::default(),
                 list_view: Default::default(),
                 selection: gtk::MultiSelection::new(None::<gio::ListModel>),
                 popup_model: Default::default(),
@@ -102,8 +104,8 @@ mod imp {
                         .build(),
                     glib::subclass::Signal::builder(SIGNAL_MOVE_RECORD)
                         .param_types([
-                            RecordNode::static_type(),
-                            RecordNode::static_type(),
+                            glib::Object::static_type(),
+                            glib::Object::static_type(),
                             i8::static_type(),
                         ])
                         .build(),
@@ -131,7 +133,7 @@ mod imp {
             let Some(list_item) = item.downcast_ref::<gtk::ListItem>() else {
                 return;
             };
-            let child = PSRecordViewItem::default();
+            let child = PSRecordViewItem::new(*self.options.get().unwrap());
             let popup_model = self.popup_model.clone();
             child.connect_context_menu(move |_record| popup_model.borrow().clone());
             let obj = self.obj();
@@ -146,7 +148,7 @@ mod imp {
             let Some(child) = list_item.child().and_downcast::<PSRecordViewItem>() else {
                 return;
             };
-            let Some(record_node) = list_item.item().and_downcast::<RecordNode>() else {
+            let Some(record_node) = list_item.item() else {
                 return;
             };
             let position = list_item.position();
@@ -185,13 +187,13 @@ glib::wrapper! {
         @extends gtk::Widget;
 }
 
-impl Default for PSRecordView {
-    fn default() -> Self {
-        glib::Object::builder().build()
-    }
-}
-
 impl PSRecordView {
+    pub fn new(options: PSRecordViewOptions) -> Self {
+        let obj: Self = glib::Object::builder().build();
+        obj.imp().options.set(options).ok().unwrap();
+        obj
+    }
+
     pub fn set_model(&self, model: &gio::ListModel) {
         self.imp().selection.set_model(Some(model));
     }
@@ -335,21 +337,21 @@ impl PSRecordView {
 
     pub fn connect_move_record<F>(&self, f: F) -> glib::signal::SignalHandlerId
     where
-        F: Fn(&Self, &RecordNode, &RecordNode, DropOption) + 'static,
+        F: Fn(&Self, &glib::Object, &glib::Object, DropOption) + 'static,
     {
         self.connect_closure(
             imp::SIGNAL_MOVE_RECORD,
             false,
             glib::closure_local!(move |cell: &Self,
-                                       src: &RecordNode,
-                                       dst: &RecordNode,
+                                       src: &glib::Object,
+                                       dst: &glib::Object,
                                        option: i8| {
                 (f)(cell, src, dst, option.into());
             }),
         )
     }
 
-    fn emit_move_record(&self, src: &RecordNode, dst: &RecordNode, option: DropOption) {
+    fn emit_move_record(&self, src: &glib::Object, dst: &glib::Object, option: DropOption) {
         let drop_option = option as i8;
         self.emit_by_name::<()>(imp::SIGNAL_MOVE_RECORD, &[&src, &dst, &drop_option]);
     }

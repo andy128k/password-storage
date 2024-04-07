@@ -213,6 +213,19 @@ impl PSSearchBar {
             }),
         )
     }
+
+    pub fn connect_search_closed<F>(&self, f: F) -> glib::signal::SignalHandlerId
+    where
+        F: Fn() + 'static,
+    {
+        self.imp()
+            .bar
+            .connect_search_mode_enabled_notify(move |bar| {
+                if !bar.is_search_mode() {
+                    (f)();
+                }
+            })
+    }
 }
 
 fn create_button(icon: &str) -> gtk::Button {
