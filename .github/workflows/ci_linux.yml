@@ -8,13 +8,15 @@ name: CI Linux
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: debian:testing
     steps:
       - name: Install dependencies
         run: |
           export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends build-essential curl ca-certificates libssl-dev libgtk-4-dev xvfb
-      - uses: actions/checkout@v3
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential curl ca-certificates libssl-dev libgtk-4-dev xvfb xauth
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Build
         run: cargo build --verbose
