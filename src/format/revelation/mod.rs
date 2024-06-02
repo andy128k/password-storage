@@ -26,7 +26,8 @@ impl CryptoContainer {
     }
 }
 
-enum SerializationFormat {
+#[derive(Debug)]
+pub enum SerializationFormat {
     Xml,
 }
 
@@ -51,7 +52,12 @@ fn version_impl(version: u8) -> Option<(CryptoContainer, SerializationFormat)> {
     }
 }
 
-pub fn load_revelation_file(source: &mut dyn Read, password: &str) -> Result<RecordTree> {
+pub struct Decrypted {
+    pub format: SerializationFormat,
+    pub content: Vec<u8>,
+}
+
+pub fn decrypt_revelation_file(source: &mut dyn Read, password: &str) -> Result<Decrypted> {
     let header = file_header::FileHeader::read(source)?;
     let (container, format) = version_impl(header.data_version).ok_or_else(|| {
         format!(
@@ -59,8 +65,13 @@ pub fn load_revelation_file(source: &mut dyn Read, password: &str) -> Result<Rec
             header.data_version, header.app_version
         )
     })?;
-    let decrypted = container.decrypt(source, password)?;
-    let tree = format.deserialize(&decrypted)?;
+    let content = container.decrypt(source, password)?;
+    Ok(Decrypted { format, content })
+}
+
+pub fn load_revelation_file(source: &mut dyn Read, password: &str) -> Result<RecordTree> {
+    let Decrypted { format, content } = decrypt_revelation_file(source, password)?;
+    let tree = format.deserialize(&content)?;
     Ok(tree)
 }
 

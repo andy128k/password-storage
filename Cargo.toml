@@ -7,6 +7,7 @@ edition = "2021"
 license = "LGPL-3.0-or-later"
 description = "Password storing program"
 readme = "README.md"
+default-run = "password-storage"
 
 [dependencies]
 futures = "0.3"
@@ -25,6 +26,8 @@ serde = { version = "1", features = ["derive"] }
 gtk = { package = "gtk4", version = "0.8", features = ["v4_12"] }
 awesome-glib = "0.4"
 awesome-gtk = "0.4"
+
+clap = { version = "4.5.4", features = ["derive"] }
 
 [build-dependencies]
 glib-build-tools = "0.19"
