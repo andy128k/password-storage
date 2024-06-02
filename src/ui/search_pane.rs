@@ -96,17 +96,11 @@ mod imp {
             self.view.connect_record_activated(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
-                move |position| {
+                move |position, _| {
                     glib::MainContext::default().spawn_local(async move {
                         imp.row_activated(position).await;
                     });
                 }
-            ));
-
-            self.view.connect_go_home(glib::clone!(
-                #[weak]
-                obj,
-                move || obj.emit_go_home()
             ));
 
             let shortcuts = gtk::ShortcutController::new();
@@ -155,7 +149,7 @@ mod imp {
     impl SearchPane {
         pub fn set_view_model(&self, model: &TypedListStore<SearchMatch>) {
             *self.current_records.borrow_mut() = model.clone();
-            self.view.set_model(model.untyped().upcast_ref());
+            // self.view.set_model(model.untyped().upcast_ref());
         }
 
         async fn row_activated(&self, position: u32) {

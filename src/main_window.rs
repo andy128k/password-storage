@@ -2,8 +2,7 @@ use crate::cache::Cache;
 use crate::config::ConfigService;
 use crate::format;
 use crate::model::record::{Record, RecordType, RECORD_TYPE_GENERIC};
-use crate::model::tree::RecordNode;
-use crate::model::tree::RecordTree;
+use crate::model::tree::{RecordNode, RecordTree};
 use crate::search::item::SearchMatch;
 use crate::ui;
 use crate::ui::dashboard::PSDashboard;
@@ -14,7 +13,7 @@ use crate::ui::dialogs::say::say;
 use crate::ui::edit_record::dialog::edit_record;
 use crate::ui::forms::entry::form_password_entry;
 use crate::ui::open_file::OpenFile;
-use crate::ui::search_bar::SearchEvent;
+use crate::ui::search_bar::{SearchEvent, SearchEventType};
 use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::*;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
@@ -311,68 +310,66 @@ impl PSMainWindow {
             return;
         }
 
-        fn traverse(
-            records: &TypedListStore<RecordNode>,
-            path: TypedListStore<RecordNode>,
-            query: &str,
-            search_in_secrets: bool,
-            result: &mut TypedListStore<SearchMatch>,
-        ) {
-            for record in records {
-                if record.record().has_text(query, search_in_secrets) {
-                    result.append(&SearchMatch::new(&record, &path.clone_list()));
-                }
-                if let Some(children) = record.children() {
-                    let path_to_record = path.appended(record.clone());
-                    traverse(children, path_to_record, query, search_in_secrets, result);
-                }
-            }
-        }
+        // fn traverse(
+        //     records: &TypedListStore<RecordNode>,
+        //     path: TypedListStore<RecordNode>,
+        //     query: &str,
+        //     search_in_secrets: bool,
+        //     result: &mut TypedListStore<SearchMatch>,
+        // ) {
+        //     for record in records {
+        //         if record.record().has_text(query, search_in_secrets) {
+        //             result.append(&SearchMatch::new(&record, &path.clone_list()));
+        //         }
+        //         if let Some(children) = record.children() {
+        //             let path_to_record = path.appended(record.clone());
+        //             traverse(children, path_to_record, query, search_in_secrets, result);
+        //         }
+        //     }
+        // }
 
-        let mut matching_records = Default::default();
-        traverse(
-            &self.imp().file_pane.file().records, // current records ????
-            Default::default(),
-            &event.query,
-            event.search_in_secrets,
-            &mut matching_records,
-        );
+        // let mut matching_records = Default::default();
+        // traverse(
+        //     &self.imp().file_pane.file().records, // current records ????
+        //     Default::default(),
+        //     &event.query,
+        //     event.search_in_secrets,
+        //     &mut matching_records,
+        // );
 
         // self.imp().view.select_position_async(0).await; // TODO: throttle
 
-        // let private = self.private();
-        // let model = private.data.borrow().as_model();
-        // let iters = flatten_tree(&model);
+        let model = self.imp().file.borrow();
 
-        // let mut search_iter: Box<dyn Iterator<Item = &gtk::TreeIter>> = match event.event_type {
-        //     SearchEventType::Change | SearchEventType::Next => Box::new(iters.iter()),
-        //     SearchEventType::Prev => Box::new(iters.iter().rev()),
-        // };
-        // if let Some((_selection_record, selection_iter)) = private.view.get_selected_record() {
-        //     search_iter = Box::new(
-        //         search_iter.skip_while(move |iter| model.path(iter) != model.path(&selection_iter)),
-        //     );
-        // }
-        // match event.event_type {
-        //     SearchEventType::Change => {}
-        //     SearchEventType::Next | SearchEventType::Prev => {
-        //         search_iter = Box::new(search_iter.skip(1))
-        //     }
-        // };
+        let mut search_iter: Box<dyn Iterator<Item = &gtk::TreeIter>> = match event.event_type {
+            SearchEventType::Change | SearchEventType::Next => Box::new(iters.iter()),
+            SearchEventType::Prev => Box::new(iters.iter().rev()),
+        };
+        if let Some((_selection_record, selection_iter)) = private.view.get_selected_record() {
+            search_iter = Box::new(
+                search_iter.skip_while(move |iter| model.path(iter) != model.path(&selection_iter)),
+            );
+        }
+        match event.event_type {
+            SearchEventType::Change => {}
+            SearchEventType::Next | SearchEventType::Prev => {
+                search_iter = Box::new(search_iter.skip(1))
+            }
+        };
 
-        // let next_match = search_iter
-        //     .map(|iter| (iter, private.data.borrow().get(iter)))
-        //     .find(|(_iter, record)| record.has_text(&event.query, event.search_in_secrets));
+        let next_match = search_iter
+            .map(|iter| (iter, private.data.borrow().get(iter)))
+            .find(|(_iter, record)| record.has_text(&event.query, event.search_in_secrets));
 
-        // if let Some(next_match) = next_match {
-        //     private.view.select_iter(next_match.0);
-        //     self.listview_cursor_changed(&[next_match.1]);
-        // } else {
-        //     self.error_bell();
-        // }
+        if let Some(next_match) = next_match {
+            self.imp().view.select_iter(next_match.0);
+            self.listview_cursor_changed(&[next_match.1]);
+        } else {
+            self.error_bell();
+        }
 
-        self.imp().set_mode(imp::AppMode::SearchResults);
-        self.imp().search_pane.set_model(matching_records).await;
+        // self.imp().set_mode(imp::AppMode::SearchResults);
+        // self.imp().search_pane.set_model(matching_records).await;
     }
 
     fn get_usernames(&self) -> Vec<String> {

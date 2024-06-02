@@ -27,7 +27,6 @@ mod imp {
     use crate::ui::record_type_popover::RecordTypePopoverBuilder;
     use crate::ui::record_view::has_record::{PSRecordViewOptions, RECORD_NODE_HAS_RECORD};
     use crate::ui::record_view::item::DropOption;
-    use crate::utils::typed_list_store::TypedListStore;
     use crate::utils::ui::{action_button, action_popover_button, orphan_all_children};
     use std::cell::RefCell;
     use std::sync::OnceLock;
@@ -36,8 +35,6 @@ mod imp {
         pub nav_bar: PSNavBar,
         pub view: PSRecordView,
         pub file: RefCell<RecordTree>,
-        pub current_path: TypedListStore<RecordNode>,
-        pub current_records: RefCell<TypedListStore<RecordNode>>,
     }
 
     #[glib::object_subclass]
@@ -75,8 +72,6 @@ mod imp {
                     drag_and_drop: true,
                 }),
                 file: Default::default(),
-                current_path: Default::default(),
-                current_records: Default::default(),
             }
         }
     }
@@ -135,49 +130,13 @@ mod imp {
             self.view.connect_record_activated(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
-                move |position| {
+                move |position, record_node| {
                     glib::MainContext::default().spawn_local(async move {
-                        imp.row_activated(position).await;
+                        imp.row_activated(position, record_node).await;
                     });
                 }
             ));
 
-            self.nav_bar.connect_go_home(glib::clone!(
-                #[weak(rename_to = imp)]
-                self,
-                move || {
-                    glib::MainContext::default().spawn_local(async move { imp.go_home().await });
-                }
-            ));
-            self.nav_bar.connect_go_path(glib::clone!(
-                #[weak(rename_to = imp)]
-                self,
-                move |position| {
-                    glib::MainContext::default()
-                        .spawn_local(async move { imp.go_path(position).await });
-                }
-            ));
-            self.nav_bar.connect_go_up(glib::clone!(
-                #[weak(rename_to = imp)]
-                self,
-                move || {
-                    glib::MainContext::default().spawn_local(async move { imp.go_up().await });
-                }
-            ));
-            self.view.connect_go_home(glib::clone!(
-                #[weak(rename_to = imp)]
-                self,
-                move || {
-                    glib::MainContext::default().spawn_local(async move { imp.go_home().await });
-                }
-            ));
-            self.view.connect_go_up(glib::clone!(
-                #[weak(rename_to = imp)]
-                self,
-                move || {
-                    glib::MainContext::default().spawn_local(async move { imp.go_up().await });
-                }
-            ));
             self.view.connect_move_record(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
@@ -190,10 +149,7 @@ mod imp {
                 }
             ));
 
-            self.set_view_model(&self.file.borrow().records);
-
-            self.nav_bar
-                .set_model(self.current_path.untyped().upcast_ref());
+            self.update_view_model();
 
             let shortcuts = gtk::ShortcutController::new();
             shortcuts.add_shortcut(
@@ -236,81 +192,47 @@ mod imp {
     impl WidgetImpl for FilePane {}
 
     impl FilePane {
-        pub fn set_view_model(&self, model: &TypedListStore<RecordNode>) {
-            *self.current_records.borrow_mut() = model.clone();
-            self.view.set_model(model.untyped().upcast_ref());
+        pub fn update_view_model(&self) {
+            let tree_model = gtk::TreeListModel::new(
+                self.file.borrow().records.untyped().clone(),
+                false,
+                false,
+                |node| {
+                    let r = node.downcast_ref::<RecordNode>()?;
+                    let children = r.children()?;
+                    Some(children.untyped().clone().upcast())
+                },
+            );
+            self.view.set_model(&tree_model);
         }
 
-        async fn go_home(&self) {
-            self.current_path.remove_all();
-            self.set_view_model(&self.file.borrow().records);
-            self.view.select_position_async(0).await;
-        }
-
-        async fn go_path(&self, position: u32) {
-            if position + 1 >= self.current_path.len() {
-                return;
-            }
-            let prev = self.current_path.get(position + 1);
-            self.current_path.truncate(position + 1);
-            let records = match self.current_path.last() {
-                Some(parent) => parent.children().unwrap().clone(),
-                None => self.file.borrow().records.clone(),
-            };
-            self.set_view_model(&records);
-            if let Some(prev) = prev {
-                self.view.select_object(prev.upcast_ref()).await;
-            }
-        }
-
-        async fn go_up(&self) {
-            let prev = self.current_path.pop_back();
-            let records = match self.current_path.last() {
-                Some(parent) => parent.children().unwrap().clone(),
-                None => self.file.borrow().records.clone(),
-            };
-            self.set_view_model(&records);
-            if let Some(prev) = prev {
-                self.view.select_object(prev.upcast_ref()).await;
-            }
-        }
-
-        async fn row_activated(&self, position: u32) {
-            let Some(record) = self.current_records.borrow().get(position) else {
-                return;
-            };
-            if let Some(children) = record.children() {
-                self.current_path.append(&record);
-                self.set_view_model(children);
-                self.view.select_position_async(0).await;
-            } else {
-                self.obj().emit_edit_record(position, &record);
-            }
+        async fn row_activated(&self, position: u32, record: RecordNode) {
+            self.obj().emit_edit_record(position, &record);
         }
 
         fn move_record(&self, src: &RecordNode, dst: &RecordNode, option: DropOption) {
-            let Some(src_pos) = self.current_records.borrow().iter().position(|r| r == *src) else {
-                return;
-            };
-            self.current_records.borrow().remove(src_pos as u32);
+            // let Some(src_pos) = self.current_records.borrow().iter().position(|r| r == *src) else {
+            //     return;
+            // };
+            // self.current_records.borrow().remove(src_pos as u32);
 
-            let dst_pos = self.current_records.borrow().iter().position(|r| r == *dst);
-            match option {
-                DropOption::Above => {
-                    self.current_records
-                        .borrow()
-                        .insert(dst_pos.unwrap_or(0), src);
-                }
-                DropOption::Below => {
-                    self.current_records
-                        .borrow()
-                        .insert(dst_pos.map(|p| p + 1), src);
-                }
-                DropOption::Into => {
-                    self.obj().append_records_to(Some(dst), &[src.clone()]);
-                }
-            }
-            self.obj().emit_file_changed();
+            // let dst_pos = self.current_records.borrow().iter().position(|r| r == *dst);
+            // match option {
+            //     DropOption::Above => {
+            //         self.current_records
+            //             .borrow()
+            //             .insert(dst_pos.unwrap_or(0), src);
+            //     }
+            //     DropOption::Below => {
+            //         self.current_records
+            //             .borrow()
+            //             .insert(dst_pos.map(|p| p + 1), src);
+            //     }
+            //     DropOption::Into => {
+            //         self.obj().append_records_to(Some(dst), &[src.clone()]);
+            //     }
+            // }
+            // self.obj().emit_file_changed();
         }
     }
 }
@@ -337,48 +259,53 @@ impl FilePane {
 
     pub async fn set_file(&self, file: RecordTree) {
         *self.imp().file.borrow_mut() = file;
-        self.imp().current_path.remove_all();
-        self.imp().set_view_model(&self.imp().file.borrow().records);
+        self.imp().update_view_model();
 
         self.imp().view.select_position_async(0).await;
         self.selection_changed(gtk::Bitset::new_empty());
         self.grab_focus_to_view();
     }
 
-    // pub async fn reset(&self) {
-    //     self.set_model(Default::default()).await;
-    // }
+    pub async fn reset(&self) {
+        self.set_file(Default::default()).await;
+    }
 
-    fn get_record(&self, position: u32) -> Option<RecordNode> {
-        self.imp().current_records.borrow().get(position)
+    fn record_at(&self, position: u32) -> Option<RecordNode> {
+        self.imp().view.record_at(position)
     }
 
     pub fn append_record(&self, record_node: &RecordNode) {
-        self.imp().current_records.borrow().append(record_node);
-        let position = self.imp().current_records.borrow().len() - 1;
-        self.imp().view.select_position(position);
-        self.selection_changed(gtk::Bitset::new_range(position, 1));
+        // self.imp().current_records.borrow().append(record_node);
+        // let position = self.imp().current_records.borrow().len() - 1;
+        // self.imp().view.select_position(position);
+        // self.selection_changed(gtk::Bitset::new_range(position, 1));
     }
 
     pub fn replace_record(&self, position: u32, record_node: RecordNode) {
-        self.imp()
-            .current_records
-            .borrow()
-            .set(position, record_node);
-        self.imp().view.select_position(position);
-        self.selection_changed(gtk::Bitset::new_range(position, 1));
+        // self.imp()
+        //     .current_records
+        //     .borrow()
+        //     .set(position, record_node);
+        // self.imp().view.select_position(position);
+        // self.selection_changed(gtk::Bitset::new_range(position, 1));
     }
 
     fn remove_record(&self, position: u32) {
-        self.imp().current_records.borrow().remove(position);
-        self.selection_changed(gtk::Bitset::new_empty());
+        if let Some(record) = self.record_at(position) {
+            self.imp().file.borrow().remove(&record);
+            self.selection_changed(gtk::Bitset::new_range(position, 1));
+        }
     }
 
-    fn remove_records(&self, mut positions: Vec<u32>) {
-        positions.sort();
-        for position in positions.into_iter().rev() {
-            self.imp().current_records.borrow().remove(position);
+    fn remove_records(&self, positions: Vec<u32>) {
+        let record_nodes = positions
+            .into_iter()
+            .flat_map(|p| self.record_at(p))
+            .collect::<Vec<_>>();
+        for record_node in record_nodes {
+            self.imp().file.borrow().remove(&record_node);
         }
+        self.selection_changed(gtk::Bitset::new_empty());
     }
 
     fn append_records_to(&self, parent: Option<&RecordNode>, records: &[RecordNode]) {
@@ -402,7 +329,7 @@ impl FilePane {
 
     fn selection_changed(&self, selected: gtk::Bitset) {
         let selected_record = if selected.size() == 1 {
-            self.get_record(selected.nth(0))
+            self.imp().view.record_at(selected.nth(0))
         } else {
             None
         };
@@ -425,7 +352,7 @@ impl FilePane {
         let Some(position) = self.imp().view.get_selected_position() else {
             return;
         };
-        let Some(record_node) = self.get_record(position) else {
+        let Some(record_node) = self.record_at(position) else {
             return;
         };
         let Some(username) = record_node.record().username() else {
@@ -439,7 +366,7 @@ impl FilePane {
         let Some(position) = self.imp().view.get_selected_position() else {
             return;
         };
-        let Some(record_node) = self.get_record(position) else {
+        let Some(record_node) = self.record_at(position) else {
             return;
         };
         let Some(password) = record_node.record().password() else {
@@ -465,7 +392,7 @@ impl FilePane {
         let (positions, records): (Vec<u32>, Vec<RecordNode>) = positions
             .iter_asc()
             .filter_map(|position| {
-                let record = self.get_record(position)?;
+                let record = self.record_at(position)?;
                 if dest.iter().any(|p| p == record) {
                     None
                 } else {
@@ -483,7 +410,7 @@ impl FilePane {
         let Some(position) = self.imp().view.get_selected_position() else {
             return;
         };
-        let Some(record_node) = self.get_record(position) else {
+        let Some(record_node) = self.record_at(position) else {
             return;
         };
         self.emit_edit_record(position, &record_node);
@@ -518,7 +445,7 @@ impl FilePane {
         let (positions, records): (Vec<u32>, Vec<RecordNode>) = positions
             .iter_asc()
             .filter_map(|position| {
-                let record = self.get_record(position)?;
+                let record = self.record_at(position)?;
                 if record.is_group() {
                     None
                 } else {

@@ -1,10 +1,11 @@
 use super::has_record::PSRecordViewOptions;
 use super::item::DropOption;
-use crate::utils::ui::pending;
+use crate::{model::tree::RecordNode, utils::ui::pending};
 use gtk::{gdk, gio, glib, prelude::*, subclass::prelude::*};
 
 mod imp {
     use super::*;
+    use crate::model::tree::RecordNode;
     use crate::ui::record_view::item::PSRecordViewItem;
     use crate::utils::ui::{orphan_all_children, scrolled};
     use crate::weak_map::WeakMap;
@@ -12,8 +13,6 @@ mod imp {
     use std::rc::Rc;
     use std::sync::OnceLock;
 
-    pub const SIGNAL_GO_HOME: &str = "ps-go-home";
-    pub const SIGNAL_GO_UP: &str = "ps-go-up";
     pub const SIGNAL_SELECTION_CHANGED: &str = "ps-selection-changed";
     pub const SIGNAL_RECORD_ACTIVATED: &str = "ps-record-activated";
     pub const SIGNAL_MOVE_RECORD: &str = "ps-record-move";
@@ -78,8 +77,22 @@ mod imp {
             self.list_view.connect_activate(glib::clone!(
                 #[weak]
                 obj,
-                move |_list_view, position| {
-                    obj.emit_record_activated(position);
+                move |list_view, position| {
+                    if let Some(item) = list_view
+                        .model()
+                        .and_then(|m| m.item(position))
+                        .and_downcast::<gtk::TreeListRow>()
+                    {
+                        if item.is_expandable() {
+                            item.set_expanded(!item.is_expanded());
+                        } else if let Some(record_node) = item.item().and_downcast::<RecordNode>() {
+                            obj.emit_record_activated(position, &record_node);
+                        } else {
+                            // TODO: warn unreachable
+                        }
+                    } else {
+                        // TODO: warn unreachable
+                    }
                 }
             ));
 
@@ -106,10 +119,8 @@ mod imp {
             static SIGNALS: OnceLock<Vec<glib::subclass::Signal>> = OnceLock::new();
             SIGNALS.get_or_init(|| {
                 vec![
-                    glib::subclass::Signal::builder(SIGNAL_GO_HOME).build(),
-                    glib::subclass::Signal::builder(SIGNAL_GO_UP).build(),
                     glib::subclass::Signal::builder(SIGNAL_RECORD_ACTIVATED)
-                        .param_types([u32::static_type()])
+                        .param_types([u32::static_type(), RecordNode::static_type()])
                         .build(),
                     glib::subclass::Signal::builder(SIGNAL_SELECTION_CHANGED)
                         .param_types([gtk::Bitset::static_type()])
@@ -145,7 +156,10 @@ mod imp {
             let Some(list_item) = item.downcast_ref::<gtk::ListItem>() else {
                 return;
             };
+
             let child = PSRecordViewItem::new(*self.options.get().unwrap());
+            let expander = gtk::TreeExpander::builder().child(&child).build();
+
             let popup_model = self.popup_model.clone();
             child.connect_context_menu(move |_record| popup_model.borrow().clone());
             let obj = self.obj();
@@ -154,17 +168,24 @@ mod imp {
                 obj,
                 move |_, src, dst, opt| obj.emit_move_record(src, dst, opt)
             ));
-            list_item.set_child(Some(&child));
+            list_item.set_child(Some(&expander));
         }
 
         fn bind_item(&self, item: &glib::Object) {
             let Some(list_item) = item.downcast_ref::<gtk::ListItem>() else {
                 return;
             };
-            let Some(child) = list_item.child().and_downcast::<PSRecordViewItem>() else {
+            let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else {
                 return;
             };
-            let Some(record_node) = list_item.item() else {
+            let Some(child) = expander.child().and_downcast::<PSRecordViewItem>() else {
+                return;
+            };
+            let Some(tree_list_row) = list_item.item().and_downcast::<gtk::TreeListRow>() else {
+                return;
+            };
+            expander.set_list_row(Some(&tree_list_row));
+            let Some(record_node) = tree_list_row.item() else {
                 return;
             };
             let position = list_item.position();
@@ -177,7 +198,11 @@ mod imp {
             let Some(list_item) = item.downcast_ref::<gtk::ListItem>() else {
                 return;
             };
-            let Some(child) = list_item.child().and_downcast::<PSRecordViewItem>() else {
+            let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else {
+                return;
+            };
+            expander.set_list_row(None);
+            let Some(child) = expander.child().and_downcast::<PSRecordViewItem>() else {
                 return;
             };
             self.mapping.remove_key(list_item.position());
@@ -189,7 +214,10 @@ mod imp {
             let Some(list_item) = item.downcast_ref::<gtk::ListItem>() else {
                 return;
             };
-            if let Some(child) = list_item.child().and_downcast::<PSRecordViewItem>() {
+            let Some(expander) = list_item.child().and_downcast::<gtk::TreeExpander>() else {
+                return;
+            };
+            if let Some(child) = expander.child().and_downcast::<PSRecordViewItem>() {
                 child.set_record_node(None);
                 self.mapping.remove_value(&child);
             }
@@ -210,7 +238,7 @@ impl PSRecordView {
         obj
     }
 
-    pub fn set_model(&self, model: &gio::ListModel) {
+    pub fn set_model(&self, model: &gtk::TreeListModel) {
         self.imp().selection.set_model(Some(model));
     }
 
@@ -225,6 +253,13 @@ impl PSRecordView {
         }
         let pos = selection.nth(0);
         Some(pos)
+    }
+
+    pub fn record_at(&self, position: u32) -> Option<RecordNode> {
+        let model = self.imp().selection.model()?;
+        let tree_list_row = model.item(position).and_downcast::<gtk::TreeListRow>()?;
+        let record = tree_list_row.item().and_downcast::<RecordNode>()?;
+        Some(record)
     }
 
     pub fn set_popup(&self, popup_model: &gio::MenuModel) {
@@ -269,58 +304,20 @@ impl PSRecordView {
 
     fn on_key_press(&self, key: gdk::Key, modifier: gdk::ModifierType) -> glib::Propagation {
         match (modifier, key) {
-            (gdk::ModifierType::ALT_MASK, gdk::Key::Home) => {
-                self.emit_go_home();
-                glib::Propagation::Stop
-            }
-            (gdk::ModifierType::ALT_MASK, gdk::Key::Up) => {
-                self.emit_go_up();
-                glib::Propagation::Stop
-            }
-            (gdk::ModifierType::ALT_MASK, gdk::Key::Down) => {
-                if let Some(position) = self.get_selected_position() {
-                    self.emit_record_activated(position);
-                    glib::Propagation::Stop
-                } else {
-                    glib::Propagation::Proceed
-                }
-            }
+            (gdk::ModifierType::ALT_MASK, gdk::Key::Down) => self
+                .get_selected_position()
+                .and_then(|position| {
+                    let record = self.record_at(position)?;
+                    self.emit_record_activated(position, &record);
+                    Some(glib::Propagation::Stop)
+                })
+                .unwrap_or(glib::Propagation::Proceed),
             _ => glib::Propagation::Proceed,
         }
     }
 }
 
 impl PSRecordView {
-    fn emit_go_home(&self) {
-        self.emit_by_name::<()>(imp::SIGNAL_GO_HOME, &[]);
-    }
-
-    pub fn connect_go_home<F>(&self, f: F) -> glib::signal::SignalHandlerId
-    where
-        F: Fn() + 'static,
-    {
-        self.connect_closure(
-            imp::SIGNAL_GO_HOME,
-            false,
-            glib::closure_local!(move |_self: &Self| (f)()),
-        )
-    }
-
-    fn emit_go_up(&self) {
-        self.emit_by_name::<()>(imp::SIGNAL_GO_UP, &[]);
-    }
-
-    pub fn connect_go_up<F>(&self, f: F) -> glib::signal::SignalHandlerId
-    where
-        F: Fn() + 'static,
-    {
-        self.connect_closure(
-            imp::SIGNAL_GO_UP,
-            false,
-            glib::closure_local!(move |_self: &Self| (f)()),
-        )
-    }
-
     fn emit_selection_changed(&self, selection: &gtk::Bitset) {
         self.emit_by_name::<()>(imp::SIGNAL_SELECTION_CHANGED, &[selection]);
     }
@@ -336,18 +333,21 @@ impl PSRecordView {
         )
     }
 
-    fn emit_record_activated(&self, position: u32) {
-        self.emit_by_name::<()>(imp::SIGNAL_RECORD_ACTIVATED, &[&position]);
+    fn emit_record_activated(&self, position: u32, record_node: &RecordNode) {
+        self.emit_by_name::<()>(imp::SIGNAL_RECORD_ACTIVATED, &[&position, record_node]);
     }
 
     pub fn connect_record_activated<F>(&self, f: F) -> glib::signal::SignalHandlerId
     where
-        F: Fn(u32) + 'static,
+        F: Fn(u32, RecordNode) + 'static,
     {
         self.connect_closure(
             imp::SIGNAL_RECORD_ACTIVATED,
             false,
-            glib::closure_local!(move |_self: &Self, position| (f)(position)),
+            glib::closure_local!(move |_self: &Self, position, record_node| (f)(
+                position,
+                record_node
+            )),
         )
     }
 
