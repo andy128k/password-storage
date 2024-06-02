@@ -147,7 +147,7 @@ mod imp {
     impl SearchPane {
         pub fn set_view_model(&self, model: &TypedListStore<SearchMatch>) {
             *self.current_records.borrow_mut() = model.clone();
-            self.view.set_model(model.untyped().upcast_ref());
+            // self.view.set_model(model.untyped().upcast_ref());
         }
 
         async fn row_activated(&self, position: u32) {

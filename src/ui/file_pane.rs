@@ -36,8 +36,8 @@ mod imp {
         pub nav_bar: PSNavBar,
         pub view: PSRecordView,
         pub file: RefCell<RecordTree>,
-        pub current_path: TypedListStore<RecordNode>,
-        pub current_records: RefCell<TypedListStore<RecordNode>>,
+        // pub current_path: TypedListStore<RecordNode>,
+        // pub current_records: RefCell<TypedListStore<RecordNode>>,
     }
 
     #[glib::object_subclass]
@@ -75,8 +75,8 @@ mod imp {
                     drag_and_drop: true,
                 }),
                 file: Default::default(),
-                current_path: Default::default(),
-                current_records: Default::default(),
+                // current_path: Default::default(),
+                // current_records: Default::default(),
             }
         }
     }
@@ -173,10 +173,10 @@ mod imp {
                 }),
             );
 
-            self.set_view_model(&self.file.borrow().records);
+            // self.set_view_model(&self.file.borrow());
 
-            self.nav_bar
-                .set_model(self.current_path.untyped().upcast_ref());
+            // self.nav_bar
+            //     .set_model(self.current_path.untyped().upcast_ref());
 
             let shortcuts = gtk::ShortcutController::new();
             shortcuts.add_shortcut(
@@ -219,81 +219,85 @@ mod imp {
     impl WidgetImpl for FilePane {}
 
     impl FilePane {
-        pub fn set_view_model(&self, model: &TypedListStore<RecordNode>) {
-            *self.current_records.borrow_mut() = model.clone();
-            self.view.set_model(model.untyped().upcast_ref());
+        pub fn set_view_model(&self, model: RecordTree) {
+            let tree_model = gtk::TreeListModel::new(model.records.clone().untyped().clone(), false, false, |node| {
+                let r = node.downcast_ref::<RecordNode>()?;
+                let children = r.children()?;
+                Some(children.untyped().clone().upcast())
+            });
+            self.view.set_model(&tree_model);
         }
 
         async fn go_home(&self) {
-            self.current_path.remove_all();
-            self.set_view_model(&self.file.borrow().records);
-            self.view.select_position_async(0).await;
+            // self.current_path.remove_all();
+            // self.set_view_model(&self.file.borrow().records);
+            // self.view.select_position_async(0).await;
         }
 
         async fn go_path(&self, position: u32) {
-            if position + 1 >= self.current_path.len() {
-                return;
-            }
-            let prev = self.current_path.get(position + 1);
-            self.current_path.truncate(position + 1);
-            let records = match self.current_path.last() {
-                Some(parent) => parent.children().unwrap().clone(),
-                None => self.file.borrow().records.clone(),
-            };
-            self.set_view_model(&records);
-            if let Some(prev) = prev {
-                self.view.select_object(prev.upcast_ref()).await;
-            }
+            // if position + 1 >= self.current_path.len() {
+            //     return;
+            // }
+            // let prev = self.current_path.get(position + 1);
+            // self.current_path.truncate(position + 1);
+            // let records = match self.current_path.last() {
+            //     Some(parent) => parent.children().unwrap().clone(),
+            //     None => self.file.borrow().records.clone(),
+            // };
+            // self.set_view_model(&records);
+            // if let Some(prev) = prev {
+            //     self.view.select_object(prev.upcast_ref()).await;
+            // }
         }
 
         async fn go_up(&self) {
-            let prev = self.current_path.pop_back();
-            let records = match self.current_path.last() {
-                Some(parent) => parent.children().unwrap().clone(),
-                None => self.file.borrow().records.clone(),
-            };
-            self.set_view_model(&records);
-            if let Some(prev) = prev {
-                self.view.select_object(prev.upcast_ref()).await;
-            }
+            // let prev = self.current_path.pop_back();
+            // let records = match self.current_path.last() {
+            //     Some(parent) => parent.children().unwrap().clone(),
+            //     None => self.file.borrow().records.clone(),
+            // };
+            // self.set_view_model(&records);
+            // if let Some(prev) = prev {
+            //     self.view.select_object(prev.upcast_ref()).await;
+            // }
         }
 
         async fn row_activated(&self, position: u32) {
-            let Some(record) = self.current_records.borrow().get(position) else {
-                return;
-            };
-            if let Some(children) = record.children() {
-                self.current_path.append(&record);
-                self.set_view_model(children);
-                self.view.select_position_async(0).await;
-            } else {
-                self.obj().emit_edit_record(position, &record);
-            }
+            // let Some(record) = self.current_records.borrow().get(position) else {
+            //     return;
+            // };
+            // if let Some(children) = record.children() {
+            //     self.current_path.append(&record);
+            //     self.set_view_model(children);
+            //     self.view.select_position_async(0).await;
+            // } else {
+                // self.obj().emit_edit_record(position, &record);
+            // }
         }
 
         fn move_record(&self, src: &RecordNode, dst: &RecordNode, option: DropOption) {
-            let Some(src_pos) = self.current_records.borrow().iter().position(|r| r == *src) else {
-                return;
-            };
-            self.current_records.borrow().remove(src_pos as u32);
+            // let Some(src_pos) = self.current_records.borrow().iter().position(|r| r == *src) else {
+            //     return;
+            // };
+            // self.current_records.borrow().remove(src_pos as u32);
 
-            let dst_pos = self.current_records.borrow().iter().position(|r| r == *dst);
-            match option {
-                DropOption::Above => {
-                    self.current_records
-                        .borrow()
-                        .insert(dst_pos.unwrap_or(0), src);
-                }
-                DropOption::Below => {
-                    self.current_records
-                        .borrow()
-                        .insert(dst_pos.map(|p| p + 1), src);
-                }
-                DropOption::Into => {
-                    self.obj().append_records_to(Some(dst), &[src.clone()]);
-                }
-            }
-            self.obj().emit_file_changed();
+            // let dst_pos = self.current_records.borrow().iter().position(|r| r == *dst);
+            // match option {
+            //     DropOption::Above => {
+            //         self.current_records
+            //             .borrow()
+            //             .insert(dst_pos.unwrap_or(0), src);
+            //     }
+            //     DropOption::Below => {
+            //         self.current_records
+            //             .borrow()
+            //             .insert(dst_pos.map(|p| p + 1), src);
+            //     }
+            //     DropOption::Into => {
+            //         self.obj().append_records_to(Some(dst), &[src.clone()]);
+            //     }
+            // }
+            // self.obj().emit_file_changed();
         }
     }
 }
@@ -320,8 +324,7 @@ impl FilePane {
 
     pub async fn set_file(&self, file: RecordTree) {
         *self.imp().file.borrow_mut() = file;
-        self.imp().current_path.remove_all();
-        self.imp().set_view_model(&self.imp().file.borrow().records);
+        self.imp().set_view_model(self.imp().file.borrow().clone());
 
         self.imp().view.select_position_async(0).await;
         self.selection_changed(gtk::Bitset::new_empty());
@@ -333,35 +336,36 @@ impl FilePane {
     // }
 
     fn get_record(&self, position: u32) -> Option<RecordNode> {
-        self.imp().current_records.borrow().get(position)
+        // self.imp().current_records.borrow().get(position)
+        None
     }
 
     pub fn append_record(&self, record_node: &RecordNode) {
-        self.imp().current_records.borrow().append(record_node);
-        let position = self.imp().current_records.borrow().len() - 1;
-        self.imp().view.select_position(position);
-        self.selection_changed(gtk::Bitset::new_range(position, 1));
+        // self.imp().current_records.borrow().append(record_node);
+        // let position = self.imp().current_records.borrow().len() - 1;
+        // self.imp().view.select_position(position);
+        // self.selection_changed(gtk::Bitset::new_range(position, 1));
     }
 
     pub fn replace_record(&self, position: u32, record_node: RecordNode) {
-        self.imp()
-            .current_records
-            .borrow()
-            .set(position, record_node);
-        self.imp().view.select_position(position);
-        self.selection_changed(gtk::Bitset::new_range(position, 1));
+        // self.imp()
+        //     .current_records
+        //     .borrow()
+        //     .set(position, record_node);
+        // self.imp().view.select_position(position);
+        // self.selection_changed(gtk::Bitset::new_range(position, 1));
     }
 
     fn remove_record(&self, position: u32) {
-        self.imp().current_records.borrow().remove(position);
-        self.selection_changed(gtk::Bitset::new_empty());
+        // self.imp().current_records.borrow().remove(position);
+        // self.selection_changed(gtk::Bitset::new_empty());
     }
 
     fn remove_records(&self, mut positions: Vec<u32>) {
-        positions.sort();
-        for position in positions.into_iter().rev() {
-            self.imp().current_records.borrow().remove(position);
-        }
+        // positions.sort();
+        // for position in positions.into_iter().rev() {
+        //     self.imp().current_records.borrow().remove(position);
+        // }
     }
 
     fn append_records_to(&self, parent: Option<&RecordNode>, records: &[RecordNode]) {
