@@ -91,15 +91,13 @@ mod imp {
                 }),
             );
 
-            self.view
-                .connect_record_activated(glib::clone!(@weak self as imp => move |position| {
+            self.view.connect_record_activated(
+                glib::clone!(@weak self as imp => move |position, _| {
                     glib::MainContext::default().spawn_local(async move {
                         imp.row_activated(position).await;
                     });
-                }));
-
-            self.view
-                .connect_go_home(glib::clone!(@weak obj => move || obj.emit_go_home()));
+                }),
+            );
 
             let shortcuts = gtk::ShortcutController::new();
             shortcuts.add_shortcut(

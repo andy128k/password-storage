@@ -65,3 +65,19 @@ impl RecordNode {
 pub struct RecordTree {
     pub records: TypedListStore<RecordNode>,
 }
+
+impl RecordTree {
+    pub fn remove(&self, record_node: &RecordNode) {
+        fn traverse(list: &TypedListStore<RecordNode>, record_node: &RecordNode) {
+            if let Some(position) = list.find(record_node) {
+                list.remove(position);
+            }
+            for item in list {
+                if let Some(children) = item.children() {
+                    traverse(children, record_node);
+                }
+            }
+        }
+        traverse(&self.records, record_node);
+    }
+}
