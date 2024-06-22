@@ -11,7 +11,7 @@ use std::io::{BufRead, Write};
 
 pub fn record_tree_from_xml(data: &[u8]) -> Result<RecordTree> {
     let mut reader = Reader::from_reader(data);
-    reader.expand_empty_elements(true);
+    reader.config_mut().expand_empty_elements = true;
     let record_tree = read_document(&mut reader)?;
     Ok(record_tree)
 }
