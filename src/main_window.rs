@@ -159,55 +159,73 @@ mod imp {
             });
             *self.delete_handler.borrow_mut() = Some(delete_handler);
 
-            self.search_bar
-                .connect_search(glib::clone!(@weak win => move |event| {
+            self.search_bar.connect_search(glib::clone!(
+                #[weak]
+                win,
+                move |event| {
                     glib::MainContext::default().spawn_local(async move {
                         win.search(&event).await;
                     });
-                }));
-            self.search_bar.connect_configure(
-                glib::clone!(@weak self as imp => move |search_config| {
-                    imp.config_service.get().unwrap()
-                        .update(|config| {
-                            config.search_in_secrets = search_config.search_in_secrets;
-                        });
-                }),
-            );
-            self.search_bar
-                .connect_search_closed(glib::clone!(@weak self as imp => move || {
+                }
+            ));
+            self.search_bar.connect_configure(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |search_config| {
+                    imp.config_service.get().unwrap().update(|config| {
+                        config.search_in_secrets = search_config.search_in_secrets;
+                    });
+                }
+            ));
+            self.search_bar.connect_search_closed(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move || {
                     imp.search_reset();
                     imp.set_mode(imp::AppMode::FileOpened);
-                }));
+                }
+            ));
 
-            self.file_pane.connect_edit_record(
-                glib::clone!(@weak win => move |_, position, record_node| {
+            self.file_pane.connect_edit_record(glib::clone!(
+                #[weak]
+                win,
+                move |_, position, record_node| {
                     glib::MainContext::default().spawn_local(async move {
                         win.action_edit(position, record_node).await;
                     });
-                }),
-            );
-            self.file_pane
-                .connect_file_changed(glib::clone!(@weak win => move |_| {
+                }
+            ));
+            self.file_pane.connect_file_changed(glib::clone!(
+                #[weak]
+                win,
+                move |_| {
                     win.set_changed(true);
-                }));
-            self.file_pane.connect_user_notification(
-                glib::clone!(@weak self as imp => move |_, message| {
+                }
+            ));
+            self.file_pane.connect_user_notification(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_, message| {
                     imp.toast.notify(message);
-                }),
-            );
+                }
+            ));
 
-            self.search_pane.connect_edit_record(
-                glib::clone!(@weak win => move |_, position, record_node| {
+            self.search_pane.connect_edit_record(glib::clone!(
+                #[weak]
+                win,
+                move |_, position, record_node| {
                     glib::MainContext::default().spawn_local(async move {
                         win.action_edit(position, record_node).await;
                     });
-                }),
-            );
-            self.search_pane.connect_user_notification(
-                glib::clone!(@weak self as imp => move |_, message| {
+                }
+            ));
+            self.search_pane.connect_user_notification(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_, message| {
                     imp.toast.notify(message);
-                }),
-            );
+                }
+            ));
         }
     }
 
@@ -511,11 +529,13 @@ impl PSMainWindow {
 
         let config = config_service.get();
         win.imp().search_bar.configure(config.search_in_secrets);
-        config_service
-            .on_change
-            .subscribe(glib::clone!(@weak win => move |new_config| {
+        config_service.on_change.subscribe(glib::clone!(
+            #[weak]
+            win,
+            move |new_config| {
                 win.imp().search_bar.configure(new_config.search_in_secrets);
-            }));
+            }
+        ));
 
         win.present();
         win.imp().set_mode(imp::AppMode::Initial);

@@ -179,19 +179,23 @@ pub async fn select_group(
             .build(),
     );
 
-    tree_view.connect_activate(
-        glib::clone!(@weak dlg => move |_, _| dlg.emit_response(gtk::ResponseType::Ok)),
-    );
+    tree_view.connect_activate(glib::clone!(
+        #[weak]
+        dlg,
+        move |_, _| dlg.emit_response(gtk::ResponseType::Ok)
+    ));
 
     let scrolled_window = scrolled(&tree_view);
     scrolled_window.set_size_request(500, 400);
     dlg.set_child(Some(&scrolled_window));
 
-    selection_model.connect_selection_changed(
-        glib::clone!(@weak dlg => move |selection_model, _, _| {
+    selection_model.connect_selection_changed(glib::clone!(
+        #[weak]
+        dlg,
+        move |selection_model, _, _| {
             dlg.set_ok_sensitive(get_selected_record(selection_model).is_some());
-        }),
-    );
+        }
+    ));
 
     match dlg.run().await {
         Some(gtk::ResponseType::Ok) => get_selected_record(&selection_model),

@@ -105,9 +105,13 @@ pub fn file_row(
         .child(&grid)
         .build();
 
-    remove_button.connect_clicked(glib::clone!(@weak row => move |_| {
-        on_remove(&row, &filename);
-    }));
+    remove_button.connect_clicked(glib::clone!(
+        #[weak]
+        row,
+        move |_| {
+            on_remove(&row, &filename);
+        }
+    ));
 
     set_group_title(&row, "Recent files");
 
@@ -194,10 +198,16 @@ impl PSDashboard {
         for filename in cache.recent_files() {
             if let Some(row) = file_row(
                 filename,
-                glib::clone!(@weak self.listbox as listbox, @strong cache => move |row, filename| {
-                    cache.remove_file(filename);
-                    listbox.remove(row);
-                }),
+                glib::clone!(
+                    #[weak(rename_to = listbox)]
+                    self.listbox,
+                    #[strong]
+                    cache,
+                    move |row, filename| {
+                        cache.remove_file(filename);
+                        listbox.remove(row);
+                    }
+                ),
             ) {
                 self.listbox.append(&row);
                 if first_row.is_none() {

@@ -106,10 +106,13 @@ mod imp {
             obj.set_margin_start(5);
             obj.set_margin_end(5);
 
-            self.home_button
-                .connect_clicked(glib::clone!(@weak obj => move |_| {
+            self.home_button.connect_clicked(glib::clone!(
+                #[weak]
+                obj,
+                move |_| {
                     obj.emit_go_home();
-                }));
+                }
+            ));
             obj.grid_attach(&self.home_button).set_column(0);
 
             let sw = gtk::ScrolledWindow::builder()
@@ -122,15 +125,21 @@ mod imp {
                 .build();
             obj.grid_attach(&sw).set_column(1);
 
-            self.list_view
-                .connect_activate(glib::clone!(@weak obj => move |_, position| {
+            self.list_view.connect_activate(glib::clone!(
+                #[weak]
+                obj,
+                move |_, position| {
                     obj.emit_go_path(position);
-                }));
+                }
+            ));
 
-            self.up_button
-                .connect_clicked(glib::clone!(@weak obj => move |_| {
+            self.up_button.connect_clicked(glib::clone!(
+                #[weak]
+                obj,
+                move |_| {
                     obj.emit_go_up();
-                }));
+                }
+            ));
             obj.grid_attach(&self.up_button).set_column(2);
         }
 
@@ -192,11 +201,13 @@ impl PSNavBar {
         self.imp().disconnect_model_change_handler();
         self.imp()
             .model_change_handler
-            .set(Some(model.connect_items_changed(
-                glib::clone!(@weak self as this => move |model, _, _, _| {
+            .set(Some(model.connect_items_changed(glib::clone!(
+                #[weak(rename_to = this)]
+                self,
+                move |model, _, _, _| {
                     this.imp().model_changed(model);
-                }),
-            )));
+                }
+            ))));
         self.imp().model_changed(model);
     }
 }

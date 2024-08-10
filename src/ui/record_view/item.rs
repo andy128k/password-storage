@@ -96,21 +96,24 @@ mod imp {
             self.open.set_parent(&*obj);
 
             self.context_click.set_button(GDK_BUTTON_SECONDARY as u32);
-            self.context_click.connect_pressed(
-                glib::clone!(@weak self as imp => move |_gesture, _n, x, y| imp.on_context_click(x, y)),
-            );
+            self.context_click.connect_pressed(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_gesture, _n, x, y| imp.on_context_click(x, y)
+            ));
             obj.add_controller(self.context_click.clone());
 
             let open_click = gtk::GestureClick::builder()
                 .button(GDK_BUTTON_PRIMARY as u32)
                 .build();
-            open_click.connect_pressed(
-                glib::clone!(@weak self as imp => move |_gesture, _n, _x, _y| {
-                    glib::MainContext::default().spawn_local(async move {
-                        imp.on_open_clicked().await
-                    });
-                }),
-            );
+            open_click.connect_pressed(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_gesture, _n, _x, _y| {
+                    glib::MainContext::default()
+                        .spawn_local(async move { imp.on_open_clicked().await });
+                }
+            ));
             self.open.add_controller(open_click);
         }
 
@@ -149,27 +152,49 @@ mod imp {
             let drag_source = gtk::DragSource::builder()
                 .actions(gdk::DragAction::MOVE)
                 .build();
-            drag_source.connect_prepare(
-                glib::clone!(@weak self as imp => @default-return None, move |_source, _x, _y| imp.drag_prepare()),
-            );
-            drag_source.connect_drag_begin(glib::clone!(@weak self as imp => move |source, _drag| source.set_icon(imp.drag_begin().as_ref(), 0, 0)));
+            drag_source.connect_prepare(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                #[upgrade_or]
+                None,
+                move |_source, _x, _y| imp.drag_prepare()
+            ));
+            drag_source.connect_drag_begin(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |source, _drag| source.set_icon(imp.drag_begin().as_ref(), 0, 0)
+            ));
             self.obj().add_controller(drag_source);
 
             let drop_target =
                 gtk::DropTarget::new(self.record_type().get_type(), gdk::DragAction::MOVE);
             drop_target.set_preload(true);
-            drop_target.connect_enter(
-                glib::clone!(@weak self as imp => @default-return gdk::DragAction::empty(), move |target, x, y| imp.drop_motion(target, x, y)),
-            );
-            drop_target.connect_motion(
-                glib::clone!(@weak self as imp => @default-return gdk::DragAction::empty(), move |target, x, y| imp.drop_motion(target, x, y)),
-            );
-            drop_target.connect_leave(
-                glib::clone!(@weak self as imp => move |_target| imp.set_drop_style(None)),
-            );
-            drop_target.connect_drop(
-                glib::clone!(@weak self as imp => @default-return false, move |_target, value, x, y| imp.drop(value, x, y)),
-            );
+            drop_target.connect_enter(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                #[upgrade_or]
+                gdk::DragAction::empty(),
+                move |target, x, y| imp.drop_motion(target, x, y)
+            ));
+            drop_target.connect_motion(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                #[upgrade_or]
+                gdk::DragAction::empty(),
+                move |target, x, y| imp.drop_motion(target, x, y)
+            ));
+            drop_target.connect_leave(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_target| imp.set_drop_style(None)
+            ));
+            drop_target.connect_drop(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                #[upgrade_or]
+                false,
+                move |_target, value, x, y| imp.drop(value, x, y)
+            ));
             self.obj().add_controller(drop_target);
         }
 

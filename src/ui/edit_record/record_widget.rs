@@ -79,12 +79,13 @@ mod imp {
                 .build();
             self.grid.attach(&separator, 1, 0, 1, 5);
 
-            self.open_button
-                .connect_clicked(glib::clone!(@weak self as imp => move |_| {
-                    glib::MainContext::default().spawn_local(async move {
-                        imp.open().await
-                    });
-                }));
+            self.open_button.connect_clicked(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_| {
+                    glib::MainContext::default().spawn_local(async move { imp.open().await });
+                }
+            ));
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
@@ -121,9 +122,13 @@ mod imp {
 
                 let popover = RecordTypePopoverBuilder::default()
                     .record_types(&convert_to_types)
-                    .on_activate(glib::clone!(@weak self as this => move |dest_record_type| {
-                        this.convert_to(dest_record_type);
-                    }))
+                    .on_activate(glib::clone!(
+                        #[weak(rename_to = this)]
+                        self,
+                        move |dest_record_type| {
+                            this.convert_to(dest_record_type);
+                        }
+                    ))
                     .build();
 
                 self.convert_button.set_popover(Some(&popover));
@@ -136,9 +141,13 @@ mod imp {
                 self.grid.remove(&old_form);
             }
             let form = RecordForm::new(record_type, &self.names.borrow());
-            form.connect_record_changed(glib::clone!(@weak self as this => move |_| {
-                this.obj().emit_by_name::<()>("record-changed", &[]);
-            }));
+            form.connect_record_changed(glib::clone!(
+                #[weak(rename_to = this)]
+                self,
+                move |_| {
+                    this.obj().emit_by_name::<()>("record-changed", &[]);
+                }
+            ));
             *self.form.borrow_mut() = Some(form.clone());
 
             form.set_hexpand(true);

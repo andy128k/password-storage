@@ -99,12 +99,13 @@ mod imp {
                 move |_| sender.send(gtk::ResponseType::Accept)
             });
 
-            self.entry.connect_changed(
-                glib::clone!(@weak self.open_button as open_button => move |e| {
-                    let text_length = e.chars(0, -1).len();
-                    open_button.set_sensitive(text_length > 0);
-                }),
-            );
+            self.entry.connect_changed(glib::clone!(
+                #[weak(rename_to = open_button)]
+                self.open_button,
+                move |entry| {
+                    open_button.set_sensitive(entry.text_length() > 0);
+                }
+            ));
 
             self.entry.connect_activate({
                 let sender = ResponseSender::new(&sender);

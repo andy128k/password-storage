@@ -124,54 +124,71 @@ mod imp {
             grid.attach(&action_bar, 0, 2, 1, 1);
             grid.set_parent(&*obj);
 
-            self.view.connect_selection_changed(
-                glib::clone!(@weak obj => move |selected_records| {
+            self.view.connect_selection_changed(glib::clone!(
+                #[weak]
+                obj,
+                move |selected_records| {
                     obj.selection_changed(selected_records);
-                }),
-            );
+                }
+            ));
 
-            self.view
-                .connect_record_activated(glib::clone!(@weak self as imp => move |position| {
+            self.view.connect_record_activated(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |position| {
                     glib::MainContext::default().spawn_local(async move {
                         imp.row_activated(position).await;
                     });
-                }));
+                }
+            ));
 
-            self.nav_bar
-                .connect_go_home(glib::clone!(@weak self as imp => move || {
-                    glib::MainContext::default().spawn_local(async move {
-                        imp.go_home().await
-                    });
-                }));
-            self.nav_bar
-                .connect_go_path(glib::clone!(@weak self as imp => move |position| {
-                    glib::MainContext::default().spawn_local(async move {
-                        imp.go_path(position).await
-                    });
-                }));
-            self.nav_bar
-                .connect_go_up(glib::clone!(@weak self as imp => move || {
-                    glib::MainContext::default().spawn_local(async move {
-                        imp.go_up().await
-                    });
-                }));
-            self.view
-                .connect_go_home(glib::clone!(@weak self as imp => move || {
-                    glib::MainContext::default().spawn_local(async move {
-                        imp.go_home().await
-                    });
-                }));
-            self.view
-                .connect_go_up(glib::clone!(@weak self as imp => move || {
-                    glib::MainContext::default().spawn_local(async move {
-                        imp.go_up().await
-                    });
-                }));
-            self.view.connect_move_record(
-                glib::clone!(@weak self as imp => move |_, src, dst, opt| {
-                    imp.move_record(src.downcast_ref().unwrap(), dst.downcast_ref().unwrap(), opt);
-                }),
-            );
+            self.nav_bar.connect_go_home(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move || {
+                    glib::MainContext::default().spawn_local(async move { imp.go_home().await });
+                }
+            ));
+            self.nav_bar.connect_go_path(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |position| {
+                    glib::MainContext::default()
+                        .spawn_local(async move { imp.go_path(position).await });
+                }
+            ));
+            self.nav_bar.connect_go_up(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move || {
+                    glib::MainContext::default().spawn_local(async move { imp.go_up().await });
+                }
+            ));
+            self.view.connect_go_home(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move || {
+                    glib::MainContext::default().spawn_local(async move { imp.go_home().await });
+                }
+            ));
+            self.view.connect_go_up(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move || {
+                    glib::MainContext::default().spawn_local(async move { imp.go_up().await });
+                }
+            ));
+            self.view.connect_move_record(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_, src, dst, opt| {
+                    imp.move_record(
+                        src.downcast_ref().unwrap(),
+                        dst.downcast_ref().unwrap(),
+                        opt,
+                    );
+                }
+            ));
 
             self.set_view_model(&self.file.borrow().records);
 

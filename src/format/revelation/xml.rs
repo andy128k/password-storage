@@ -196,7 +196,9 @@ fn read_attribute<R: BufRead>(
     for attr in atts.with_checks(false) {
         let attr = attr?;
         if attr.key.as_ref() == name {
-            let value = attr.decode_and_unescape_value(reader)?.to_string();
+            let value = attr
+                .decode_and_unescape_value(reader.decoder())?
+                .to_string();
             return Ok(Some(value));
         }
     }

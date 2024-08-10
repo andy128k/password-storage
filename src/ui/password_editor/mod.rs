@@ -46,31 +46,39 @@ impl PasswordEditor {
             .width_request(300)
             .hexpand(true)
             .build();
-        entry.connect_changed(glib::clone!(@weak level => move |e| {
-            let strength = get_value(e)
-                .map(|text| password_entropy(&AsciiClassifier, text.as_bytes()).into());
-            level.set_strength(strength);
-        }));
+        entry.connect_changed(glib::clone!(
+            #[weak]
+            level,
+            move |e| {
+                let strength = get_value(e)
+                    .map(|text| password_entropy(&AsciiClassifier, text.as_bytes()).into());
+                level.set_strength(strength);
+            }
+        ));
 
         let visibility_toggle = gtk::ToggleButton::builder()
             .icon_name("eye")
             .tooltip_text("Reveal password")
             .has_frame(false)
             .build();
-        visibility_toggle.connect_clicked(glib::clone!(@weak entry => move |t| {
-            entry.set_visibility(t.is_active());
-        }));
+        visibility_toggle.connect_clicked(glib::clone!(
+            #[weak]
+            entry,
+            move |t| entry.set_visibility(t.is_active())
+        ));
 
         let generate_button = gtk::Button::builder()
             .icon_name("random")
             .tooltip_text("Generate password")
             .has_frame(false)
             .build();
-        generate_button.connect_clicked(glib::clone!(@weak entry => move |_| {
-            glib::MainContext::default().spawn_local(
-                generate_password_clicked(entry)
-            );
-        }));
+        generate_button.connect_clicked(glib::clone!(
+            #[weak]
+            entry,
+            move |_| {
+                glib::MainContext::default().spawn_local(generate_password_clicked(entry));
+            }
+        ));
 
         let container = gtk::Grid::builder()
             .row_spacing(5)

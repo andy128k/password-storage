@@ -83,9 +83,13 @@ mod imp {
                     .build();
                 self.grid.attach(&label_widget, 0, index as i32, 1, 1);
 
-                widget.connect_changed(Box::new(glib::clone!(@weak self as this => move |_| {
-                    this.obj().emit_by_name::<()>("record-changed", &[]);
-                })));
+                widget.connect_changed(Box::new(glib::clone!(
+                    #[weak(rename_to = this)]
+                    self,
+                    move |_| {
+                        this.obj().emit_by_name::<()>("record-changed", &[]);
+                    }
+                )));
                 self.grid
                     .attach(&widget.get_widget(), 1, index as i32, 1, 1);
 

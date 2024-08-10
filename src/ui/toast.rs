@@ -43,25 +43,43 @@ impl Default for Toast {
             close_at: Rc::new(Cell::new(Instant::now())),
         };
 
-        event_controller.connect_enter(glib::clone!(@weak toast => move |_, _, _| {
-            toast.close_at.set(far_future());
-        }));
+        event_controller.connect_enter(glib::clone!(
+            #[weak]
+            toast,
+            move |_, _, _| {
+                toast.close_at.set(far_future());
+            }
+        ));
 
-        event_controller.connect_leave(glib::clone!(@weak toast => move |_| {
-            toast.close_at.set(future());
-        }));
+        event_controller.connect_leave(glib::clone!(
+            #[weak]
+            toast,
+            move |_| {
+                toast.close_at.set(future());
+            }
+        ));
 
-        close_button.connect_clicked(glib::clone!(@weak toast => move |_| {
-            toast.close_at.set(Instant::now());
-            toast.revealer.set_reveal_child(false);
-        }));
+        close_button.connect_clicked(glib::clone!(
+            #[weak]
+            toast,
+            move |_| {
+                toast.close_at.set(Instant::now());
+                toast.revealer.set_reveal_child(false);
+            }
+        ));
 
         glib::timeout_add_local(
             Duration::from_millis(100),
-            glib::clone!(@weak toast => @default-return glib::ControlFlow::Break, move || {
-                toast.tick();
-                glib::ControlFlow::Continue
-            }),
+            glib::clone!(
+                #[weak]
+                toast,
+                #[upgrade_or]
+                glib::ControlFlow::Break,
+                move || {
+                    toast.tick();
+                    glib::ControlFlow::Continue
+                }
+            ),
         );
 
         toast

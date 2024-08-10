@@ -22,9 +22,13 @@ pub async fn edit_object<T: 'static, W: FormWidget<T> + 'static>(
     dlg.set_child(Some(&form));
 
     dlg.set_ok_sensitive(widget.get_value().is_some());
-    widget.connect_changed(Box::new(glib::clone!(@weak dlg => move |value| {
-        dlg.set_ok_sensitive(value.is_some());
-    })));
+    widget.connect_changed(Box::new(glib::clone!(
+        #[weak]
+        dlg,
+        move |value| {
+            dlg.set_ok_sensitive(value.is_some());
+        }
+    )));
 
     widget.set_value(object);
 

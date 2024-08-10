@@ -85,21 +85,29 @@ mod imp {
             grid.attach(&action_bar, 0, 1, 1, 1);
             grid.set_parent(&*obj);
 
-            self.view.connect_selection_changed(
-                glib::clone!(@weak obj => move |selected_records| {
+            self.view.connect_selection_changed(glib::clone!(
+                #[weak]
+                obj,
+                move |selected_records| {
                     obj.selection_changed(selected_records);
-                }),
-            );
+                }
+            ));
 
-            self.view
-                .connect_record_activated(glib::clone!(@weak self as imp => move |position| {
+            self.view.connect_record_activated(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |position| {
                     glib::MainContext::default().spawn_local(async move {
                         imp.row_activated(position).await;
                     });
-                }));
+                }
+            ));
 
-            self.view
-                .connect_go_home(glib::clone!(@weak obj => move || obj.emit_go_home()));
+            self.view.connect_go_home(glib::clone!(
+                #[weak]
+                obj,
+                move || obj.emit_go_home()
+            ));
 
             let shortcuts = gtk::ShortcutController::new();
             shortcuts.add_shortcut(

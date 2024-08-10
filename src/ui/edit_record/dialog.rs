@@ -147,11 +147,15 @@ impl RecordWidget {
             callback: RefCell::new(Box::new(no_op)),
         }));
 
-        open_button.connect_clicked(glib::clone!(@weak widget => move |_| {
-            glib::MainContext::default().spawn_local(async move {
-                widget.open().await;
-            });
-        }));
+        open_button.connect_clicked(glib::clone!(
+            #[weak]
+            widget,
+            move |_| {
+                glib::MainContext::default().spawn_local(async move {
+                    widget.open().await;
+                });
+            }
+        ));
 
         widget
     }
@@ -172,9 +176,13 @@ impl RecordWidget {
 
             let popover = RecordTypePopoverBuilder::default()
                 .record_types(&convert_to_types)
-                .on_activate(glib::clone!(@weak self as this => move |dest_record_type| {
-                    this.convert_to(dest_record_type);
-                }))
+                .on_activate(glib::clone!(
+                    #[weak(rename_to = this)]
+                    self,
+                    move |dest_record_type| {
+                        this.convert_to(dest_record_type);
+                    }
+                ))
                 .build();
 
             self.0.convert_button.set_popover(Some(&popover));
@@ -187,9 +195,13 @@ impl RecordWidget {
             self.0.grid.remove(&old_form);
         }
         let mut form = RecordForm::new(record_type, &self.0.names);
-        form.connect_changed(Box::new(glib::clone!(@weak self as this => move |value| {
-            this.0.callback.borrow()(value);
-        })));
+        form.connect_changed(Box::new(glib::clone!(
+            #[weak(rename_to = this)]
+            self,
+            move |value| {
+                this.0.callback.borrow()(value);
+            }
+        )));
         let form_widget = form.get_widget();
         *self.0.form.borrow_mut() = Some(form);
 

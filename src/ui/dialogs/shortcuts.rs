@@ -16,20 +16,24 @@ pub fn shortcuts_window(
     window.set_transient_for(parent);
 
     let key_controller = gtk::EventControllerKey::new();
-    key_controller.connect_key_pressed(
-        glib::clone!(@weak window => @default-return glib::Propagation::Proceed, move |_controller, key, _keycode, modifier| {
+    key_controller.connect_key_pressed(glib::clone!(
+        #[weak]
+        window,
+        #[upgrade_or]
+        glib::Propagation::Proceed,
+        move |_controller, key, _keycode, modifier| {
             const NO_MODIFIER: gdk::ModifierType = gdk::ModifierType::empty();
             match (key, modifier) {
-                (gdk::Key::Escape, NO_MODIFIER) |
-                (gdk::Key::w, PRIMARY_MODIFIER) |
-                (gdk::Key::W, PRIMARY_MODIFIER) => {
+                (gdk::Key::Escape, NO_MODIFIER)
+                | (gdk::Key::w, PRIMARY_MODIFIER)
+                | (gdk::Key::W, PRIMARY_MODIFIER) => {
                     window.close();
                     glib::Propagation::Stop
-                },
+                }
                 _ => glib::Propagation::Proceed,
             }
-        }),
-    );
+        }
+    ));
     window.add_controller(key_controller);
 
     let grid = gtk::Grid::builder()

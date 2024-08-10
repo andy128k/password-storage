@@ -60,14 +60,18 @@ mod imp {
             self.entry.set_width_request(300);
 
             let next = create_button("go-down-symbolic");
-            next.connect_clicked(
-                glib::clone!(@weak self as this => move |_| this.entry.emit_next_match()),
-            );
+            next.connect_clicked(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_| imp.entry.emit_next_match()
+            ));
 
             let prev = create_button("go-up-symbolic");
-            prev.connect_clicked(
-                glib::clone!(@weak self as this => move |_| this.entry.emit_previous_match()),
-            );
+            prev.connect_clicked(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_| imp.entry.emit_previous_match()
+            ));
 
             self.search_in_secrets
                 .set_label(Some("Search in secrets (passwords)"));
@@ -96,21 +100,48 @@ mod imp {
 
             self.bar.set_child(Some(&bx));
 
-            self.entry.connect_search_changed(glib::clone!(@weak self as this => move |entry| {
-                this.obj().emit_search(SearchEventType::Change, entry.text(), this.search_in_secrets.is_active());
-            }));
-            self.entry
-                .connect_next_match(glib::clone!(@weak self as this => move |entry| {
-                    this.obj().emit_search(SearchEventType::Next, entry.text(), this.search_in_secrets.is_active());
-                }));
-            self.entry
-                .connect_previous_match(glib::clone!(@weak self as this => move |entry| {
-                    this.obj().emit_search(SearchEventType::Prev, entry.text(), this.search_in_secrets.is_active());
-                }));
-            self.search_in_secrets
-                .connect_toggled(glib::clone!(@weak self as this => move |b| {
-                    this.obj().emit_configure(SearchConfig { search_in_secrets:  b.is_active() });
-                }));
+            self.entry.connect_search_changed(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |entry| {
+                    imp.obj().emit_search(
+                        SearchEventType::Change,
+                        entry.text(),
+                        imp.search_in_secrets.is_active(),
+                    );
+                }
+            ));
+            self.entry.connect_next_match(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |entry| {
+                    imp.obj().emit_search(
+                        SearchEventType::Next,
+                        entry.text(),
+                        imp.search_in_secrets.is_active(),
+                    );
+                }
+            ));
+            self.entry.connect_previous_match(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |entry| {
+                    imp.obj().emit_search(
+                        SearchEventType::Prev,
+                        entry.text(),
+                        imp.search_in_secrets.is_active(),
+                    );
+                }
+            ));
+            self.search_in_secrets.connect_toggled(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |b| {
+                    imp.obj().emit_configure(SearchConfig {
+                        search_in_secrets: b.is_active(),
+                    });
+                }
+            ));
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {

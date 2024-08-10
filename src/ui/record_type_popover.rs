@@ -52,12 +52,16 @@ impl<'b> RecordTypePopoverBuilder<'b> {
                 if let Some(ref action_name_func) = action_name_func {
                     button.set_detailed_action_name(&(action_name_func)(record_type));
                 }
-                button.connect_clicked(
-                    glib::clone!(@weak popover, @strong on_activate => move |_| {
+                button.connect_clicked(glib::clone!(
+                    #[weak]
+                    popover,
+                    #[strong]
+                    on_activate,
+                    move |_| {
                         popover.popdown();
                         on_activate(record_type);
-                    }),
-                );
+                    }
+                ));
                 button.upcast()
             })
             .collect();

@@ -52,40 +52,52 @@ mod imp {
             obj.set_layout_manager(Some(gtk::BinLayout::new()));
 
             let factory = gtk::SignalListItemFactory::new();
-            factory.connect_setup(
-                glib::clone!(@weak self as this => move |_factory, item| this.setup_item(item)),
-            );
-            factory.connect_bind(
-                glib::clone!(@weak self as this => move |_factory, item| this.bind_item(item)),
-            );
-            factory.connect_unbind(
-                glib::clone!(@weak self as this => move |_factory, item| this.unbind_item(item)),
-            );
-            factory.connect_teardown(
-                glib::clone!(@weak self as this => move |_factory, item| this.teardown_item(item)),
-            );
+            factory.connect_setup(glib::clone!(
+                #[weak(rename_to = this)]
+                self,
+                move |_factory, item| this.setup_item(item)
+            ));
+            factory.connect_bind(glib::clone!(
+                #[weak(rename_to = this)]
+                self,
+                move |_factory, item| this.bind_item(item)
+            ));
+            factory.connect_unbind(glib::clone!(
+                #[weak(rename_to = this)]
+                self,
+                move |_factory, item| this.unbind_item(item)
+            ));
+            factory.connect_teardown(glib::clone!(
+                #[weak(rename_to = this)]
+                self,
+                move |_factory, item| this.teardown_item(item)
+            ));
             self.list_view.set_factory(Some(&factory));
             self.list_view.set_model(Some(&self.selection));
 
-            self.list_view.connect_activate(
-                glib::clone!(@weak obj => move |_list_view, position| {
+            self.list_view.connect_activate(glib::clone!(
+                #[weak]
+                obj,
+                move |_list_view, position| {
                     obj.emit_record_activated(position);
-                }),
-            );
+                }
+            ));
 
             let key_controller = gtk::EventControllerKey::new();
-            key_controller.connect_key_pressed(
-                glib::clone!(@weak obj => @default-return glib::Propagation::Proceed, move |_controller, key, _keycode, modifier| {
-                    obj.on_key_press(key, modifier)
-                }),
-            );
+            key_controller.connect_key_pressed(glib::clone!(
+                #[weak]
+                obj,
+                #[upgrade_or]
+                glib::Propagation::Proceed,
+                move |_controller, key, _keycode, modifier| obj.on_key_press(key, modifier)
+            ));
             self.list_view.add_controller(key_controller);
 
-            self.selection.connect_selection_changed(
-                glib::clone!(@weak obj => move |selection, _pos, _n| {
-                    obj.emit_selection_changed(&selection.selection())
-                }),
-            );
+            self.selection.connect_selection_changed(glib::clone!(
+                #[weak]
+                obj,
+                move |selection, _pos, _n| obj.emit_selection_changed(&selection.selection())
+            ));
 
             scrolled(&self.list_view).set_parent(&*obj);
         }
@@ -137,7 +149,11 @@ mod imp {
             let popup_model = self.popup_model.clone();
             child.connect_context_menu(move |_record| popup_model.borrow().clone());
             let obj = self.obj();
-            child.connect_move_record(glib::clone!(@weak obj => move |_, src, dst, opt| obj.emit_move_record(src, dst, opt)));
+            child.connect_move_record(glib::clone!(
+                #[weak]
+                obj,
+                move |_, src, dst, opt| obj.emit_move_record(src, dst, opt)
+            ));
             list_item.set_child(Some(&child));
         }
 

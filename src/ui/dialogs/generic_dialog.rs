@@ -56,14 +56,18 @@ mod imp {
             *self.sender.borrow_mut() = Some(sender.clone());
             *self.receiver.borrow_mut() = Some(receiver);
 
-            self.cancel_button.connect_clicked(
-                glib::clone!(@weak self as imp => move |_| imp.send(gtk::ResponseType::Cancel)),
-            );
+            self.cancel_button.connect_clicked(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_| imp.send(gtk::ResponseType::Cancel)
+            ));
             header.pack_start(&self.cancel_button);
 
-            self.ok_button.connect_clicked(
-                glib::clone!(@weak self as imp => move |_| imp.send(gtk::ResponseType::Ok)),
-            );
+            self.ok_button.connect_clicked(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                move |_| imp.send(gtk::ResponseType::Ok)
+            ));
             header.pack_end(&self.ok_button);
 
             self.obj().set_modal(true);
@@ -72,8 +76,12 @@ mod imp {
             self.obj().set_icon_name(Some("password-storage"));
 
             let key_controller = gtk::EventControllerKey::new();
-            key_controller.connect_key_pressed(
-                glib::clone!(@weak self as imp => @default-return glib::Propagation::Proceed, move |_controller, key, _keycode, modifier| {
+            key_controller.connect_key_pressed(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                #[upgrade_or]
+                glib::Propagation::Proceed,
+                move |_controller, key, _keycode, modifier| {
                     const NO_MODIFIER: gdk::ModifierType = gdk::ModifierType::empty();
                     match (key, modifier) {
                         (gdk::Key::Escape, NO_MODIFIER)
@@ -88,8 +96,8 @@ mod imp {
                         }
                         _ => glib::Propagation::Proceed,
                     }
-                }),
-            );
+                }
+            ));
             self.obj().add_controller(key_controller);
         }
     }
