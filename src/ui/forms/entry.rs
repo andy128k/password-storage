@@ -1,6 +1,7 @@
 use super::base::*;
+use crate::ui::suggestion_entry::PSSuggestionEntry;
 use crate::utils::string::StringExt;
-use gtk::{glib, prelude::*};
+use gtk::prelude::*;
 
 pub fn form_entry() -> gtk::Entry {
     gtk::Entry::builder()
@@ -10,26 +11,13 @@ pub fn form_entry() -> gtk::Entry {
         .build()
 }
 
-pub fn form_entry_with_completion(items: &[String]) -> gtk::Entry {
-    let model = gtk::ListStore::new(&[glib::Type::STRING]);
+pub fn form_entry_with_completion(items: &[String]) -> PSSuggestionEntry {
+    let model = gtk::StringList::new(&[]);
     for item in items {
-        let iter = model.append();
-        model.set_value(&iter, 0, &glib::Value::from(item));
+        model.append(item);
     }
 
-    let completion = gtk::EntryCompletion::builder()
-        .model(&model)
-        .popup_set_width(true)
-        .build();
-    // workaround for a bug in GTK https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=805110
-    completion.set_text_column(0);
-
-    gtk::Entry::builder()
-        .can_focus(true)
-        .activates_default(true)
-        .hexpand(true)
-        .completion(&completion)
-        .build()
+    PSSuggestionEntry::new(model.upcast_ref())
 }
 
 pub fn form_password_entry() -> gtk::Entry {
