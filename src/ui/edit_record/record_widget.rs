@@ -83,7 +83,7 @@ mod imp {
                 #[weak(rename_to = imp)]
                 self,
                 move |_| {
-                    glib::MainContext::default().spawn_local(async move { imp.open().await });
+                    glib::spawn_future_local(async move { imp.open().await });
                 }
             ));
         }

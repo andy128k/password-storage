@@ -97,7 +97,7 @@ mod imp {
                 #[weak(rename_to = imp)]
                 self,
                 move |position| {
-                    glib::MainContext::default().spawn_local(async move {
+                    glib::spawn_future_local(async move {
                         imp.row_activated(position).await;
                     });
                 }

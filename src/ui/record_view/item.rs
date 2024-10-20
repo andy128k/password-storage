@@ -110,8 +110,7 @@ mod imp {
                 #[weak(rename_to = imp)]
                 self,
                 move |_gesture, _n, _x, _y| {
-                    glib::MainContext::default()
-                        .spawn_local(async move { imp.on_open_clicked().await });
+                    glib::spawn_future_local(async move { imp.on_open_clicked().await });
                 }
             ));
             self.open.add_controller(open_click);

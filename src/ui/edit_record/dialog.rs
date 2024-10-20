@@ -151,7 +151,7 @@ impl RecordWidget {
             #[weak]
             widget,
             move |_| {
-                glib::MainContext::default().spawn_local(async move {
+                glib::spawn_future_local(async move {
                     widget.open().await;
                 });
             }

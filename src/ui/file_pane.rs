@@ -136,7 +136,7 @@ mod imp {
                 #[weak(rename_to = imp)]
                 self,
                 move |position| {
-                    glib::MainContext::default().spawn_local(async move {
+                    glib::spawn_future_local(async move {
                         imp.row_activated(position).await;
                     });
                 }
@@ -146,36 +146,35 @@ mod imp {
                 #[weak(rename_to = imp)]
                 self,
                 move || {
-                    glib::MainContext::default().spawn_local(async move { imp.go_home().await });
+                    glib::spawn_future_local(async move { imp.go_home().await });
                 }
             ));
             self.nav_bar.connect_go_path(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
                 move |position| {
-                    glib::MainContext::default()
-                        .spawn_local(async move { imp.go_path(position).await });
+                    glib::spawn_future_local(async move { imp.go_path(position).await });
                 }
             ));
             self.nav_bar.connect_go_up(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
                 move || {
-                    glib::MainContext::default().spawn_local(async move { imp.go_up().await });
+                    glib::spawn_future_local(async move { imp.go_up().await });
                 }
             ));
             self.view.connect_go_home(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
                 move || {
-                    glib::MainContext::default().spawn_local(async move { imp.go_home().await });
+                    glib::spawn_future_local(async move { imp.go_home().await });
                 }
             ));
             self.view.connect_go_up(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
                 move || {
-                    glib::MainContext::default().spawn_local(async move { imp.go_up().await });
+                    glib::spawn_future_local(async move { imp.go_up().await });
                 }
             ));
             self.view.connect_move_record(glib::clone!(

@@ -152,7 +152,7 @@ mod imp {
 
             let delete_handler = win.connect_close_request(move |win| {
                 let win = win.clone();
-                glib::MainContext::default().spawn_local(async move {
+                glib::spawn_future_local(async move {
                     win.on_close().await;
                 });
                 glib::Propagation::Stop
@@ -163,7 +163,7 @@ mod imp {
                 #[weak]
                 win,
                 move |event| {
-                    glib::MainContext::default().spawn_local(async move {
+                    glib::spawn_future_local(async move {
                         win.search(&event).await;
                     });
                 }
@@ -190,7 +190,7 @@ mod imp {
                 #[weak]
                 win,
                 move |_, position, record_node| {
-                    glib::MainContext::default().spawn_local(async move {
+                    glib::spawn_future_local(async move {
                         win.action_edit(position, record_node).await;
                     });
                 }
@@ -214,7 +214,7 @@ mod imp {
                 #[weak]
                 win,
                 move |_, position, record_node| {
-                    glib::MainContext::default().spawn_local(async move {
+                    glib::spawn_future_local(async move {
                         win.action_edit(position, record_node).await;
                     });
                 }

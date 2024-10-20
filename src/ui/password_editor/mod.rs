@@ -76,7 +76,7 @@ impl PasswordEditor {
             #[weak]
             entry,
             move |_| {
-                glib::MainContext::default().spawn_local(generate_password_clicked(entry));
+                glib::spawn_future_local(generate_password_clicked(entry));
             }
         ));
 

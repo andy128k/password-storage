@@ -64,7 +64,7 @@ mod imp {
 
             let files = files.to_owned();
             let hint = hint.to_owned();
-            glib::MainContext::default().spawn_local(glib::clone!(
+            glib::spawn_future_local(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
                 async move {
