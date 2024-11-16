@@ -22,12 +22,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut password = String::new();
     stdin().read_line(&mut password)?;
-    println!("");
+    println!();
 
     let file = fs::OpenOptions::new().read(true).open(&opts.input)?;
     let mut buffer = BufReader::new(file);
 
-    let data = revelation::decrypt_revelation_file(&mut buffer, &password.trim())?;
+    let data = revelation::decrypt_revelation_file(&mut buffer, password.trim())?;
 
     fs::write(&opts.output, data.content)?;
 

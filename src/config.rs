@@ -1,5 +1,4 @@
 use crate::error::*;
-use crate::id::Id;
 use crate::slot::Slot;
 use gtk::glib;
 use serde::{Deserialize, Serialize};
@@ -31,9 +30,6 @@ pub struct ConfigService {
     cached: RefCell<Option<Config>>,
     pub on_change: Slot<Config>,
 }
-
-#[derive(Clone, Copy)]
-pub struct ConfigListenerId(Id, Id);
 
 impl std::default::Default for ConfigService {
     fn default() -> Self {

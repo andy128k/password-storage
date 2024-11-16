@@ -32,7 +32,7 @@ mod imp {
                 filter: gtk::StringFilter::builder()
                     .ignore_case(true)
                     .match_mode(gtk::StringFilterMatchMode::Substring)
-                    .expression(&gtk::PropertyExpression::new(
+                    .expression(gtk::PropertyExpression::new(
                         gtk::StringObject::static_type(),
                         gtk::Expression::NONE,
                         "string",
@@ -240,7 +240,7 @@ mod imp {
                 return glib::Propagation::Stop;
             }
 
-            return glib::Propagation::Proceed;
+            glib::Propagation::Proceed
         }
 
         fn accept_current_selection(&self) {
@@ -305,7 +305,7 @@ impl FormWidget<String> for PSSuggestionEntry {
 
     fn set_value(&self, value: Option<&String>) {
         self.imp()
-            .set_text_without_handler(&value.map(String::as_str).unwrap_or_default());
+            .set_text_without_handler(value.map(String::as_str).unwrap_or_default());
     }
 
     fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&String>)>) {
