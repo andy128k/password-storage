@@ -1,4 +1,4 @@
-use rand::{seq::SliceRandom, thread_rng};
+use rand::{rng, seq::IndexedRandom};
 
 #[rustfmt::skip]
 const GENERATE_PASSWORD_ALPHABET: &[char] = &[
@@ -12,9 +12,8 @@ const GENERATE_PASSWORD_ALPHABET: &[char] = &[
 const GENERATE_PASSWORD_LENGTH: usize = 24;
 
 pub fn generate_password() -> String {
-    let mut rnd = thread_rng();
     GENERATE_PASSWORD_ALPHABET
-        .choose_multiple(&mut rnd, GENERATE_PASSWORD_LENGTH)
+        .choose_multiple(&mut rng(), GENERATE_PASSWORD_LENGTH)
         .cloned()
         .collect()
 }

@@ -1,7 +1,7 @@
 pub fn all_equal_by_key<'a, T, K: PartialEq>(
     values: &'a [T],
-    key_fn: impl Fn(&'a T) -> K + Copy + 'a,
-) -> Option<&T> {
+    key_fn: impl Fn(&'a T) -> K,
+) -> Option<&'a T> {
     let (first, rest) = values.split_first()?;
     let first_key = (key_fn)(first);
     if rest.iter().all(|value| (key_fn)(value) == first_key) {
