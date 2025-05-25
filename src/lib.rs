@@ -12,8 +12,10 @@ pub mod model;
 pub mod password;
 pub mod search;
 pub mod shortcuts;
-pub mod slot;
 pub mod ui;
 pub mod utils;
 pub mod version;
 pub mod weak_map;
+
+pub mod async_slot;
+pub mod slot;
