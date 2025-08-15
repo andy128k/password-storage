@@ -124,7 +124,8 @@ mod imp {
 
 glib::wrapper! {
     pub struct RecordForm(ObjectSubclass<imp::RecordForm>)
-        @extends gtk::Widget;
+        @extends gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl RecordForm {

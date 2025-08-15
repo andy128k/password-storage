@@ -353,7 +353,8 @@ mod imp {
 
 glib::wrapper! {
     pub struct PSRecordViewItem(ObjectSubclass<imp::PSRecordViewItem>)
-        @extends gtk::Widget;
+        @extends gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl PSRecordViewItem {

@@ -316,7 +316,8 @@ mod imp {
 
 glib::wrapper! {
     pub struct FilePane(ObjectSubclass<imp::FilePane>)
-        @extends gtk::Widget;
+        @extends gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl Default for FilePane {

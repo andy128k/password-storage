@@ -42,7 +42,8 @@ mod imp {
 
 glib::wrapper! {
     pub struct AccelLabel(ObjectSubclass<imp::AccelLabel>)
-        @extends gtk::Widget;
+        @extends gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl AccelLabel {

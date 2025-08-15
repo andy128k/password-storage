@@ -173,7 +173,8 @@ mod imp {
 
 glib::wrapper! {
     pub struct OpenFile(ObjectSubclass<imp::OpenFile>)
-        @extends gtk::Widget;
+        @extends gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl Default for OpenFile {

@@ -186,7 +186,8 @@ mod imp {
 
 glib::wrapper! {
     pub struct PSNavBar(ObjectSubclass<imp::PSNavBar>)
-        @extends gtk::Widget;
+        @extends gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl Default for PSNavBar {

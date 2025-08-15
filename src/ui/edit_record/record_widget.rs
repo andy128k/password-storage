@@ -203,7 +203,8 @@ mod imp {
 
 glib::wrapper! {
     pub struct RecordWidget(ObjectSubclass<imp::RecordWidget>)
-        @extends gtk::Widget;
+        @extends gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl RecordWidget {

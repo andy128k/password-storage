@@ -268,8 +268,9 @@ mod imp {
 }
 
 glib::wrapper! {
-  pub struct PSSuggestionEntry(ObjectSubclass<imp::PSSuggestionEntry>)
-      @extends gtk::Widget;
+    pub struct PSSuggestionEntry(ObjectSubclass<imp::PSSuggestionEntry>)
+        @extends gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl PSSuggestionEntry {

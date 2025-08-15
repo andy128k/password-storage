@@ -124,8 +124,9 @@ mod imp {
 }
 
 glib::wrapper! {
-  pub struct GenericDialog(ObjectSubclass<imp::GenericDialog>)
-      @extends gtk::Widget, gtk::Window;
+    pub struct GenericDialog(ObjectSubclass<imp::GenericDialog>)
+        @extends gtk::Widget, gtk::Window,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Root, gtk::Native, gtk::ShortcutManager;
 }
 
 impl Default for GenericDialog {

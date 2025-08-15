@@ -272,7 +272,7 @@ mod imp {
 glib::wrapper! {
     pub struct PSMainWindow(ObjectSubclass<imp::PSMainWindow>)
         @extends gtk::ApplicationWindow, gtk::Window, gtk::Widget,
-        @implements gio::ActionMap;
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Root, gtk::Native, gtk::ShortcutManager, gio::ActionMap, gio::ActionGroup;
 }
 
 impl PSMainWindow {
@@ -539,7 +539,7 @@ impl PSMainWindow {
 
         win.present();
         win.imp().set_mode(imp::AppMode::Initial);
-        crate::css::load_css(&win.display());
+        crate::css::load_css(&RootExt::display(&win));
         win
     }
 }

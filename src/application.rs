@@ -104,7 +104,7 @@ mod imp {
 glib::wrapper! {
     pub struct PSApplication(ObjectSubclass<imp::PSApplication>)
         @extends gtk::Application, gio::Application,
-        @implements gio::ActionMap;
+        @implements gio::ActionMap, gio::ActionGroup;
 }
 
 impl Default for PSApplication {
