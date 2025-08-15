@@ -31,6 +31,7 @@ mod imp {
 
     impl ApplicationImpl for PSApplication {
         fn startup(&self) {
+            gio::resources_register_include!("icons.gresource").expect("icons are registered");
             self.parent_startup();
             init();
 
@@ -43,8 +44,6 @@ mod imp {
                     }
                 }
             }
-
-            gio::resources_register_include!("icons.gresource").expect("icons are registered");
 
             let app = self.obj();
             app.register_actions(&*app);
