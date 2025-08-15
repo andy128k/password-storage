@@ -17,7 +17,7 @@ aes = "0.8"
 cbc = "0.1"
 deflate = "1"
 inflate = "0.4"
-quick-xml = "0.37"
+quick-xml = "0.38"
 
 toml = "0.9"
 serde = { version = "1", features = ["derive"] }

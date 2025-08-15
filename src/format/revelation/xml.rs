@@ -4,6 +4,7 @@ use crate::model::tree::{RecordNode, RecordTree};
 use crate::utils::typed_list_store::TypedListStore;
 use crate::version::Version;
 use quick_xml::{
+    escape::resolve_predefined_entity,
     events::{attributes::Attributes, BytesDecl, BytesEnd, BytesStart, BytesText, Event},
     Reader, Writer,
 };
@@ -33,7 +34,7 @@ fn read_document<R: BufRead>(reader: &mut Reader<R>) -> Result<RecordTree> {
             {
                 record_tree = Some(Default::default());
             }
-            Event::Text(element) if element.unescape()?.trim().is_empty() => {}
+            Event::Text(element) if element.decode()?.trim().is_empty() => {}
             Event::Eof => break,
             e => return Err(format!("Unexpected XML event {e:?}.").into()),
         }
@@ -72,7 +73,7 @@ fn read_revelationdata<R: BufRead>(
                 let record_node = read_empty_record_node(reader, &mut e.attributes())?;
                 records.append(&record_node);
             }
-            Event::Text(element) if element.unescape()?.trim().is_empty() => {}
+            Event::Text(element) if element.decode()?.trim().is_empty() => {}
             Event::End(ref e) if e.name().as_ref() == b"revelationdata" => break,
             e => return Err(format!("Unexpected XML event {e:?}.").into()),
         }
@@ -141,7 +142,7 @@ fn read_record_node<R: BufRead>(
                 }
                 e => return Err(format!("Unexpected element {e:?}.").into()),
             },
-            Event::Text(element) if element.unescape()?.trim().is_empty() => {}
+            Event::Text(element) if element.decode()?.trim().is_empty() => {}
             Event::End(ref e) if e.name().as_ref() == b"entry" => break,
             e => return Err(format!("Unexpected XML event {e:?} {record:?}.").into()),
         }
@@ -180,7 +181,19 @@ fn expect_text<R: BufRead>(reader: &mut Reader<R>, end_name: &[u8]) -> Result<St
     loop {
         buf.clear();
         match reader.read_event_into(&mut buf)? {
-            Event::Text(text) => result.push_str(&text.unescape()?),
+            Event::Text(text) => result.push_str(&text.decode()?),
+            Event::GeneralRef(gref) => {
+                let entity = gref.decode()?;
+                if let Some(resolved_entity) = resolve_predefined_entity(&entity) {
+                    result.push_str(resolved_entity);
+                } else if let Some(ch) = gref.resolve_char_ref()? {
+                    result.push(ch);
+                } else {
+                    result.push('&');
+                    result.push_str(&entity);
+                    result.push(';');
+                }
+            }
             Event::End(end) if end.name().as_ref() == end_name => break,
             e => return Err(format!("Unexpected XML event {e:?}.").into()),
         }
@@ -550,29 +563,29 @@ mod test {
         );
     }
 
-    fn records_equal(
+    fn assert_records_equal(
         tree1: &TypedListStore<RecordNode>,
         tree2: &TypedListStore<RecordNode>,
-    ) -> bool {
+    ) {
         if tree1.len() != tree2.len() {
-            return false;
+            panic!("length does not match");
         }
-        tree1.iter().zip(tree2.iter()).all(|(n1, n2)| {
+        for (n1, n2) in tree1.iter().zip(tree2.iter()) {
             if n1.record() != n2.record() {
-                return false;
+                panic!("records {:?} and {:?} differ", n1.record(), n2.record());
             }
             match (n1.children(), n2.children()) {
-                (None, None) => true,
-                (Some(ch1), Some(ch2)) => records_equal(ch1, ch2),
-                _ => false,
+                (None, None) => {}
+                (Some(ch1), Some(ch2)) => assert_records_equal(ch1, ch2),
+                _ => panic!("1"),
             }
-        })
+        }
     }
 
     #[test]
     fn test_read_tree() {
         let tree = record_tree_from_xml(test_xml().as_bytes()).unwrap();
-        assert!(records_equal(&tree.records, &test_tree().records));
+        assert_records_equal(&tree.records, &test_tree().records);
     }
 
     #[test]
