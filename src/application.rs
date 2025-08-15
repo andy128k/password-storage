@@ -12,6 +12,7 @@ mod imp {
     use super::*;
     use crate::cache::Cache;
     use crate::config::ConfigService;
+    use crate::utils::PSActionEntryBuilderExt;
     use std::rc::Rc;
 
     #[derive(Default)]
@@ -27,7 +28,20 @@ mod imp {
         type ParentType = gtk::Application;
     }
 
-    impl ObjectImpl for PSApplication {}
+    impl ObjectImpl for PSApplication {
+        fn constructed(&self) {
+            self.parent_constructed();
+
+            self.obj().add_action_entries([
+                gio::ActionEntry::<Self::Type>::builder("about")
+                    .activate_async(async |this, _, _| this.about().await)
+                    .build(),
+                gio::ActionEntry::<Self::Type>::builder("new")
+                    .activate_async(async |this, _, _| this.new_file().await)
+                    .build(),
+            ]);
+        }
+    }
 
     impl ApplicationImpl for PSApplication {
         fn startup(&self) {
