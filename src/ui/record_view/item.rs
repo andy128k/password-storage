@@ -1,6 +1,6 @@
-use super::has_record::{HasRecord, PSRecordViewOptions};
-use crate::entropy::PasswordStrength;
+use crate::model::tree::RecordTree;
 use crate::utils::style::PSStyleContextExt;
+use crate::{entropy::PasswordStrength, model::tree::RecordNode};
 use gtk::{
     gdk,
     gdk::ffi::{GDK_BUTTON_PRIMARY, GDK_BUTTON_SECONDARY},
@@ -28,19 +28,20 @@ impl From<i8> for DropOption {
 }
 
 pub struct MoveRecord {
-    pub src: glib::Object,
-    pub dst: glib::Object,
+    pub src: RecordNode,
+    pub dst: RecordNode,
     pub option: DropOption,
 }
 
 mod imp {
     use super::*;
     use crate::entropy::{password_entropy, AsciiClassifier};
+    use crate::model::tree::RecordTree;
     use crate::ui::dialogs::show_uri::show_uri;
     use crate::ui::record_view::compose_paintable::PSBackgroundPaintable;
     use crate::utils::style::StaticCssExt;
     use crate::utils::ui::orphan_all_children;
-    use std::cell::{Cell, OnceCell, RefCell};
+    use std::cell::{Cell, RefCell};
     use std::sync::OnceLock;
 
     #[derive(Default)]
@@ -49,8 +50,8 @@ mod imp {
         name: gtk::Label,
         strength: gtk::Image,
         open: gtk::Image,
-        record: RefCell<Option<glib::Object>>,
-        pub has_record: OnceCell<&'static dyn HasRecord>,
+        record: RefCell<Option<RecordNode>>,
+        pub tree: RefCell<Option<RecordTree>>,
         pub position: Cell<Option<u32>>,
         context_click: gtk::GestureClick,
     }
@@ -121,13 +122,13 @@ mod imp {
             SIGNALS.get_or_init(|| {
                 vec![
                     glib::subclass::Signal::builder("context-menu")
-                        .param_types([glib::Object::static_type()])
+                        .param_types([RecordNode::static_type()])
                         .return_type::<Option<gio::MenuModel>>()
                         .build(),
                     glib::subclass::Signal::builder("move-record")
                         .param_types([
-                            glib::Object::static_type(),
-                            glib::Object::static_type(),
+                            RecordNode::static_type(),
+                            RecordNode::static_type(),
                             i8::static_type(),
                         ])
                         .build(),
@@ -143,10 +144,6 @@ mod imp {
     impl WidgetImpl for PSRecordViewItem {}
 
     impl PSRecordViewItem {
-        fn record_type(&self) -> &'static dyn HasRecord {
-            *self.has_record.get().unwrap()
-        }
-
         pub fn setup_drag_and_drop(&self) {
             let drag_source = gtk::DragSource::builder()
                 .actions(gdk::DragAction::MOVE)
@@ -166,7 +163,7 @@ mod imp {
             self.obj().add_controller(drag_source);
 
             let drop_target =
-                gtk::DropTarget::new(self.record_type().get_type(), gdk::DragAction::MOVE);
+                gtk::DropTarget::new(RecordNode::static_type(), gdk::DragAction::MOVE);
             drop_target.set_preload(true);
             drop_target.connect_enter(glib::clone!(
                 #[weak(rename_to = imp)]
@@ -197,9 +194,9 @@ mod imp {
             self.obj().add_controller(drop_target);
         }
 
-        pub fn set_record_node(&self, record_node: Option<glib::Object>) {
+        pub fn set_record_node(&self, record_node: Option<RecordNode>) {
             if let Some(ref record_node) = record_node {
-                let record = self.record_type().get_record(record_node);
+                let record = record_node.record();
 
                 self.icon.set_icon_name(Some(record.record_type.icon));
 
@@ -228,7 +225,7 @@ mod imp {
             *self.record.borrow_mut() = record_node;
         }
 
-        fn emit_context_menu(&self, record_node: &glib::Object) -> Option<gio::MenuModel> {
+        fn emit_context_menu(&self, record_node: &RecordNode) -> Option<gio::MenuModel> {
             self.obj()
                 .emit_by_name::<Option<gio::MenuModel>>("context-menu", &[record_node])
         }
@@ -255,7 +252,12 @@ mod imp {
 
         fn record_url(&self) -> Option<String> {
             let record = self.record.borrow();
-            let url = self.record_type().get_record(record.as_ref()?).url()?;
+            let url = record
+                .as_ref()?
+                .downcast_ref::<RecordNode>()
+                .unwrap()
+                .record()
+                .url()?;
             Some(url.to_string())
         }
 
@@ -301,7 +303,9 @@ mod imp {
         }
 
         fn drop_result(&self, value: &glib::Value, _x: f64, y: f64) -> Option<MoveRecord> {
-            let src = value.get::<glib::Object>().ok()?;
+            let tree = self.tree.borrow();
+            let tree = tree.as_ref()?;
+            let src = value.get::<RecordNode>().ok()?;
 
             let record_ref = self.record.borrow();
             let dst = record_ref.as_ref()?;
@@ -309,20 +313,43 @@ mod imp {
                 return None;
             }
 
+            let Some(dst_place) = tree.find(dst) else {
+                return None;
+            };
+            let has_next = dst_place.next_sibling().is_some();
+
             let height = f64::from(self.obj().height());
-            let option = if self.record_type().get_record(dst).record_type.is_group {
-                if y < height / 3.0 && self.position.get() == Some(0) {
-                    DropOption::Above
-                } else if y < height * 2.0 / 3.0 {
-                    DropOption::Into
+            let option = if dst
+                .downcast_ref::<RecordNode>()
+                .unwrap()
+                .record()
+                .record_type
+                .is_group
+            {
+                if !has_next {
+                    if y < height / 3.0 {
+                        DropOption::Above
+                    } else if y < height * 2.0 / 3.0 {
+                        DropOption::Into
+                    } else {
+                        DropOption::Below
+                    }
                 } else {
-                    DropOption::Below
+                    if y < height / 3.0 {
+                        DropOption::Above
+                    } else {
+                        DropOption::Into
+                    }
                 }
             } else {
-                if y < height / 2.0 && self.position.get() == Some(0) {
-                    DropOption::Above
+                if !has_next {
+                    if y < height / 2.0 {
+                        DropOption::Above
+                    } else {
+                        DropOption::Below
+                    }
                 } else {
-                    DropOption::Below
+                    DropOption::Above
                 }
             };
 
@@ -358,42 +385,43 @@ glib::wrapper! {
 }
 
 impl PSRecordViewItem {
-    pub fn new(options: PSRecordViewOptions) -> Self {
+    pub fn new() -> Self {
         let obj: Self = glib::Object::builder().build();
-        obj.imp().has_record.set(options.has_record).ok().unwrap();
-        if options.drag_and_drop {
-            obj.imp().setup_drag_and_drop();
-        }
+        obj.imp().setup_drag_and_drop();
         obj
     }
 
-    pub fn set_record_node(&self, record_node: Option<(glib::Object, u32)>) {
-        let (record_node, position) = record_node.unzip();
+    pub fn set_record_node(&self, record_node: Option<(RecordTree, RecordNode, u32)>) {
+        let (tree, record_node, position) = match record_node {
+            Some((tree, record_node, position)) => (Some(tree), Some(record_node), Some(position)),
+            None => (None, None, None),
+        };
+        self.imp().tree.replace(tree);
         self.imp().set_record_node(record_node);
         self.imp().position.set(position);
     }
 
     pub fn connect_context_menu<F>(&self, f: F) -> glib::signal::SignalHandlerId
     where
-        F: Fn(&glib::Object) -> Option<gio::MenuModel> + 'static,
+        F: Fn(&RecordNode) -> Option<gio::MenuModel> + 'static,
     {
         self.connect_closure(
             "context-menu",
             false,
-            glib::closure_local!(move |_self: &Self, node: &glib::Object| (f)(node)),
+            glib::closure_local!(move |_self: &Self, node: &RecordNode| (f)(node)),
         )
     }
 
     pub fn connect_move_record<F>(&self, f: F) -> glib::signal::SignalHandlerId
     where
-        F: Fn(&Self, &glib::Object, &glib::Object, DropOption) + 'static,
+        F: Fn(&Self, &RecordNode, &RecordNode, DropOption) + 'static,
     {
         self.connect_closure(
             "move-record",
             false,
             glib::closure_local!(move |cell: &Self,
-                                       src: &glib::Object,
-                                       dst: &glib::Object,
+                                       src: &RecordNode,
+                                       dst: &RecordNode,
                                        option: i8| {
                 (f)(cell, src, dst, option.into());
             }),

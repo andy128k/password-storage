@@ -2,9 +2,7 @@ use crate::cache::Cache;
 use crate::config::ConfigService;
 use crate::format;
 use crate::model::record::{Record, RecordType, RECORD_TYPE_GENERIC};
-use crate::model::tree::RecordNode;
-use crate::model::tree::RecordTree;
-use crate::search::item::SearchMatch;
+use crate::model::tree::{RecordNode, RecordTree};
 use crate::ui;
 use crate::ui::dashboard::PSDashboard;
 use crate::ui::dialogs::ask_save::{ask_save, AskSave};
@@ -14,7 +12,6 @@ use crate::ui::dialogs::say::say;
 use crate::ui::edit_record::dialog::edit_record;
 use crate::ui::forms::entry::form_password_entry;
 use crate::ui::open_file::OpenFile;
-use crate::ui::search_bar::SearchEvent;
 use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::*;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
@@ -38,8 +35,6 @@ pub struct OpenedFile {
 mod imp {
     use super::*;
     use crate::ui::file_pane::FilePane;
-    use crate::ui::search_bar::PSSearchBar;
-    use crate::ui::search_pane::SearchPane;
     use crate::ui::toast::Toast;
     use std::cell::OnceCell;
 
@@ -48,7 +43,6 @@ mod imp {
         #[default]
         Initial,
         FileOpened,
-        SearchResults,
     }
 
     #[derive(Default)]
@@ -61,9 +55,7 @@ mod imp {
         pub toast: Toast,
         pub dashboard: PSDashboard,
         pub open_file: OpenFile,
-        pub search_bar: PSSearchBar,
         pub file_pane: FilePane,
-        pub search_pane: SearchPane,
 
         pub delete_handler: RefCell<Option<glib::signal::SignalHandlerId>>,
 
@@ -138,11 +130,9 @@ mod imp {
                 .add_named(&self.dashboard.get_widget(), Some("dashboard"));
             self.stack.add_named(&self.open_file, Some("open_file"));
             self.stack.add_named(&self.file_pane, Some("file"));
-            self.stack.add_named(&self.search_pane, Some("search"));
 
             let main_pane = gtk::Grid::builder().build();
-            main_pane.attach(&self.search_bar, 0, 0, 1, 1);
-            main_pane.attach(&self.stack, 0, 1, 1, 1);
+            main_pane.attach(&self.stack, 0, 0, 1, 1);
 
             let overlay = overlayed(&main_pane, &self.toast.as_widget());
             win.set_child(Some(&overlay));
@@ -159,41 +149,12 @@ mod imp {
             });
             *self.delete_handler.borrow_mut() = Some(delete_handler);
 
-            self.search_bar.connect_search(glib::clone!(
-                #[weak]
-                win,
-                move |event| {
-                    glib::spawn_future_local(async move {
-                        win.search(&event).await;
-                    });
-                }
-            ));
-            self.search_bar.connect_configure(glib::clone!(
-                #[weak(rename_to = imp)]
-                self,
-                move |search_config| {
-                    imp.config_service.get().unwrap().update(|config| {
-                        config.search_in_secrets = search_config.search_in_secrets;
-                    });
-                }
-            ));
-            self.search_bar.connect_search_closed(glib::clone!(
-                #[weak(rename_to = imp)]
-                self,
-                move || {
-                    imp.search_reset();
-                    imp.set_mode(imp::AppMode::FileOpened);
-                }
-            ));
-
             self.file_pane.connect_edit_record(glib::clone!(
                 #[weak]
                 win,
-                move |_, position, record_node| {
-                    glib::spawn_future_local(async move {
-                        win.action_edit(position, record_node).await;
-                    });
-                }
+                #[upgrade_or]
+                Box::pin(async move { None }),
+                move |record_node| Box::pin(async move { win.action_edit(record_node).await })
             ));
             self.file_pane.connect_file_changed(glib::clone!(
                 #[weak]
@@ -203,23 +164,6 @@ mod imp {
                 }
             ));
             self.file_pane.connect_user_notification(glib::clone!(
-                #[weak(rename_to = imp)]
-                self,
-                move |_, message| {
-                    imp.toast.notify(message);
-                }
-            ));
-
-            self.search_pane.connect_edit_record(glib::clone!(
-                #[weak]
-                win,
-                move |_, position, record_node| {
-                    glib::spawn_future_local(async move {
-                        win.action_edit(position, record_node).await;
-                    });
-                }
-            ));
-            self.search_pane.connect_user_notification(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
                 move |_, message| {
@@ -251,20 +195,12 @@ mod imp {
                     self.stack.set_visible_child_name("file");
                     self.search_reset();
                 }
-                AppMode::SearchResults => {
-                    self.file_actions.set_enabled(false);
-
-                    self.stack.set_visible_child_name("search");
-                    self.search_bar.set_search_mode(true);
-                }
             }
             self.mode.set(mode);
         }
 
         pub fn search_reset(&self) {
-            self.search_bar.set_search_mode(false);
-            self.search_bar.reset();
-            self.search_pane.reset();
+            self.file_pane.view().search_reset();
         }
     }
 }
@@ -306,75 +242,6 @@ impl PSMainWindow {
         }
     }
 
-    async fn search(&self, event: &SearchEvent) {
-        if event.query.is_empty() {
-            return;
-        }
-
-        fn traverse(
-            records: &TypedListStore<RecordNode>,
-            path: TypedListStore<RecordNode>,
-            query: &str,
-            search_in_secrets: bool,
-            result: &mut TypedListStore<SearchMatch>,
-        ) {
-            for record in records {
-                if record.record().has_text(query, search_in_secrets) {
-                    result.append(&SearchMatch::new(&record, &path.clone_list()));
-                }
-                if let Some(children) = record.children() {
-                    let path_to_record = path.appended(record.clone());
-                    traverse(children, path_to_record, query, search_in_secrets, result);
-                }
-            }
-        }
-
-        let mut matching_records = Default::default();
-        traverse(
-            &self.imp().file_pane.file().records, // current records ????
-            Default::default(),
-            &event.query,
-            event.search_in_secrets,
-            &mut matching_records,
-        );
-
-        // self.imp().view.select_position_async(0).await; // TODO: throttle
-
-        // let private = self.private();
-        // let model = private.data.borrow().as_model();
-        // let iters = flatten_tree(&model);
-
-        // let mut search_iter: Box<dyn Iterator<Item = &gtk::TreeIter>> = match event.event_type {
-        //     SearchEventType::Change | SearchEventType::Next => Box::new(iters.iter()),
-        //     SearchEventType::Prev => Box::new(iters.iter().rev()),
-        // };
-        // if let Some((_selection_record, selection_iter)) = private.view.get_selected_record() {
-        //     search_iter = Box::new(
-        //         search_iter.skip_while(move |iter| model.path(iter) != model.path(&selection_iter)),
-        //     );
-        // }
-        // match event.event_type {
-        //     SearchEventType::Change => {}
-        //     SearchEventType::Next | SearchEventType::Prev => {
-        //         search_iter = Box::new(search_iter.skip(1))
-        //     }
-        // };
-
-        // let next_match = search_iter
-        //     .map(|iter| (iter, private.data.borrow().get(iter)))
-        //     .find(|(_iter, record)| record.has_text(&event.query, event.search_in_secrets));
-
-        // if let Some(next_match) = next_match {
-        //     private.view.select_iter(next_match.0);
-        //     self.listview_cursor_changed(&[next_match.1]);
-        // } else {
-        //     self.error_bell();
-        // }
-
-        self.imp().set_mode(imp::AppMode::SearchResults);
-        self.imp().search_pane.set_model(matching_records).await;
-    }
-
     fn get_usernames(&self) -> Vec<String> {
         get_usernames(&self.imp().file_pane.file())
     }
@@ -400,7 +267,7 @@ impl PSMainWindow {
                     .header_bar
                     .set_title_widget(Some(&crate::utils::ui::title(WINDOW_TITLE)));
             }
-            imp::AppMode::FileOpened | imp::AppMode::SearchResults => {
+            imp::AppMode::FileOpened => {
                 let mut display_filename = self
                     .file()
                     .filename
@@ -527,15 +394,15 @@ impl PSMainWindow {
         win.imp().cache.set(cache.clone()).ok().unwrap();
         win.imp().dashboard.update(cache);
 
-        let config = config_service.get();
-        win.imp().search_bar.configure(config.search_in_secrets);
-        config_service.on_change.subscribe(glib::clone!(
-            #[weak]
-            win,
-            move |new_config| {
-                win.imp().search_bar.configure(new_config.search_in_secrets);
-            }
-        ));
+        // let config = config_service.get();
+        // win.imp().search_bar.configure(config.search_in_secrets);
+        // config_service.on_change.subscribe(glib::clone!(
+        //     #[weak]
+        //     win,
+        //     move |new_config| {
+        //         win.imp().search_bar.configure(new_config.search_in_secrets);
+        //     }
+        // ));
 
         win.present();
         win.imp().set_mode(imp::AppMode::Initial);
@@ -606,7 +473,7 @@ impl PSMainWindow {
 
     #[action(name = "find")]
     fn action_find(&self) {
-        self.imp().search_bar.set_search_mode(true);
+        self.imp().file_pane.view().search_start();
     }
 
     #[action(name = "add")]
@@ -623,7 +490,7 @@ impl PSMainWindow {
         } else {
             RecordNode::leaf(new_record)
         };
-        self.imp().file_pane.append_record(&record_node);
+        self.imp().file_pane.append_record(&record_node).await;
         self.set_changed(true);
     }
 }
@@ -636,15 +503,13 @@ impl PSMainWindow {
         result
     }
 
-    async fn action_edit(&self, position: u32, record_node: RecordNode) {
-        let Some(new_record) = self.edit_record("Edit record", record_node.record()).await else {
-            return;
-        };
+    async fn action_edit(&self, record_node: RecordNode) -> Option<RecordNode> {
+        let new_record = self
+            .edit_record("Edit record", record_node.record())
+            .await?;
 
-        self.imp()
-            .file_pane
-            .replace_record(position, record_node.with_record(new_record));
         self.set_changed(true);
+        Some(record_node.with_record(new_record))
     }
 }
 
