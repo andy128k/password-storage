@@ -406,7 +406,7 @@ impl FilePane {
 
     async fn edit_record(&self, position: u32, record_node: &RecordNode) {
         if let Some(new_record_node) = self.emit_edit_record(record_node).await {
-            self.replace_record(position, &record_node, &new_record_node);
+            self.replace_record(position, record_node, &new_record_node);
         }
     }
 

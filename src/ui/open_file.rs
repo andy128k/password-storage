@@ -1,5 +1,5 @@
 use crate::error::*;
-use futures::channel::mpsc::{channel, Receiver, Sender};
+use futures::channel::mpsc::{Receiver, Sender, channel};
 use futures::stream::StreamExt;
 use gtk::{gdk, glib, prelude::*, subclass::prelude::*};
 use std::cell::RefCell;

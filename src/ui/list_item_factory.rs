@@ -29,7 +29,7 @@ pub trait PSListItemFactory: Sized + 'static {
                 if let Some(list_item) = item.downcast_ref::<gtk::ListItem>() {
                     if let Some(child) = list_item.child().and_downcast::<Self::Child>() {
                         this.bind(list_item, &child);
-                    };
+                    }
                 }
             }
         ));

@@ -1,5 +1,5 @@
 use crate::version::Version;
-use std::io::{Error, ErrorKind, Read, Result, Write};
+use std::io::{Error, Read, Result, Write};
 
 pub struct FileHeader {
     pub data_version: u8,
@@ -23,10 +23,9 @@ impl FileHeader {
             if byte == expected {
                 Ok(())
             } else {
-                Err(Error::new(
-                    ErrorKind::Other,
-                    format!("Unexpected byte {byte} ({expected} was expected)."),
-                ))
+                Err(Error::other(format!(
+                    "Unexpected byte {byte} ({expected} was expected)."
+                )))
             }
         }
 

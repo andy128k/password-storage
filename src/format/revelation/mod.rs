@@ -5,7 +5,7 @@ mod xml;
 
 use crate::error::*;
 use crate::model::tree::RecordTree;
-use crate::version::{version, Version};
+use crate::version::{Version, version};
 use std::io::{Read, Write};
 
 enum CryptoContainer {

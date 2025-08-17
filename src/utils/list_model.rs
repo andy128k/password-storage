@@ -16,20 +16,12 @@ pub trait ListModelImmutableExt {
 impl<T: IsA<gio::ListModel>> ListModelImmutableExt for T {
     fn first(&self) -> Option<glib::Object> {
         let size = self.n_items();
-        if size > 0 {
-            self.item(0)
-        } else {
-            None
-        }
+        if size > 0 { self.item(0) } else { None }
     }
 
     fn last(&self) -> Option<glib::Object> {
         let size = self.n_items();
-        if size > 0 {
-            self.item(size - 1)
-        } else {
-            None
-        }
+        if size > 0 { self.item(size - 1) } else { None }
     }
 
     fn sliced(&self, range: impl RangeBounds<u32>) -> gio::ListStore {

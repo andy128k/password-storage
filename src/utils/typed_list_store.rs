@@ -71,12 +71,11 @@ where
 
     pub fn update_by(&self, updater: impl Fn(&T) -> Option<T>) {
         for index in 0..self.len() {
-            if let Some(value) = self.get(index) {
-                if let Some(new_value) = updater(&value) {
-                    if new_value != value {
-                        self.set(index, new_value);
-                    }
-                }
+            if let Some(value) = self.get(index)
+                && let Some(new_value) = updater(&value)
+                && new_value != value
+            {
+                self.set(index, new_value);
             }
         }
     }

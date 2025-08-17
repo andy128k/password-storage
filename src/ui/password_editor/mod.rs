@@ -1,4 +1,4 @@
-use crate::entropy::{password_entropy, AsciiClassifier};
+use crate::entropy::{AsciiClassifier, password_entropy};
 use crate::password::generate_password;
 use crate::ui::forms::base::FormWidget;
 use crate::ui::password_strength_bar::PasswordStrengthBar;

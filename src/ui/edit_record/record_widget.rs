@@ -1,5 +1,5 @@
 use super::record_form::RecordForm;
-use crate::model::record::{Record, RecordType, FIELD_NAME, RECORD_TYPES};
+use crate::model::record::{FIELD_NAME, RECORD_TYPES, Record, RecordType};
 use crate::ui::record_type_popover::RecordTypePopoverBuilder;
 use gtk::{glib, prelude::*, subclass::prelude::*};
 use std::cell::RefCell;
@@ -106,7 +106,7 @@ mod imp {
                 .form
                 .borrow()
                 .as_ref()
-                .map_or(false, |form| form.record_type() == record_type)
+                .is_some_and(|form| form.record_type() == record_type)
             {
                 return;
             }

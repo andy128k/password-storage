@@ -4,7 +4,7 @@ use gtk::{gdk, glib, prelude::*, subclass::prelude::*};
 mod imp {
     use super::*;
     use crate::utils::ui::title;
-    use futures::channel::mpsc::{channel, Receiver, Sender};
+    use futures::channel::mpsc::{Receiver, Sender, channel};
     use futures::stream::StreamExt;
     use std::cell::RefCell;
 

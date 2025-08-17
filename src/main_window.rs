@@ -1,11 +1,11 @@
 use crate::cache::Cache;
 use crate::config::ConfigService;
 use crate::format;
-use crate::model::record::{Record, RecordType, RECORD_TYPE_GENERIC};
+use crate::model::record::{RECORD_TYPE_GENERIC, Record, RecordType};
 use crate::model::tree::{RecordNode, RecordTree};
 use crate::ui;
 use crate::ui::dashboard::PSDashboard;
-use crate::ui::dialogs::ask_save::{ask_save, AskSave};
+use crate::ui::dialogs::ask_save::{AskSave, ask_save};
 use crate::ui::dialogs::change_password::change_password;
 use crate::ui::dialogs::file_chooser;
 use crate::ui::dialogs::say::say;

@@ -35,7 +35,7 @@ pub struct MoveRecord {
 
 mod imp {
     use super::*;
-    use crate::entropy::{password_entropy, AsciiClassifier};
+    use crate::entropy::{AsciiClassifier, password_entropy};
     use crate::model::tree::RecordTree;
     use crate::ui::dialogs::show_uri::show_uri;
     use crate::ui::record_view::compose_paintable::PSBackgroundPaintable;

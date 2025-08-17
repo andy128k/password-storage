@@ -3,7 +3,7 @@ use crate::model::record::{FIELD_NAME, RECORD_TYPE_GENERIC};
 use crate::model::tree::{RecordNode, RecordTree};
 use crate::utils::list_model::ListModelImmutableExt;
 use crate::utils::typed_list_store::TypedListStore;
-use crate::utils::ui::{scrolled, PSWidgetLookupExt};
+use crate::utils::ui::{PSWidgetLookupExt, scrolled};
 use gtk::{gio, glib, prelude::*};
 
 use super::list_item_factory::PSListItemFactory;

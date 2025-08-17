@@ -1,13 +1,13 @@
 use super::utils::adjust_password;
 use crate::error::Result;
 use aes::{
+    Aes256,
     cipher::{
-        block_padding::Pkcs7,
-        generic_array::{typenum::U16, GenericArray},
         BlockDecrypt, BlockDecryptMut, BlockEncrypt, BlockEncryptMut, BlockSizeUser, KeyInit,
         KeyIvInit,
+        block_padding::Pkcs7,
+        generic_array::{GenericArray, typenum::U16},
     },
-    Aes256,
 };
 use deflate::deflate_bytes_zlib;
 use inflate::inflate_bytes_zlib;

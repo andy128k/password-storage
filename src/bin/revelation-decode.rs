@@ -2,7 +2,7 @@ use clap::Parser;
 use password_storage::format::revelation;
 use std::error::Error;
 use std::fs;
-use std::io::{stdin, stdout, BufReader, Write};
+use std::io::{BufReader, Write, stdin, stdout};
 use std::path::PathBuf;
 
 #[derive(Parser)]
