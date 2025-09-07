@@ -191,7 +191,7 @@ mod imp {
 
     impl FilePane {
         pub fn update_view_model(&self) {
-            self.view.set_model(&*self.file.borrow());
+            self.view.set_model(&self.file.borrow());
         }
 
         async fn row_activated(&self, position: u32, record: RecordNode) {
@@ -213,7 +213,8 @@ mod imp {
                     file.insert_after(&dst_place, src);
                 }
                 DropOption::Into => {
-                    self.obj().append_records_to(Some(dst), &[src.clone()]);
+                    self.obj()
+                        .append_records_to(Some(dst), std::slice::from_ref(src));
                 }
             }
             self.obj().emit_file_changed();

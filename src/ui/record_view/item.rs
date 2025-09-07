@@ -313,9 +313,7 @@ mod imp {
                 return None;
             }
 
-            let Some(dst_place) = tree.find(dst) else {
-                return None;
-            };
+            let dst_place = tree.find(dst)?;
             let has_next = dst_place.next_sibling().is_some();
 
             let height = f64::from(self.obj().height());

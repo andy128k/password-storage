@@ -524,10 +524,11 @@ async fn new_password(parent_window: &gtk::Window) -> Option<String> {
 fn get_usernames(data: &RecordTree) -> Vec<String> {
     fn traverse(records: &TypedListStore<RecordNode>, usernames: &mut BTreeSet<String>) {
         for record in records {
-            if let Some(username) = record.record().username().filter(|u| !u.is_empty()) {
-                if !usernames.contains(username) {
-                    usernames.insert(username.to_string());
-                }
+            if let Some(username) = record.record().username()
+                && !username.is_empty()
+                && !usernames.contains(username)
+            {
+                usernames.insert(username.to_string());
             }
             if let Some(children) = record.children() {
                 traverse(children, usernames);
