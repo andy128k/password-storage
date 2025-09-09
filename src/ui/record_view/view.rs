@@ -342,11 +342,13 @@ glib::wrapper! {
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
-impl PSRecordView {
-    pub fn new() -> Self {
+impl Default for PSRecordView {
+    fn default() -> Self {
         glib::Object::builder().build()
     }
+}
 
+impl PSRecordView {
     pub fn set_model(&self, model: &RecordTree) {
         *self.imp().model.borrow_mut() = model.clone();
         self.imp().search_result.remove_all();

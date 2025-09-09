@@ -3,7 +3,6 @@ use crate::model::record::Record;
 use crate::model::tree::{RecordNode, RecordTree};
 use crate::ui::dialogs::say::say;
 use crate::ui::group_selector::select_group;
-use crate::ui::nav_bar::PSNavBar;
 use crate::ui::record_view::view::PSRecordView;
 use awesome_gtk::prelude::BitSetIterExt;
 use gtk::{glib, prelude::*, subclass::prelude::*};
@@ -31,11 +30,10 @@ mod imp {
     use std::cell::RefCell;
     use std::sync::OnceLock;
 
+    #[derive(Default)]
     pub struct FilePane {
-        pub nav_bar: PSNavBar,
         pub view: PSRecordView,
         pub file: RefCell<RecordTree>,
-
         pub edit_record: AsyncSlot<RecordNode, Option<RecordNode>>,
     }
 
@@ -64,16 +62,6 @@ mod imp {
             klass.install_action_async(ACTION_MERGE, None, |obj, _, _| async move {
                 obj.action_merge().await;
             });
-        }
-
-        fn new() -> Self {
-            Self {
-                nav_bar: Default::default(),
-                view: PSRecordView::new(),
-                file: Default::default(),
-
-                edit_record: Default::default(),
-            }
         }
     }
 
@@ -115,9 +103,8 @@ mod imp {
             ));
 
             let grid = gtk::Grid::new();
-            grid.attach(&self.nav_bar, 0, 0, 1, 1);
-            grid.attach(&self.view, 0, 1, 1, 1);
-            grid.attach(&action_bar, 0, 2, 1, 1);
+            grid.attach(&self.view, 0, 0, 1, 1);
+            grid.attach(&action_bar, 0, 1, 1, 1);
             grid.set_parent(&*obj);
 
             self.view.connect_selection_changed(glib::clone!(

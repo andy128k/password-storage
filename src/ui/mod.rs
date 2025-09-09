@@ -12,7 +12,6 @@ pub mod forms;
 pub mod group_selector;
 pub mod list_item_factory;
 pub mod menu;
-pub mod nav_bar;
 pub mod open_file;
 pub mod password_editor;
 pub mod password_strength_bar;
