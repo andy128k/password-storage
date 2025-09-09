@@ -1,7 +1,7 @@
 use super::item::DropOption;
 use crate::{
     model::tree::{RecordNode, RecordTree},
-    utils::ui::pending,
+    utils::ui::{pending, pending_idle},
 };
 use gtk::{gdk, gio, glib, prelude::*, subclass::prelude::*};
 
@@ -238,7 +238,7 @@ mod imp {
             };
 
             self.expand_path(search_match.path()).await;
-            self.obj().select_record(search_match.record()).await;
+            self.obj().select_record(search_match.record(), false).await;
         }
 
         async fn expand_path(&self, path: &TypedListStore<RecordNode>) -> bool {
@@ -406,36 +406,38 @@ impl PSRecordView {
         self.imp().selection.select_item(position, true);
     }
 
-    pub async fn select_record(&self, record_node: &RecordNode) {
+    pub async fn select_record(&self, record_node: &RecordNode, grab_focus: bool) {
         if let Some((position, _)) = self.find_record(record_node) {
-            self.select_position_async(position).await;
+            self.select_position_async(position, grab_focus).await;
         }
     }
 
-    pub async fn select_position_async(&self, position: u32) {
+    pub async fn select_position_async(&self, position: u32, grab_focus: bool) {
         pending().await;
 
-        self.imp().selection.select_item(position, true);
+        self.imp().list_view.scroll_to(
+            position,
+            gtk::ListScrollFlags::FOCUS | gtk::ListScrollFlags::SELECT,
+            None,
+        );
 
-        pending().await;
+        pending_idle().await;
 
-        if let Err(err) = self
-            .imp()
-            .list_view
-            .activate_action("list.scroll-to-item", Some(&position.to_variant()))
+        self.imp().list_view.scroll_to(
+            position,
+            gtk::ListScrollFlags::FOCUS | gtk::ListScrollFlags::SELECT,
+            None,
+        );
+
+        pending_idle().await;
+
+        if grab_focus
+            && let Some(item) = self.imp().mapping.find(position)
+            && let Some(parent) = item.parent()
         {
-            eprintln!("WARN: PSTreeView::select_record: {err}");
+            parent.grab_focus();
+            pending().await;
         }
-
-        pending().await;
-
-        let Some(item) = self.imp().mapping.find(position) else {
-            return;
-        };
-        let Some(parent) = item.parent() else { return };
-        parent.grab_focus();
-
-        pending().await;
     }
 
     fn on_key_press(&self, key: gdk::Key, modifier: gdk::ModifierType) -> glib::Propagation {

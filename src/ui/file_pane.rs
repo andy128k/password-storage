@@ -247,7 +247,7 @@ impl FilePane {
         *self.imp().file.borrow_mut() = file;
         self.imp().update_view_model();
 
-        self.imp().view.select_position_async(0).await;
+        self.imp().view.select_position_async(0, false).await;
         self.selection_changed(gtk::Bitset::new_empty());
         self.grab_focus_to_view();
     }
@@ -272,7 +272,7 @@ impl FilePane {
         }
 
         if let Some((position, _)) = self.view().find_record(record_node) {
-            self.view().select_position_async(position).await;
+            self.view().select_position_async(position, true).await;
             self.selection_changed(gtk::Bitset::new_range(position, 1));
         }
     }
