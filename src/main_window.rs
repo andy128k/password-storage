@@ -515,7 +515,7 @@ impl PSMainWindow {
 
 async fn new_password(parent_window: &gtk::Window) -> Option<String> {
     // TODO: ADD confirmation
-    let mut form = ui::forms::form::Form::new();
+    let mut form = ui::forms::form::Form::default();
     form.add("Password", Box::new(form_password_entry()), true);
     let result = ui::edit_object::edit_object(None, form, parent_window, "Enter password").await;
     result.map(|mut values| values.remove(0))

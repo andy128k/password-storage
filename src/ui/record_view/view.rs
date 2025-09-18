@@ -229,7 +229,7 @@ mod imp {
                     .map(|index| (index as u32 + 1).min(self.search_result.len())),
                 SearchEventType::Prev => self
                     .find_selection_in_search_result()
-                    .map(|index| ((index as u32).saturating_sub(1))),
+                    .map(|index| (index as u32).saturating_sub(1)),
             };
             let Some(search_match) =
                 search_match_index.and_then(|index| self.search_result.get(index))
@@ -259,7 +259,7 @@ mod imp {
                 return;
             };
 
-            let child = PSRecordViewItem::new();
+            let child = PSRecordViewItem::default();
             child.set_hexpand(true);
 
             let expander = gtk::TreeExpander::builder()

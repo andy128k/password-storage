@@ -4,12 +4,12 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub fn test_multiline() {
-    let w = MultiLine::new();
+    let w = MultiLine::default();
     w.get_widget(); // ensure get_widget doesn't panic
 }
 
 pub fn test_multiline_value() {
-    let w = MultiLine::new();
+    let w = MultiLine::default();
     assert_eq!(w.get_value(), None);
 
     let new_value = "new\nvalue".to_string();
@@ -23,7 +23,7 @@ pub fn test_multiline_value() {
 pub fn test_multiline_event() {
     let value = Rc::new(RefCell::new(None));
 
-    let mut w = MultiLine::new();
+    let mut w = MultiLine::default();
     let value2 = value.clone();
     w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.cloned()));
 

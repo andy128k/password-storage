@@ -382,13 +382,15 @@ glib::wrapper! {
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
-impl PSRecordViewItem {
-    pub fn new() -> Self {
+impl Default for PSRecordViewItem {
+    fn default() -> Self {
         let obj: Self = glib::Object::builder().build();
         obj.imp().setup_drag_and_drop();
         obj
     }
+}
 
+impl PSRecordViewItem {
     pub fn set_record_node(&self, record_node: Option<(RecordTree, RecordNode, u32)>) {
         let (tree, record_node, position) = match record_node {
             Some((tree, record_node, position)) => (Some(tree), Some(record_node), Some(position)),

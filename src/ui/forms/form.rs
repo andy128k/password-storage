@@ -99,8 +99,8 @@ impl FormPrivate {
 
 pub struct Form(Rc<RefCell<FormPrivate>>);
 
-impl Form {
-    pub fn new() -> Self {
+impl Default for Form {
+    fn default() -> Self {
         let grid = gtk::Grid::builder()
             .column_spacing(10)
             .row_spacing(10)
@@ -115,9 +115,11 @@ impl Form {
 
         let private_ref = Rc::new(RefCell::new(private));
 
-        Form(private_ref)
+        Self(private_ref)
     }
+}
 
+impl Form {
     pub fn add(&mut self, label: &str, mut widget: Box<dyn FormWidget<String>>, required: bool) {
         let index = self.0.borrow().entries.len();
 

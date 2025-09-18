@@ -36,13 +36,13 @@ struct RecordForm {
 
 impl RecordForm {
     fn new(record_type: &'static RecordType, names: &[String]) -> Self {
-        let mut form = Form::new();
+        let mut form = Form::default();
         for field in record_type.fields {
             let fw: Box<dyn FormWidget<String>> = match field.field_type {
                 FieldType::Text => Box::new(form_entry()),
-                FieldType::MultiLine => Box::new(MultiLine::new()),
+                FieldType::MultiLine => Box::new(MultiLine::default()),
                 FieldType::Name => Box::new(form_entry_with_completion(names)),
-                FieldType::Password => Box::new(PasswordEditor::new()),
+                FieldType::Password => Box::new(PasswordEditor::default()),
                 FieldType::Secret => Box::new(form_password_entry()),
             };
             let required = field.name == "name";

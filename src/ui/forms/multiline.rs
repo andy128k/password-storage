@@ -7,8 +7,8 @@ pub struct MultiLine {
     text_view: gtk::TextView,
 }
 
-impl MultiLine {
-    pub fn new() -> Self {
+impl Default for MultiLine {
+    fn default() -> Self {
         let text_view = gtk::TextView::builder()
             .can_focus(true)
             .accepts_tab(false)

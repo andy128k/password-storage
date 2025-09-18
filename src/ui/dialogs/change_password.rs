@@ -3,7 +3,7 @@ use crate::ui::forms::entry::form_password_entry;
 use crate::ui::forms::form::{Form, ValidationResult};
 
 pub async fn change_password(parent_window: &gtk::Window) -> Option<String> {
-    let mut form = Form::new();
+    let mut form = Form::default();
     form.add("Password", Box::new(form_password_entry()), true);
     form.add("Confirm password", Box::new(form_password_entry()), true);
     form.set_validator(Box::new(|values| {

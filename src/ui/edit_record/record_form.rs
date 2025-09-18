@@ -70,9 +70,9 @@ mod imp {
             for (index, field) in record_type.fields.iter().enumerate() {
                 let mut widget: Box<dyn FormWidget<String>> = match field.field_type {
                     FieldType::Text => Box::new(form_entry()),
-                    FieldType::MultiLine => Box::new(MultiLine::new()),
+                    FieldType::MultiLine => Box::new(MultiLine::default()),
                     FieldType::Name => Box::new(form_entry_with_completion(names)),
-                    FieldType::Password => Box::new(PasswordEditor::new()),
+                    FieldType::Password => Box::new(PasswordEditor::default()),
                     FieldType::Secret => Box::new(form_password_entry()),
                 };
 

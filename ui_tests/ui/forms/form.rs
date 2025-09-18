@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 fn new_form() -> Form {
-    let mut form = Form::new();
+    let mut form = Form::default();
     form.add("field #1", Box::new(form_entry()), false);
     form.add("field #2", Box::new(form_entry()), false);
     form

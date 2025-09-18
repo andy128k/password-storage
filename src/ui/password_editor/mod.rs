@@ -35,8 +35,8 @@ async fn generate_password_clicked(entry: gtk::Entry) {
     }
 }
 
-impl PasswordEditor {
-    pub fn new() -> Self {
+impl Default for PasswordEditor {
+    fn default() -> Self {
         let level = PasswordStrengthBar::default();
 
         let entry = gtk::Entry::builder()
