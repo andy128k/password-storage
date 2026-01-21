@@ -1,0 +1,76 @@
+name: Release macos bundle
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+
+      # - name: Install Perl
+      #   run: brew install perl && brew link perl
+      # - name: Install XML::Parser
+      #   run: perl -MCPAN -e 'install XML::Parser'
+
+      - name: Install dependencies
+        run: brew install pkg-config gtk4 librsvg
+
+      - name: Build
+        run: cargo build --verbose --release
+
+      - name: Install tools
+        run: brew install librsvg create-dmg
+
+      - name: copy deps
+        run: |
+          mkdir deps
+          for pkg in `echo "gtk4 $(brew deps gtk4)"`
+          do
+            cp -aR "$(brew --cellar $pkg)" ./deps/
+          done
+          tar -cf ./password-storage.tar ./deps
+
+      # - name: Download gtk-osx-setup.sh
+      #   run: curl https://gitlab.gnome.org/GNOME/gtk-osx/raw/master/gtk-osx-setup.sh --output gtk-osx-setup.sh
+      # - name: Chmod +x gtk-osx-setup.sh
+      #   run: chmod +x ./gtk-osx-setup.sh
+      # - name: Set flags
+      #   run: |
+      #     sed -i.bak '1 a \
+      #     set -x' ./gtk-osx-setup.sh
+      # - name: Bump pipenv
+      #   run: sed -i.bak 's/pipenv==2018\.10\.09/pipenv==2018.11.26/' ./gtk-osx-setup.sh
+      # - name: Bump python
+      #   run: sed -i.bak 's/python_version = "3.6"/python_version = "3.7"/' ./gtk-osx-setup.sh
+      # - name: Run gtk-osx-setup.sh
+      #   run: ./gtk-osx-setup.sh
+      #   shell: bash
+
+      # - run: ~/.new_local/bin/jhbuild bootstrap-gtk-osx
+      # - run: ~/.new_local/bin/jhbuild build meta-gtk-osx-bootstrap meta-gtk-osx-gtk3
+
+      # - name: Install gtk-mac-bundler
+      #   run: |
+      #     git clone https://gitlab.gnome.org/GNOME/gtk-mac-bundler.git
+      #     cd gtk-mac-bundler
+      #     make install
+
+      # - run: cp -R gtk-mac-bundler/examples bundle-directory
+      # - run: make osx_icon
+      # - run: cp macos/PasswordStorage.bundle bundle-directory/
+      # - run: cp macos/Info.plist bundle-directory/
+      # - run: cp PasswordStorage.icns bundle-directory/
+      # - run: LIBRARY_PATH=~/gtk/inst/lib ~/.cargo/bin/cargo build --release -vv
+      # - run: cp target/release/password-storage bundle-directory/
+      # - run: cd bundle-directory ; PKG_CONFIG_PATH=~/gtk/inst/lib/pkgconfig gtk-mac-bundler PasswordStorage.bundle
+
+      # - run: tar -cf ./password-storage.tar ~/Desktop/PasswordStorage.app
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: password-storage-tar
+          path: ./password-storage.tar
