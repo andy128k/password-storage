@@ -8,7 +8,7 @@ jobs:
   build:
     runs-on: macOS-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-node@v3
         with:
@@ -19,6 +19,6 @@ jobs:
         id: make-dmg
         run: |
           VERSION=${{ github.event.release.tag_name }} make osx_app
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v2
         with:
           files: target/dmg/PasswordStorage*.dmg

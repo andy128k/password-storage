@@ -9,7 +9,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable-x86_64-pc-windows-gnu
@@ -36,6 +36,6 @@ jobs:
           "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" "/DVersion=${{ github.event.release.tag_name }}" ".\\windows\\setup.iss"
         shell: cmd
 
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v2
         with:
           files: .\PasswordStorage-*.*

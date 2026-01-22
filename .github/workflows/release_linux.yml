@@ -8,7 +8,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install flatpak
         run: |
           export DEBIAN_FRONTEND=noninteractive
@@ -16,6 +16,6 @@ jobs:
           sudo apt-get install -y --no-install-recommends flatpak flatpak-builder
       - run: flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
       - run: make flatpak
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v2
         with:
           files: dev.andy128k.password-storage.flatpak
