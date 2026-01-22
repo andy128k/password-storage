@@ -15,7 +15,7 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
-          apt-get install -y --no-install-recommends build-essential curl ca-certificates libssl-dev libgtk-4-dev xvfb xauth
+          apt-get install -y --no-install-recommends build-essential curl ca-certificates libssl-dev libgtk-4-dev
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@master
         with:

@@ -15,14 +15,14 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
-          apt-get install -y --no-install-recommends build-essential curl ca-certificates libssl-dev libgtk-4-dev xvfb xauth git gpg
+          apt-get install -y --no-install-recommends build-essential curl ca-certificates libssl-dev libgtk-4-dev xwayland-run git gpg
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Generate code coverage
-        run: xvfb-run cargo llvm-cov --lcov --output-path lcov.info
+        run: wlheadless-run -- cargo llvm-cov --lcov --output-path lcov.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
