@@ -12,24 +12,24 @@ default-run = "password-storage"
 [dependencies]
 futures = "0.3"
 
-rand = "0.9"
+rand = "0.10"
 aes = "0.8"
 cbc = "0.1"
 deflate = "1"
 inflate = "0.4"
 quick-xml = "0.39"
 
-toml = "0.9"
+toml = "1"
 serde = { version = "1", features = ["derive"] }
 
-gtk = { package = "gtk4", version = "0.10", features = ["v4_12"] }
-awesome-glib = "0.6"
-awesome-gtk = "0.6"
+gtk = { package = "gtk4", version = "0.11", features = ["v4_12"] }
+awesome-glib = "0.7"
+awesome-gtk = "0.7"
 
 clap = { version = "4.5.4", features = ["derive"] }
 
 [build-dependencies]
-glib-build-tools = "0.21"
+glib-build-tools = "0.22"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
 embed-resource = "3"

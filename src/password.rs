@@ -13,7 +13,7 @@ const GENERATE_PASSWORD_LENGTH: usize = 24;
 
 pub fn generate_password() -> String {
     GENERATE_PASSWORD_ALPHABET
-        .choose_multiple(&mut rng(), GENERATE_PASSWORD_LENGTH)
+        .sample(&mut rng(), GENERATE_PASSWORD_LENGTH)
         .cloned()
         .collect()
 }
