@@ -1,12 +1,11 @@
 use super::utils::adjust_password;
 use crate::error::Result;
 use aes::{
-    Aes256,
+    Aes256, Block,
     cipher::{
-        BlockDecrypt, BlockDecryptMut, BlockEncrypt, BlockEncryptMut, BlockSizeUser, KeyInit,
-        KeyIvInit,
+        BlockSizeUser, KeyInit, KeyIvInit,
+        block::{BlockCipherDecrypt, BlockCipherEncrypt, BlockModeDecrypt, BlockModeEncrypt},
         block_padding::Pkcs7,
-        generic_array::{GenericArray, typenum::U16},
     },
 };
 use deflate::deflate_bytes_zlib;
@@ -15,7 +14,7 @@ use rand::random;
 use std::io::{Read, Write};
 
 pub fn decrypt(source: &mut dyn Read, password: &str) -> Result<Vec<u8>> {
-    let mut iv = GenericArray::<u8, U16>::default();
+    let mut iv = Block::default();
     source.read_exact(&mut iv)?;
 
     let mut encrypted_content = Vec::new();
@@ -26,7 +25,7 @@ pub fn decrypt(source: &mut dyn Read, password: &str) -> Result<Vec<u8>> {
     // decrypt the initial vector for CBC decryption
     Aes256::new(&password).decrypt_block(&mut iv);
     let decrypted = cbc::Decryptor::<Aes256>::new(&password, &iv)
-        .decrypt_padded_mut::<Pkcs7>(&mut encrypted_content)
+        .decrypt_padded::<Pkcs7>(&mut encrypted_content)
         .map_err(|_| "File cannot be decrypted")?;
     let data = inflate_bytes_zlib(decrypted).map_err(|e| format!("Corrupted file: {e}"))?;
     Ok(data)
@@ -40,7 +39,7 @@ pub fn encrypt(writer: &mut dyn Write, data: &[u8], password: &str) -> Result<()
 
     let mut iv = random::<[u8; 16]>().into();
     let encrypted = cbc::Encryptor::<Aes256>::new(&password, &iv)
-        .encrypt_padded_b2b_mut::<Pkcs7>(&deflated, &mut buffer)
+        .encrypt_padded_b2b::<Pkcs7>(&deflated, &mut buffer)
         .map_err(|_| "File cannot be encrypted")?;
     Aes256::new(&password).encrypt_block(&mut iv);
     writer.write_all(&iv)?;

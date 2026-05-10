@@ -13,8 +13,8 @@ default-run = "password-storage"
 futures = "0.3"
 
 rand = "0.10"
-aes = "0.8"
-cbc = "0.1"
+aes = "0.9"
+cbc = { version = "0.2", features = ["block-padding"] }
 deflate = "1"
 inflate = "0.4"
 quick-xml = "0.39"
