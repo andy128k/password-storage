@@ -7,6 +7,7 @@ use quick_xml::{
     Reader, Writer,
     escape::resolve_predefined_entity,
     events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event, attributes::Attributes},
+    XmlVersion,
 };
 use std::io::{BufRead, Write};
 
@@ -210,7 +211,7 @@ fn read_attribute<R: BufRead>(
         let attr = attr?;
         if attr.key.as_ref() == name {
             let value = attr
-                .decode_and_unescape_value(reader.decoder())?
+                .decoded_and_normalized_value(XmlVersion::Implicit1_0, reader.decoder())?
                 .to_string();
             return Ok(Some(value));
         }
