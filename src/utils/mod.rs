@@ -1,4 +1,5 @@
 pub mod algorithm;
+pub mod channel;
 pub mod grid_layout;
 pub mod list_model;
 pub mod menu_builder;

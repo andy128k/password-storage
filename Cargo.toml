@@ -10,7 +10,7 @@ readme = "README.md"
 default-run = "password-storage"
 
 [dependencies]
-futures = "0.3"
+async-channel = "2.5.0"
 
 rand = "0.10"
 aes = "0.9"

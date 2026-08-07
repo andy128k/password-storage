@@ -1,5 +1,5 @@
+use super::channel::SenderExt;
 use awesome_gtk::widget::AwesomeWidgetTraverseExt;
-use futures::channel::oneshot::channel;
 use gtk::{gio, glib, pango, prelude::*};
 use std::time::Duration;
 
@@ -8,9 +8,9 @@ pub async fn pending() {
 }
 
 pub async fn pending_idle() {
-    let (sender, receiver) = channel::<()>();
-    glib::idle_add_once(move || sender.send(()).ok().unwrap());
-    let _ = receiver.await;
+    let (sender, receiver) = async_channel::bounded::<()>(1);
+    glib::idle_add_once(move || sender.toss(()));
+    let _ = receiver.recv().await;
 }
 
 pub trait PSWidgetLookupExt {

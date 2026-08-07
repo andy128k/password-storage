@@ -1,20 +1,22 @@
 use crate::error::*;
-use futures::channel::mpsc::{Receiver, Sender, channel};
-use futures::stream::StreamExt;
 use gtk::{gdk, glib, prelude::*, subclass::prelude::*};
-use std::cell::RefCell;
 use std::error::Error;
 
 mod imp {
     use super::*;
-    use crate::utils::ui::{hexpander, orphan_all_children, vexpander};
+    use crate::utils::{
+        channel::SenderExt,
+        ui::{hexpander, orphan_all_children, vexpander},
+    };
+    use async_channel::{Receiver, Sender};
 
     pub struct OpenFile {
         pub entry: gtk::Entry,
         pub error_label: gtk::Label,
         pub open_button: gtk::Button,
         pub key_controller: gtk::EventControllerKey,
-        pub receiver: RefCell<Option<Receiver<gtk::ResponseType>>>,
+        pub sender: Sender<gtk::ResponseType>,
+        pub receiver: Receiver<gtk::ResponseType>,
     }
 
     #[glib::object_subclass]
@@ -38,6 +40,8 @@ mod imp {
                 .build();
             open_button.add_css_class("suggested-action");
 
+            let (sender, receiver) = async_channel::bounded::<gtk::ResponseType>(1);
+
             Self {
                 entry: gtk::Entry::builder()
                     .can_focus(true)
@@ -48,7 +52,8 @@ mod imp {
                 error_label,
                 open_button,
                 key_controller: Default::default(),
-                receiver: Default::default(),
+                sender,
+                receiver,
             }
         }
     }
@@ -73,9 +78,6 @@ mod imp {
                 .build();
             grid.set_parent(&*obj);
 
-            let (sender, receiver) = channel::<gtk::ResponseType>(0);
-            *self.receiver.borrow_mut() = Some(receiver);
-
             let label = gtk::Label::builder()
                 .label("_Password")
                 .use_underline(true)
@@ -89,15 +91,17 @@ mod imp {
                 .use_underline(true)
                 .hexpand(true)
                 .build();
-            cancel_button.connect_clicked({
-                let sender = ResponseSender::new(&sender);
-                move |_| sender.send(gtk::ResponseType::Cancel)
-            });
+            cancel_button.connect_clicked(glib::clone!(
+                #[strong(rename_to = sender)]
+                self.sender,
+                move |_| sender.toss(gtk::ResponseType::Cancel)
+            ));
 
-            self.open_button.connect_clicked({
-                let sender = ResponseSender::new(&sender);
-                move |_| sender.send(gtk::ResponseType::Accept)
-            });
+            self.open_button.connect_clicked(glib::clone!(
+                #[strong(rename_to = sender)]
+                self.sender,
+                move |_| sender.toss(gtk::ResponseType::Accept)
+            ));
 
             self.entry.connect_changed(glib::clone!(
                 #[weak(rename_to = open_button)]
@@ -107,21 +111,23 @@ mod imp {
                 }
             ));
 
-            self.entry.connect_activate({
-                let sender = ResponseSender::new(&sender);
-                move |_| sender.send(gtk::ResponseType::Accept)
-            });
+            self.entry.connect_activate(glib::clone!(
+                #[strong(rename_to = sender)]
+                self.sender,
+                move |_| sender.toss(gtk::ResponseType::Accept)
+            ));
 
             self.entry.add_controller(self.key_controller.clone());
-            self.key_controller.connect_key_pressed({
-                let sender = ResponseSender::new(&sender);
+            self.key_controller.connect_key_pressed(glib::clone!(
+                #[strong(rename_to = sender)]
+                self.sender,
                 move |_, key, _keycode, _modifier| {
                     if key == gdk::Key::Escape {
-                        sender.send(gtk::ResponseType::Cancel);
+                        sender.toss(gtk::ResponseType::Cancel);
                     }
                     glib::Propagation::Proceed
                 }
-            });
+            ));
             let button_box = gtk::Box::builder()
                 .orientation(gtk::Orientation::Horizontal)
                 .homogeneous(true)
@@ -165,7 +171,7 @@ mod imp {
         }
 
         pub async fn next_response(&self) -> Option<gtk::ResponseType> {
-            let response = self.receiver.borrow_mut().as_mut()?.next().await?;
+            let response = self.receiver.recv().await.ok()?;
             Some(response)
         }
     }
@@ -209,20 +215,6 @@ impl OpenFile {
                 }
                 Err(e) => self.imp().set_error(&*e),
             }
-        }
-    }
-}
-
-struct ResponseSender(RefCell<Sender<gtk::ResponseType>>);
-
-impl ResponseSender {
-    fn new(sender: &Sender<gtk::ResponseType>) -> Self {
-        Self(RefCell::new(sender.clone()))
-    }
-
-    fn send(&self, response: gtk::ResponseType) {
-        if let Err(error) = self.0.borrow_mut().try_send(response) {
-            eprintln!("{}", error);
         }
     }
 }

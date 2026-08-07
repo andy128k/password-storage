@@ -3,17 +3,15 @@ use gtk::{gdk, glib, prelude::*, subclass::prelude::*};
 
 mod imp {
     use super::*;
-    use crate::utils::ui::title;
-    use futures::channel::mpsc::{Receiver, Sender, channel};
-    use futures::stream::StreamExt;
-    use std::cell::RefCell;
+    use crate::utils::{channel::SenderExt, ui::title};
+    use async_channel::{Receiver, Sender};
 
     pub struct GenericDialog {
         pub title: gtk::Label,
         pub cancel_button: gtk::Button,
         pub ok_button: gtk::Button,
-        pub sender: RefCell<Option<Sender<gtk::ResponseType>>>,
-        pub receiver: RefCell<Option<Receiver<gtk::ResponseType>>>,
+        pub sender: Sender<gtk::ResponseType>,
+        pub receiver: Receiver<gtk::ResponseType>,
     }
 
     #[glib::object_subclass]
@@ -33,12 +31,14 @@ mod imp {
                 .build();
             ok_button.add_css_class("suggested-action");
 
+            let (sender, receiver) = async_channel::bounded::<gtk::ResponseType>(1);
+
             Self {
                 title,
                 cancel_button,
                 ok_button,
-                sender: Default::default(),
-                receiver: Default::default(),
+                sender,
+                receiver,
             }
         }
     }
@@ -51,10 +51,6 @@ mod imp {
                 .title_widget(&self.title)
                 .show_title_buttons(false)
                 .build();
-
-            let (sender, receiver) = channel::<gtk::ResponseType>(0);
-            *self.sender.borrow_mut() = Some(sender.clone());
-            *self.receiver.borrow_mut() = Some(receiver);
 
             self.cancel_button.connect_clicked(glib::clone!(
                 #[weak(rename_to = imp)]
@@ -107,18 +103,11 @@ mod imp {
 
     impl GenericDialog {
         pub fn send(&self, response: gtk::ResponseType) {
-            let mut sender_opt = self.sender.borrow_mut();
-            let Some(sender) = sender_opt.as_mut() else {
-                eprintln!("No sender");
-                return;
-            };
-            if let Err(err) = sender.try_send(response) {
-                eprintln!("Cannot send response {}. {}", response, err);
-            }
+            self.sender.toss(response);
         }
 
         pub async fn next_response(&self) -> Option<gtk::ResponseType> {
-            self.receiver.borrow_mut().as_mut()?.next().await
+            self.receiver.recv().await.ok()
         }
     }
 }
