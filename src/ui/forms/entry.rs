@@ -43,7 +43,7 @@ impl FormWidget<String> for gtk::Entry {
         self.set_text(value.map(String::as_str).unwrap_or_default());
     }
 
-    fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&String>)>) {
+    fn connect_changed(&mut self, callback: ValueChangeCallback<String>) {
         gtk::prelude::EditableExt::connect_changed(self, move |entry| {
             let value = get_value(entry);
             callback(value.as_ref());

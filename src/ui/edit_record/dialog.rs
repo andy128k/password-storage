@@ -71,7 +71,7 @@ impl FormWidget<Record> for RecordForm {
         );
     }
 
-    fn connect_changed(&mut self, callback: Box<dyn Fn(Option<&Record>)>) {
+    fn connect_changed(&mut self, callback: ValueChangeCallback<Record>) {
         let record_type = self.record_type;
         self.form.connect_changed(Box::new(move |values| {
             let record = values.map(|vec| vec_to_record(record_type, vec));
@@ -91,7 +91,7 @@ pub struct RecordWidgetPrivate {
     open_button: gtk::Button,
     form: RefCell<Option<RecordForm>>,
     names: Vec<String>,
-    callback: RefCell<Box<dyn Fn(Option<&Record>)>>,
+    callback: RefCell<ValueChangeCallback<Record>>,
 }
 
 fn no_op(_: Option<&Record>) {}

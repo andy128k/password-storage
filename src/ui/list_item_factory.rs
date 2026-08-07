@@ -26,10 +26,10 @@ pub trait PSListItemFactory: Sized + 'static {
             #[strong]
             this,
             move |_factory, item| {
-                if let Some(list_item) = item.downcast_ref::<gtk::ListItem>() {
-                    if let Some(child) = list_item.child().and_downcast::<Self::Child>() {
-                        this.bind(list_item, &child);
-                    }
+                if let Some(list_item) = item.downcast_ref::<gtk::ListItem>()
+                    && let Some(child) = list_item.child().and_downcast::<Self::Child>()
+                {
+                    this.bind(list_item, &child);
                 }
             }
         ));
@@ -37,10 +37,10 @@ pub trait PSListItemFactory: Sized + 'static {
             #[strong]
             this,
             move |_factory, item| {
-                if let Some(list_item) = item.downcast_ref::<gtk::ListItem>() {
-                    if let Some(child) = list_item.child().and_downcast::<Self::Child>() {
-                        this.unbind(list_item, &child);
-                    }
+                if let Some(list_item) = item.downcast_ref::<gtk::ListItem>()
+                    && let Some(child) = list_item.child().and_downcast::<Self::Child>()
+                {
+                    this.unbind(list_item, &child);
                 }
             }
         ));
@@ -48,11 +48,10 @@ pub trait PSListItemFactory: Sized + 'static {
             #[strong]
             this,
             move |_factory, item| {
-                if let Some(list_item) = item.downcast_ref::<gtk::ListItem>() {
-                    if let Some(child) = list_item.child().and_downcast::<Self::Child>() {
-                        this.teardown(list_item, &child);
-                    }
-                    list_item.set_child(gtk::Widget::NONE);
+                if let Some(list_item) = item.downcast_ref::<gtk::ListItem>()
+                    && let Some(child) = list_item.child().and_downcast::<Self::Child>()
+                {
+                    this.teardown(list_item, &child);
                 }
             }
         ));

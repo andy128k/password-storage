@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub type FormData = Vec<String>;
-pub type FormDataChanged = Box<dyn Fn(Option<&FormData>)>;
+pub type FormDataChanged = ValueChangeCallback<FormData>;
 
 pub enum ValidationResult {
     Valid,
