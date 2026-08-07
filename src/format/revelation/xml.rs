@@ -4,10 +4,9 @@ use crate::model::tree::{RecordNode, RecordTree};
 use crate::utils::typed_list_store::TypedListStore;
 use crate::version::Version;
 use quick_xml::{
-    Reader, Writer,
+    Reader, Writer, XmlVersion,
     escape::resolve_predefined_entity,
     events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event, attributes::Attributes},
-    XmlVersion,
 };
 use std::io::{BufRead, Write};
 
