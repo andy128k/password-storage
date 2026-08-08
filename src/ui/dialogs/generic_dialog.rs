@@ -5,9 +5,15 @@ mod imp {
     use super::*;
     use crate::utils::{channel::SenderExt, ui::title};
     use async_channel::{Receiver, Sender};
+    use std::cell::RefCell;
 
+    #[derive(glib::Properties)]
+    #[properties(wrapper_type = super::GenericDialog)]
     pub struct GenericDialog {
         pub title: gtk::Label,
+        vbox: gtk::Box,
+        #[property(get, set = Self::set_content, nullable)]
+        content: RefCell<Option<gtk::Widget>>,
         pub cancel_button: gtk::Button,
         pub ok_button: gtk::Button,
         pub sender: Sender<gtk::ResponseType>,
@@ -23,7 +29,11 @@ mod imp {
         fn new() -> Self {
             let title = title("");
 
-            let cancel_button = gtk::Button::builder().label("Cancel").build();
+            let cancel_button = gtk::Button::builder()
+                .label("Cancel")
+                .hexpand(true)
+                .halign(gtk::Align::End)
+                .build();
 
             let ok_button = gtk::Button::builder()
                 .label("OK")
@@ -31,10 +41,23 @@ mod imp {
                 .build();
             ok_button.add_css_class("suggested-action");
 
+            let button_group = gtk::SizeGroup::new(gtk::SizeGroupMode::Horizontal);
+            button_group.add_widget(&cancel_button);
+            button_group.add_widget(&ok_button);
+
             let (sender, receiver) = async_channel::bounded::<gtk::ResponseType>(1);
 
             Self {
                 title,
+                vbox: gtk::Box::builder()
+                    .orientation(gtk::Orientation::Vertical)
+                    .margin_top(12)
+                    .margin_bottom(12)
+                    .margin_start(12)
+                    .margin_end(12)
+                    .spacing(12)
+                    .build(),
+                content: Default::default(),
                 cancel_button,
                 ok_button,
                 sender,
@@ -43,6 +66,7 @@ mod imp {
         }
     }
 
+    #[glib::derived_properties]
     impl ObjectImpl for GenericDialog {
         fn constructed(&self) {
             self.parent_constructed();
@@ -52,24 +76,31 @@ mod imp {
                 .show_title_buttons(false)
                 .build();
 
+            let button_box = gtk::Box::builder()
+                .orientation(gtk::Orientation::Horizontal)
+                .spacing(6)
+                .build();
+            self.vbox.append(&button_box);
+
             self.cancel_button.connect_clicked(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
                 move |_| imp.send(gtk::ResponseType::Cancel)
             ));
-            header.pack_start(&self.cancel_button);
+            button_box.append(&self.cancel_button);
 
             self.ok_button.connect_clicked(glib::clone!(
                 #[weak(rename_to = imp)]
                 self,
                 move |_| imp.send(gtk::ResponseType::Ok)
             ));
-            header.pack_end(&self.ok_button);
+            button_box.append(&self.ok_button);
 
             self.obj().set_modal(true);
             self.obj().set_resizable(true);
             self.obj().set_titlebar(Some(&header));
             self.obj().set_icon_name(Some("password-storage"));
+            self.obj().set_child(Some(&self.vbox));
 
             let key_controller = gtk::EventControllerKey::new();
             key_controller.connect_key_pressed(glib::clone!(
@@ -102,6 +133,17 @@ mod imp {
     impl WindowImpl for GenericDialog {}
 
     impl GenericDialog {
+        fn set_content(&self, content: Option<gtk::Widget>) {
+            if let Some(old_content) = self.content.take() {
+                self.vbox.remove(&old_content);
+            }
+            if let Some(ref content) = content {
+                content.set_vexpand(true);
+                self.vbox.prepend(content);
+            }
+            self.content.replace(content);
+        }
+
         pub fn send(&self, response: gtk::ResponseType) {
             self.sender.toss(response);
         }

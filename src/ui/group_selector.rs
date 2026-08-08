@@ -187,7 +187,7 @@ pub async fn select_group(
 
     let scrolled_window = scrolled(&tree_view);
     scrolled_window.set_size_request(500, 400);
-    dlg.set_child(Some(&scrolled_window));
+    dlg.set_content(Some(scrolled_window.upcast_ref()));
 
     selection_model.connect_selection_changed(glib::clone!(
         #[weak]
