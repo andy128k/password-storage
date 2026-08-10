@@ -71,6 +71,36 @@ mod imp {
         const NAME: &'static str = "PSMainWindow";
         type Type = super::PSMainWindow;
         type ParentType = gtk::ApplicationWindow;
+
+        fn class_init(klass: &mut Self::Class) {
+            klass.install_action_async("file.close", None, |win, _, _| async move {
+                win.action_close_file().await
+            });
+            klass.install_action_async("file.save", None, |win, _, _| async move {
+                win.action_save().await
+            });
+            klass.install_action_async("file.save-as", None, |win, _, _| async move {
+                win.action_save_as().await
+            });
+            klass.install_action_async("file.merge-file", None, |win, _, _| async move {
+                win.action_merge_file().await
+            });
+            klass.install_action_async("file.change-password", None, |win, _, _| async move {
+                win.action_change_password().await
+            });
+            klass.install_action("file.find", None, |win, _, _| win.action_find());
+            klass.install_action_async(
+                "file.add",
+                Some(&String::static_variant_type()),
+                |win, _, p| async move {
+                    if let Some(record_type_name) = p.as_ref().and_then(|p| p.str()) {
+                        win.action_add_record(record_type_name).await
+                    } else {
+                        eprintln!("Cannot add a record. No record type was specified.");
+                    }
+                },
+            );
+        }
     }
 
     impl ObjectImpl for PSMainWindow {
@@ -136,9 +166,6 @@ mod imp {
 
             let overlay = overlayed(&main_pane, &self.toast.as_widget());
             win.set_child(Some(&overlay));
-
-            win.register_file_actions(&self.file_actions);
-            win.insert_action_group("file", Some(&self.file_actions));
 
             let delete_handler = win.connect_close_request(move |win| {
                 let win = win.clone();
@@ -409,11 +436,7 @@ impl PSMainWindow {
         crate::css::load_css(&RootExt::display(&win));
         win
     }
-}
 
-#[awesome_glib::actions(register_fn = "register_file_actions")]
-impl PSMainWindow {
-    #[action(name = "close")]
     async fn action_close_file(&self) {
         if self.ensure_data_is_saved().await {
             self.imp().set_mode(imp::AppMode::Initial);
@@ -428,12 +451,10 @@ impl PSMainWindow {
         }
     }
 
-    #[action(name = "save")]
     async fn action_save(&self) {
         let _saved = self.do_save().await;
     }
 
-    #[action(name = "save-as")]
     async fn action_save_as(&self) {
         let Some(ref filename) = file_chooser::save_file(self.upcast_ref()).await else {
             return;
@@ -444,7 +465,6 @@ impl PSMainWindow {
         let _saved = self.save_data(filename, password).await;
     }
 
-    #[action(name = "merge-file")]
     async fn action_merge_file(&self) {
         let window = self.upcast_ref();
         let Some(filename) = file_chooser::open_file(window).await else {
@@ -463,7 +483,6 @@ impl PSMainWindow {
         self.set_changed(true);
     }
 
-    #[action(name = "change-password")]
     async fn action_change_password(&self) {
         if let Some(new_password) = change_password(self.upcast_ref()).await {
             self.file_mut().password = Some(new_password);
@@ -471,14 +490,12 @@ impl PSMainWindow {
         }
     }
 
-    #[action(name = "find")]
     fn action_find(&self) {
         self.imp().file_pane.view().search_start();
     }
 
-    #[action(name = "add")]
-    async fn action_add_record(&self, record_type_name: String) {
-        let record_type = RecordType::find(&record_type_name).unwrap_or(&RECORD_TYPE_GENERIC);
+    async fn action_add_record(&self, record_type_name: &str) {
+        let record_type = RecordType::find(record_type_name).unwrap_or(&RECORD_TYPE_GENERIC);
 
         let empty_record = record_type.new_record();
         let Some(new_record) = self.edit_record("Add record", &empty_record).await else {
@@ -493,9 +510,7 @@ impl PSMainWindow {
         self.imp().file_pane.append_record(&record_node).await;
         self.set_changed(true);
     }
-}
 
-impl PSMainWindow {
     async fn edit_record(&self, title: &str, record: &Record) -> Option<Record> {
         let result = edit_record(record, self.upcast_ref(), title, self.get_usernames()).await;
         self.imp().file_pane.grab_focus_to_view();
