@@ -3,14 +3,12 @@ use crate::config::ConfigService;
 use crate::format;
 use crate::model::record::{RECORD_TYPE_GENERIC, Record, RecordType};
 use crate::model::tree::{RecordNode, RecordTree};
-use crate::ui;
 use crate::ui::dashboard::PSDashboard;
 use crate::ui::dialogs::ask_save::{AskSave, ask_save};
 use crate::ui::dialogs::change_password::change_password;
 use crate::ui::dialogs::file_chooser;
 use crate::ui::dialogs::say::say;
 use crate::ui::edit_record::dialog::edit_record;
-use crate::ui::forms::entry::form_password_entry;
 use crate::ui::open_file::OpenFile;
 use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::*;
@@ -484,7 +482,7 @@ impl PSMainWindow {
     }
 
     async fn action_change_password(&self) {
-        if let Some(new_password) = change_password(self.upcast_ref()).await {
+        if let Some(new_password) = change_password(self.upcast_ref(), "Change password").await {
             self.file_mut().password = Some(new_password);
             self.set_changed(true);
         }
@@ -529,11 +527,7 @@ impl PSMainWindow {
 }
 
 async fn new_password(parent_window: &gtk::Window) -> Option<String> {
-    // TODO: ADD confirmation
-    let form = ui::forms::form::Form::default();
-    form.add("Password", Box::new(form_password_entry()), true);
-    let result = ui::edit_object::edit_object(None, form, parent_window, "Enter password").await;
-    result.map(|mut values| values.remove(0))
+    change_password(parent_window, "Enter password").await
 }
 
 fn get_usernames(data: &RecordTree) -> Vec<String> {
