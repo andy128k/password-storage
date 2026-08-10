@@ -36,7 +36,7 @@ struct RecordForm {
 
 impl RecordForm {
     fn new(record_type: &'static RecordType, names: &[String]) -> Self {
-        let mut form = Form::default();
+        let form = Form::default();
         for field in record_type.fields {
             let fw: Box<dyn FormWidget<String>> = match field.field_type {
                 FieldType::Text => Box::new(form_entry()),
