@@ -1,18 +1,17 @@
-pub fn all_equal_by_key<'a, T, K: PartialEq>(
-    values: &'a [T],
-    key_fn: impl Fn(&'a T) -> K,
-) -> Option<&'a T> {
-    let (first, rest) = values.split_first()?;
-    let first_key = (key_fn)(first);
-    if rest.iter().all(|value| (key_fn)(value) == first_key) {
-        Some(first)
-    } else {
-        None
+pub fn all_equal_to<T: PartialEq, I: IntoIterator<Item = T>>(iter: I) -> Option<T> {
+    let mut first = None;
+    for value in iter {
+        match first {
+            None => first = Some(value),
+            Some(ref first) if *first == value => {}
+            _ => return None,
+        }
     }
+    first
 }
 
-pub fn all_equal<T: PartialEq>(values: &[T]) -> Option<&T> {
-    all_equal_by_key(values, |x| x)
+pub fn all_equal<T: PartialEq, I: IntoIterator<Item = T>>(iter: I) -> bool {
+    all_equal_to(iter).is_some()
 }
 
 #[cfg(test)]
@@ -20,17 +19,20 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_all_equal_by_key() {
-        assert_eq!(all_equal_by_key::<i32, i32>(&[], |x| x % 2), None);
-        assert_eq!(all_equal_by_key(&[1, 2, 1, 1], |x| x % 2), None);
-        assert_eq!(all_equal_by_key(&[3, 3, 3], |x| x % 2), Some(&3));
-        assert_eq!(all_equal_by_key(&[3, 5, 7], |x| x % 2), Some(&3));
+    fn test_all_equal_to() {
+        let empty: &[i32] = &[];
+        assert_eq!(all_equal_to(empty), None);
+        assert_eq!(all_equal_to(&[1, 2, 1, 1]), None);
+        assert_eq!(all_equal_to([3, 3, 3]), Some(3));
+        assert_eq!(all_equal_to([3, 3, 3, 2, 3]), None);
     }
 
     #[test]
     fn test_all_equal() {
-        assert_eq!(all_equal::<i32>(&[]), None);
-        assert_eq!(all_equal(&[1, 2, 1, 1]), None);
-        assert_eq!(all_equal(&[3, 3, 3]), Some(&3));
+        let empty: &[i32] = &[];
+        assert_eq!(all_equal(empty), false);
+        assert_eq!(all_equal(&[1, 2, 1, 1]), false);
+        assert_eq!(all_equal([3, 3, 3]), true);
+        assert_eq!(all_equal([3, 3, 3, 2, 3]), false);
     }
 }

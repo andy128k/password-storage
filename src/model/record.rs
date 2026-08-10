@@ -1,4 +1,4 @@
-use crate::utils::algorithm::all_equal_by_key;
+use crate::utils::algorithm::{all_equal, all_equal_to};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -319,20 +319,14 @@ impl Record {
     }
 
     pub fn join_entries(records: &[Record]) -> Record {
-        let record_type = if let Some(record) = all_equal_by_key(records, |r| r.record_type) {
-            record.record_type
-        } else {
-            &RECORD_TYPE_GENERIC
-        };
-        let name = if let Some(record) = all_equal_by_key(records, |r| r.name()) {
-            record.name()
-        } else {
-            records
-                .iter()
-                .map(|p| p.name())
-                .collect::<Vec<_>>()
-                .join(" and ")
-        };
+        let record_type =
+            all_equal_to(records.iter().map(|r| r.record_type)).unwrap_or(&RECORD_TYPE_GENERIC);
+
+        let mut names = records.iter().map(|p| p.name()).collect::<Vec<_>>();
+        let name = all_equal(&names)
+            .then(|| names.pop())
+            .flatten()
+            .unwrap_or_else(|| names.join(" and "));
 
         let mut result = record_type.new_record();
         for record in records.iter() {
