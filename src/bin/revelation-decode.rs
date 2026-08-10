@@ -1,9 +1,7 @@
 use clap::Parser;
 use password_storage::format::revelation;
-use std::error::Error;
-use std::fs;
-use std::io::{BufReader, Write, stdin, stdout};
-use std::path::PathBuf;
+use rpassword::prompt_password;
+use std::{error::Error, fs, io::BufReader, path::PathBuf};
 
 #[derive(Parser)]
 struct Opts {
@@ -17,11 +15,10 @@ struct Opts {
 fn main() -> Result<(), Box<dyn Error>> {
     let opts = Opts::parse();
 
-    print!("Enter a password for a file {}: ", opts.input.display());
-    stdout().flush()?;
-
-    let mut password = String::new();
-    stdin().read_line(&mut password)?;
+    let password = prompt_password(format!(
+        "Enter a password for a file {}: ",
+        opts.input.display()
+    ))?;
     println!();
 
     let file = fs::OpenOptions::new().read(true).open(&opts.input)?;

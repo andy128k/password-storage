@@ -27,6 +27,7 @@ awesome-glib = "0.7"
 awesome-gtk = "0.7"
 
 clap = { version = "4.5.4", features = ["derive"] }
+rpassword = "7.5.4"
 
 [build-dependencies]
 glib-build-tools = "0.22"
