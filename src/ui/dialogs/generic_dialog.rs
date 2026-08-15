@@ -3,9 +3,8 @@ use gtk::{gdk, glib, prelude::*, subclass::prelude::*};
 
 mod imp {
     use super::*;
-    use crate::utils::{channel::SenderExt, ui::title};
-    use async_channel::{Receiver, Sender};
-    use std::cell::RefCell;
+    use crate::utils::ui::title;
+    use std::{cell::RefCell, sync::OnceLock};
 
     #[derive(glib::Properties)]
     #[properties(wrapper_type = super::GenericDialog)]
@@ -16,8 +15,6 @@ mod imp {
         content: RefCell<Option<gtk::Widget>>,
         pub cancel_button: gtk::Button,
         pub ok_button: gtk::Button,
-        pub sender: Sender<gtk::ResponseType>,
-        pub receiver: Receiver<gtk::ResponseType>,
     }
 
     #[glib::object_subclass]
@@ -45,8 +42,6 @@ mod imp {
             button_group.add_widget(&cancel_button);
             button_group.add_widget(&ok_button);
 
-            let (sender, receiver) = async_channel::bounded::<gtk::ResponseType>(1);
-
             Self {
                 title,
                 vbox: gtk::Box::builder()
@@ -60,8 +55,6 @@ mod imp {
                 content: Default::default(),
                 cancel_button,
                 ok_button,
-                sender,
-                receiver,
             }
         }
     }
@@ -127,6 +120,17 @@ mod imp {
             ));
             self.obj().add_controller(key_controller);
         }
+
+        fn signals() -> &'static [glib::subclass::Signal] {
+            static SIGNALS: OnceLock<Vec<glib::subclass::Signal>> = OnceLock::new();
+            SIGNALS.get_or_init(|| {
+                vec![
+                    glib::subclass::Signal::builder("response")
+                        .param_types([gtk::ResponseType::static_type()])
+                        .build(),
+                ]
+            })
+        }
     }
 
     impl WidgetImpl for GenericDialog {}
@@ -145,11 +149,7 @@ mod imp {
         }
 
         pub fn send(&self, response: gtk::ResponseType) {
-            self.sender.toss(response);
-        }
-
-        pub async fn next_response(&self) -> Option<gtk::ResponseType> {
-            self.receiver.recv().await.ok()
+            self.obj().emit_by_name::<()>("response", &[&response])
         }
     }
 }
@@ -184,9 +184,24 @@ impl GenericDialog {
     }
 
     pub async fn run(&self) -> Option<gtk::ResponseType> {
+        let (sender, receiver) = async_channel::bounded::<gtk::ResponseType>(1);
+        self.connect_closure(
+            "response",
+            false,
+            glib::closure!(move |response: gtk::ResponseType| {
+                if let Err(error) = sender.send_blocking(response) {
+                    eprintln!("Channel send error: {}", error);
+                }
+            }),
+        );
+
         self.present();
-        let result = self.imp().next_response().await;
+        let result = receiver.recv().await;
         self.set_visible(false);
-        result
+
+        if let Err(ref error) = result {
+            eprintln!("Channel recv errir: {error}");
+        }
+        result.ok()
     }
 }
