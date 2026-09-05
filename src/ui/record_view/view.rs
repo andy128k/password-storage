@@ -185,7 +185,7 @@ mod imp {
                 .and_then(|record_node| {
                     self.search_result
                         .iter()
-                        .position(|sm| *sm.record() == record_node)
+                        .position(|sm| sm.record() == record_node)
                 })
         }
 
@@ -194,34 +194,19 @@ mod imp {
                 return;
             }
 
-            fn traverse(
-                records: &TypedListStore<RecordNode>,
-                path: TypedListStore<RecordNode>,
-                query: &str,
-                search_in_secrets: bool,
-                result: &TypedListStore<SearchMatch>,
-            ) {
-                for record in records {
-                    if record.record().has_text(query, search_in_secrets) {
-                        result.append(&SearchMatch::new(&record, &path.clone_list()));
-                    }
-                    if let Some(children) = record.children() {
-                        let path_to_record = path.appended(record.clone());
-                        traverse(children, path_to_record, query, search_in_secrets, result);
-                    }
-                }
-            }
-
             let search_match_index = match event.event_type {
                 SearchEventType::Change => {
                     self.search_result.remove_all();
-                    traverse(
-                        &self.model.borrow().records,
-                        Default::default(),
-                        &event.query,
-                        event.search_in_secrets,
-                        &self.search_result,
-                    );
+                    for place in self.model.borrow().depth_first_iter() {
+                        if place
+                            .record()
+                            .record()
+                            .has_text(&event.query, event.search_in_secrets)
+                        {
+                            self.search_result
+                                .append(&SearchMatch::new(&place.record(), place.parents()));
+                        }
+                    }
                     Some(0)
                 }
                 SearchEventType::Next => self
@@ -238,10 +223,12 @@ mod imp {
             };
 
             self.expand_path(search_match.path()).await;
-            self.obj().select_record(search_match.record(), false).await;
+            self.obj()
+                .select_record(&search_match.record(), false)
+                .await;
         }
 
-        async fn expand_path(&self, path: &TypedListStore<RecordNode>) -> bool {
+        async fn expand_path(&self, path: &[RecordNode]) -> bool {
             for record_node in path {
                 let Some((_, row)) = self.obj().find_record(&record_node) else {
                     return false;

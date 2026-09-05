@@ -10,7 +10,6 @@ use crate::ui::dialogs::file_chooser;
 use crate::ui::dialogs::say::say;
 use crate::ui::edit_record::dialog::edit_record;
 use crate::ui::open_file::OpenFile;
-use crate::utils::typed_list_store::TypedListStore;
 use crate::utils::ui::*;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*};
 use std::cell::Ref;
@@ -531,21 +530,9 @@ async fn new_password(parent_window: &gtk::Window) -> Option<String> {
 }
 
 fn get_usernames(data: &RecordTree) -> Vec<String> {
-    fn traverse(records: &TypedListStore<RecordNode>, usernames: &mut BTreeSet<String>) {
-        for record in records {
-            if let Some(username) = record.record().username()
-                && !username.is_empty()
-                && !usernames.contains(username)
-            {
-                usernames.insert(username.to_string());
-            }
-            if let Some(children) = record.children() {
-                traverse(children, usernames);
-            }
-        }
-    }
-
-    let mut usernames = BTreeSet::new();
-    traverse(&data.records, &mut usernames);
-    usernames.into_iter().collect()
+    data.depth_first_iter()
+        .filter_map(|place| place.record().record().username().map(|s| s.to_owned()))
+        .collect::<BTreeSet<String>>()
+        .into_iter()
+        .collect()
 }

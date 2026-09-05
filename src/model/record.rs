@@ -329,7 +329,7 @@ impl Record {
             .unwrap_or_else(|| names.join(" and "));
 
         let mut result = record_type.new_record();
-        for record in records.iter() {
+        for record in records {
             result.join(record);
         }
         result.set_field(&FIELD_NAME, &name);

@@ -1,15 +1,16 @@
 use crate::model::tree::RecordNode;
-use crate::utils::typed_list_store::TypedListStore;
-use gtk::{glib, glib::subclass::prelude::*};
+use gtk::{glib, glib::subclass::prelude::*, prelude::*};
 
 mod imp {
     use super::*;
     use std::cell::OnceCell;
 
-    #[derive(Default)]
+    #[derive(Default, glib::Properties)]
+    #[properties(wrapper_type = super::SearchMatch)]
     pub struct SearchMatch {
+        #[property(get, construct_only)]
         pub record: OnceCell<RecordNode>,
-        pub path: OnceCell<TypedListStore<RecordNode>>,
+        pub path: OnceCell<Vec<RecordNode>>,
     }
 
     #[glib::object_subclass]
@@ -19,6 +20,7 @@ mod imp {
         type ParentType = glib::Object;
     }
 
+    #[glib::derived_properties]
     impl ObjectImpl for SearchMatch {}
 }
 
@@ -27,18 +29,13 @@ glib::wrapper! {
 }
 
 impl SearchMatch {
-    pub fn new(record: &RecordNode, path: &TypedListStore<RecordNode>) -> Self {
-        let this: Self = glib::Object::builder().build();
-        this.imp().record.set(record.clone()).ok().unwrap();
-        this.imp().path.set(path.clone()).ok().unwrap();
+    pub fn new(record: &RecordNode, path: &[RecordNode]) -> Self {
+        let this: Self = glib::Object::builder().property("record", record).build();
+        this.imp().path.set(path.to_vec()).ok().unwrap();
         this
     }
 
-    pub fn record(&self) -> &RecordNode {
-        self.imp().record.get().unwrap()
-    }
-
-    pub fn path(&self) -> &TypedListStore<RecordNode> {
+    pub fn path(&self) -> &[RecordNode] {
         self.imp().path.get().unwrap()
     }
 }
