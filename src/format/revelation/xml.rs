@@ -25,16 +25,16 @@ fn read_document<R: BufRead>(reader: &mut Reader<R>) -> Result<RecordTree> {
         match reader.read_event_into(&mut buf)? {
             Event::Decl(..) => {}
             Event::Start(ref e)
-                if record_tree.is_none() && e.name().as_ref() == b"revelationdata" =>
+                if record_tree.is_none() && e.name().as_ref() == "revelationdata" =>
             {
                 record_tree = Some(read_revelationdata(reader, &mut e.attributes())?);
             }
             Event::Empty(ref e)
-                if record_tree.is_none() && e.name().as_ref() == b"revelationdata" =>
+                if record_tree.is_none() && e.name().as_ref() == "revelationdata" =>
             {
                 record_tree = Some(Default::default());
             }
-            Event::Text(element) if element.decode()?.trim().is_empty() => {}
+            Event::Text(element) if element.trim().is_empty() => {}
             Event::Eof => break,
             e => return Err(format!("Unexpected XML event {e:?}.").into()),
         }
@@ -53,10 +53,10 @@ fn read_revelationdata<R: BufRead>(
     reader: &mut Reader<R>,
     atts: &mut Attributes,
 ) -> Result<TypedListStore<RecordNode>> {
-    let _version: Option<Version> = read_attribute(reader, atts, b"version")?
+    let _version: Option<Version> = read_attribute(atts, "version")?
         .map(|s| s.parse())
         .transpose()?;
-    let _dataversion: Option<u8> = read_attribute(reader, atts, b"dataversion")?
+    let _dataversion: Option<u8> = read_attribute(atts, "dataversion")?
         .map(|s| s.parse())
         .transpose()?;
 
@@ -65,16 +65,16 @@ fn read_revelationdata<R: BufRead>(
     loop {
         buf.clear();
         match reader.read_event_into(&mut buf)? {
-            Event::Start(ref e) if e.name().as_ref() == b"entry" => {
+            Event::Start(ref e) if e.name().as_ref() == "entry" => {
                 let record_node = read_record_node(reader, &mut e.attributes())?;
                 records.append(&record_node);
             }
-            Event::Empty(ref e) if e.name().as_ref() == b"entry" => {
-                let record_node = read_empty_record_node(reader, &mut e.attributes())?;
+            Event::Empty(ref e) if e.name().as_ref() == "entry" => {
+                let record_node = read_empty_record_node(&mut e.attributes())?;
                 records.append(&record_node);
             }
-            Event::Text(element) if element.decode()?.trim().is_empty() => {}
-            Event::End(ref e) if e.name().as_ref() == b"revelationdata" => break,
+            Event::Text(element) if element.trim().is_empty() => {}
+            Event::End(ref e) if e.name().as_ref() == "revelationdata" => break,
             e => return Err(format!("Unexpected XML event {e:?}.").into()),
         }
     }
@@ -85,7 +85,7 @@ fn read_record_node<R: BufRead>(
     reader: &mut Reader<R>,
     atts: &mut Attributes,
 ) -> Result<RecordNode> {
-    let xml_type = expect_attribute(reader, atts, "type")?;
+    let xml_type = expect_attribute(atts, "type")?;
 
     let mapping = KNOWN_TYPES
         .iter()
@@ -101,16 +101,16 @@ fn read_record_node<R: BufRead>(
         buf.clear();
         match reader.read_event_into(&mut buf)? {
             Event::Start(ref e) => match e.name().as_ref() {
-                b"name" => {
-                    let value = expect_text(reader, b"name")?;
+                "name" => {
+                    let value = expect_text(reader, "name")?;
                     record.values.insert("name".to_string(), value);
                 }
-                b"description" => {
-                    let value = expect_text(reader, b"description")?;
+                "description" => {
+                    let value = expect_text(reader, "description")?;
                     record.values.insert("description".to_string(), value);
                 }
-                b"field" => {
-                    let id = expect_attribute(reader, &mut e.attributes(), "id")?;
+                "field" => {
+                    let id = expect_attribute(&mut e.attributes(), "id")?;
                     let field_name = mapping
                         .fields
                         .iter()
@@ -125,25 +125,25 @@ fn read_record_node<R: BufRead>(
                         .ok_or_else(|| {
                             format!("Field {id} is not expected in a record of type {xml_type}.")
                         })?;
-                    let value = expect_text(reader, b"field")?;
+                    let value = expect_text(reader, "field")?;
                     record.values.insert(field_name.to_string(), value);
                 }
-                b"entry" if is_group => {
+                "entry" if is_group => {
                     let child = read_record_node(reader, &mut e.attributes())?;
                     children.append(&child);
                 }
                 e => return Err(format!("Unexpected element {e:?}.").into()),
             },
             Event::Empty(ref e) => match e.name().as_ref() {
-                b"name" | b"description" | b"field" => {}
-                b"entry" if is_group => {
-                    let child = read_empty_record_node(reader, &mut e.attributes())?;
+                "name" | "description" | "field" => {}
+                "entry" if is_group => {
+                    let child = read_empty_record_node(&mut e.attributes())?;
                     children.append(&child);
                 }
                 e => return Err(format!("Unexpected element {e:?}.").into()),
             },
-            Event::Text(element) if element.decode()?.trim().is_empty() => {}
-            Event::End(ref e) if e.name().as_ref() == b"entry" => break,
+            Event::Text(element) if element.trim().is_empty() => {}
+            Event::End(ref e) if e.name().as_ref() == "entry" => break,
             e => return Err(format!("Unexpected XML event {e:?} {record:?}.").into()),
         }
     }
@@ -155,11 +155,8 @@ fn read_record_node<R: BufRead>(
     }
 }
 
-fn read_empty_record_node<R: BufRead>(
-    reader: &mut Reader<R>,
-    atts: &mut Attributes,
-) -> Result<RecordNode> {
-    let xml_type = expect_attribute(reader, atts, "type")?;
+fn read_empty_record_node(atts: &mut Attributes) -> Result<RecordNode> {
+    let xml_type = expect_attribute(atts, "type")?;
 
     let mapping = KNOWN_TYPES
         .iter()
@@ -175,22 +172,21 @@ fn read_empty_record_node<R: BufRead>(
     }
 }
 
-fn expect_text<R: BufRead>(reader: &mut Reader<R>, end_name: &[u8]) -> Result<String> {
+fn expect_text<R: BufRead>(reader: &mut Reader<R>, end_name: &str) -> Result<String> {
     let mut result = String::new();
     let mut buf = Vec::new();
     loop {
         buf.clear();
         match reader.read_event_into(&mut buf)? {
-            Event::Text(text) => result.push_str(&text.decode()?),
+            Event::Text(text) => result.push_str(&text),
             Event::GeneralRef(gref) => {
-                let entity = gref.decode()?;
-                if let Some(resolved_entity) = resolve_predefined_entity(&entity) {
+                if let Some(resolved_entity) = resolve_predefined_entity(&gref) {
                     result.push_str(resolved_entity);
                 } else if let Some(ch) = gref.resolve_char_ref()? {
                     result.push(ch);
                 } else {
                     result.push('&');
-                    result.push_str(&entity);
+                    result.push_str(&gref);
                     result.push(';');
                 }
             }
@@ -201,29 +197,19 @@ fn expect_text<R: BufRead>(reader: &mut Reader<R>, end_name: &[u8]) -> Result<St
     Ok(result)
 }
 
-fn read_attribute<R: BufRead>(
-    reader: &mut Reader<R>,
-    atts: &mut Attributes,
-    name: &[u8],
-) -> Result<Option<String>> {
+fn read_attribute(atts: &mut Attributes, name: &str) -> Result<Option<String>> {
     for attr in atts.with_checks(false) {
         let attr = attr?;
         if attr.key.as_ref() == name {
-            let value = attr
-                .decoded_and_normalized_value(XmlVersion::Implicit1_0, reader.decoder())?
-                .to_string();
+            let value = attr.normalized_value(XmlVersion::Implicit1_0)?.to_string();
             return Ok(Some(value));
         }
     }
     Ok(None)
 }
 
-fn expect_attribute<R: BufRead>(
-    reader: &mut Reader<R>,
-    atts: &mut Attributes,
-    name: &str,
-) -> Result<String> {
-    let value = read_attribute(reader, atts, name.as_bytes())?;
+fn expect_attribute(atts: &mut Attributes, name: &str) -> Result<String> {
+    let value = read_attribute(atts, name)?;
     let value = value.ok_or_else(|| format!("Attribute '{name}' was not found."))?;
     Ok(value)
 }
