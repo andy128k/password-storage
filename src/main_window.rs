@@ -338,31 +338,37 @@ impl PSMainWindow {
                 password: None,
                 changed: false,
             };
-            self.imp().file_pane.set_file(RecordTree::default()).await;
+            self.imp().file_pane.reset().await;
             self.imp().search_reset();
 
             self.update_title();
+
+            self.imp().file_pane.grab_focus_to_view();
         }
     }
 
-    async fn load_data(&self, filename: PathBuf) -> Option<(RecordTree, String)> {
+    async fn load_data(&self, filename: &Path) -> Option<(RecordTree, String)> {
         self.imp().stack.set_visible_child_name("open_file");
 
         let result = self
             .imp()
             .open_file
-            .run(move |password| format::load_file(&filename, password))
+            .run({
+                let filename_owned = filename.to_owned();
+                move |password| format::load_file(&filename_owned, password)
+            })
             .await;
 
         if result.is_none() {
             self.imp().stack.set_visible_child_name("dashboard");
+            self.imp().dashboard.focus(filename);
         }
 
         result
     }
 
     pub async fn do_open_file(&self, filename: &Path) {
-        if let Some((data, password)) = self.load_data(filename.to_owned()).await {
+        if let Some((data, password)) = self.load_data(filename).await {
             self.imp().cache.get().unwrap().add_file(filename);
 
             *self.file_mut() = OpenedFile {
@@ -375,6 +381,8 @@ impl PSMainWindow {
             self.imp().set_mode(imp::AppMode::FileOpened);
 
             self.update_title();
+
+            self.imp().file_pane.grab_focus_to_view();
         }
     }
 
@@ -442,7 +450,7 @@ impl PSMainWindow {
                 password: None,
                 changed: false,
             };
-            self.imp().file_pane.set_file(RecordTree::default()).await;
+            self.imp().file_pane.reset().await;
             self.imp().search_reset();
             self.update_title();
         }
@@ -467,7 +475,7 @@ impl PSMainWindow {
         let Some(filename) = file_chooser::open_file(window).await else {
             return;
         };
-        let Some((extra_records, _password)) = self.load_data(filename).await else {
+        let Some((extra_records, _password)) = self.load_data(&filename).await else {
             return;
         };
 
@@ -478,6 +486,7 @@ impl PSMainWindow {
         self.imp().file_pane.set_file(merged_tree).await;
         self.imp().search_reset();
         self.set_changed(true);
+        self.imp().file_pane.grab_focus_to_view();
     }
 
     async fn action_change_password(&self) {

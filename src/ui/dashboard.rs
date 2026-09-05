@@ -2,7 +2,6 @@ use crate::cache::Cache;
 use crate::primary_accel;
 use crate::utils::path::path_as_bytes;
 use crate::utils::ui::centered;
-use awesome_gtk::widget::AwesomeWidgetTraverseExt;
 use gtk::{glib, prelude::*};
 use std::path::{Path, PathBuf};
 
@@ -175,11 +174,7 @@ impl Default for PSDashboard {
 impl PSDashboard {
     pub fn update(&self, cache: &Cache) {
         self.listbox.set_visible(false);
-        for child in self.listbox.children() {
-            if let Some(row) = child.downcast_ref::<gtk::ListBoxRow>() {
-                self.listbox.remove(row);
-            }
-        }
+        self.listbox.remove_all();
 
         self.listbox.append(&action_row(
             "app.new",
@@ -219,7 +214,13 @@ impl PSDashboard {
         if let Some(row) = first_row {
             self.listbox.select_row(Some(&row));
             row.grab_focus();
+        } else {
+            self.listbox.grab_focus();
         }
+    }
+
+    pub fn focus(&self, _filename: &Path) {
+        self.listbox.grab_focus();
     }
 
     pub fn get_widget(&self) -> gtk::Widget {

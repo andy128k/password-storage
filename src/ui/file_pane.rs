@@ -236,7 +236,6 @@ impl FilePane {
 
         self.imp().view.select_position_async(0, false).await;
         self.selection_changed(gtk::Bitset::new_empty());
-        self.grab_focus_to_view();
     }
 
     pub async fn reset(&self) {
