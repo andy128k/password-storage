@@ -10,6 +10,7 @@ pub fn test_open_password() {
 
 pub fn test_open_password_value() {
     let w = PasswordEditor::default();
+    let w: &dyn FormWidget<String> = &w;
     assert_eq!(w.get_value(), None);
 
     let new_value = "passw0rd".to_string();
@@ -23,9 +24,10 @@ pub fn test_open_password_value() {
 pub fn test_open_password_event() {
     let value = Rc::new(RefCell::new(None));
 
-    let mut w = PasswordEditor::default();
+    let mut editor = PasswordEditor::default();
     let value2 = value.clone();
-    w.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.cloned()));
+    editor.connect_changed(Box::new(move |v| *value2.borrow_mut() = v.cloned()));
+    let w: &dyn FormWidget<String> = &editor;
 
     let new_value = "passw0rd".to_string();
     w.set_value(Some(&new_value));

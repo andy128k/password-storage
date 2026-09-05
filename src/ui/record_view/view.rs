@@ -121,8 +121,8 @@ mod imp {
                 move |selection, _pos, _n| obj.emit_selection_changed(&selection.selection())
             ));
 
-            obj.grid_attach(&self.search_bar).set_row(0);
-            obj.grid_attach(&scrolled(&self.list_view)).set_row(1);
+            obj.grid_attach(&self.search_bar, 0, 0, 1, 1);
+            obj.grid_attach(&scrolled(&self.list_view), 0, 1, 1, 1);
 
             self.search_bar.connect_search(glib::clone!(
                 #[weak(rename_to = imp)]
