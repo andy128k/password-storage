@@ -20,16 +20,6 @@ pub fn form_entry_with_completion(items: &[String]) -> PSSuggestionEntry {
     PSSuggestionEntry::new(model.upcast_ref())
 }
 
-pub fn form_password_entry() -> gtk::Entry {
-    gtk::Entry::builder()
-        .can_focus(true)
-        .activates_default(true)
-        .hexpand(true)
-        .visibility(false)
-        .input_purpose(gtk::InputPurpose::Password)
-        .build()
-}
-
 impl FormWidget<String> for gtk::Entry {
     fn get_widget(&self) -> gtk::Widget {
         self.clone().upcast()

@@ -43,7 +43,7 @@ impl RecordForm {
                 FieldType::MultiLine => Box::new(MultiLine::default()),
                 FieldType::Name => Box::new(form_entry_with_completion(names)),
                 FieldType::Password => Box::new(PasswordEditor::default()),
-                FieldType::Secret => Box::new(form_password_entry()),
+                FieldType::Secret => Box::new(PasswordEditor::simple()),
             };
             let required = field.name == "name";
             form.add(field.title, fw, required);

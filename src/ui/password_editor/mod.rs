@@ -192,6 +192,15 @@ impl Default for PasswordEditor {
     }
 }
 
+impl PasswordEditor {
+    pub fn simple() -> Self {
+        glib::Object::builder()
+            .property("generate", false)
+            .property("evaluate", false)
+            .build()
+    }
+}
+
 impl FormWidget<String> for PasswordEditor {
     fn get_widget(&self) -> gtk::Widget {
         self.clone().upcast()

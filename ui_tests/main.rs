@@ -24,9 +24,6 @@ fn main() {
     run_test!(ui::forms::entry::test_name);
     run_test!(ui::forms::entry::test_name_value);
     run_test!(ui::forms::entry::test_name_event);
-    run_test!(ui::forms::entry::test_password);
-    run_test!(ui::forms::entry::test_password_value);
-    run_test!(ui::forms::entry::test_password_event);
 
     run_test!(ui::forms::multiline::test_multiline);
     run_test!(ui::forms::multiline::test_multiline_value);

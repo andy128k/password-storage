@@ -73,7 +73,7 @@ mod imp {
                     FieldType::MultiLine => Box::new(MultiLine::default()),
                     FieldType::Name => Box::new(form_entry_with_completion(names)),
                     FieldType::Password => Box::new(PasswordEditor::default()),
-                    FieldType::Secret => Box::new(form_password_entry()),
+                    FieldType::Secret => Box::new(PasswordEditor::simple()),
                 };
 
                 let label_widget = gtk::Label::builder()
