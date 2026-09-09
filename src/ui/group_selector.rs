@@ -182,7 +182,7 @@ pub async fn select_group(
     tree_view.connect_activate(glib::clone!(
         #[weak]
         dlg,
-        move |_, _| dlg.emit_response(gtk::ResponseType::Ok)
+        move |_, _| dlg.set_response(i32::from(gtk::ResponseType::Ok))
     ));
 
     let scrolled_window = scrolled(&tree_view);
