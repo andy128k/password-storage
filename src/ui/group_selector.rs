@@ -20,7 +20,7 @@ fn fake_root(record_tree: &RecordTree) -> RecordNode {
     RecordNode::group(root_record, &record_tree.records)
 }
 
-fn make_groups_model(record_tree: &RecordTree) -> gtk::TreeListModel {
+pub fn make_groups_model(record_tree: &RecordTree) -> gtk::TreeListModel {
     let toplevel = singleton_list(&singleton_list(&fake_root(record_tree)));
     gtk::TreeListModel::new(toplevel, false, true, |obj| {
         let item = obj.downcast_ref::<gio::ListStore>()?;
@@ -148,14 +148,12 @@ impl PSListItemFactory for DescriptionFactory {
 pub async fn select_group(
     parent_window: &gtk::Window,
     window_title: &str,
-    tree: &RecordTree,
+    model: gtk::TreeListModel,
 ) -> Option<TypedListStore<RecordNode>> {
     let dlg = GenericDialog::default();
     dlg.set_ok_label("Move");
     dlg.set_title(window_title);
     dlg.set_transient_for(Some(parent_window));
-
-    let model = make_groups_model(tree);
 
     let selection_model = gtk::SingleSelection::new(Some(model));
 

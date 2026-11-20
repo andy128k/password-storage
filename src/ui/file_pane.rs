@@ -2,8 +2,9 @@ use crate::async_slot::AsyncListenerId;
 use crate::model::record::Record;
 use crate::model::tree::{RecordNode, RecordTree};
 use crate::ui::dialogs::say::say;
-use crate::ui::group_selector::select_group;
+use crate::ui::group_selector::{make_groups_model, select_group};
 use crate::ui::record_view::view::PSRecordView;
+use crate::utils::typed_list_store::TypedListStore;
 use awesome_gtk::prelude::BitSetIterExt;
 use gtk::{glib, prelude::*, subclass::prelude::*};
 use std::{cell::Ref, future::Future, pin::Pin};
@@ -361,10 +362,7 @@ impl FilePane {
             return;
         }
 
-        let Some(window) = self.root().and_downcast::<gtk::Window>() else {
-            return;
-        };
-        let Some(dest) = select_group(&window, "Move to...", &self.file()).await else {
+        let Some(dest) = self.select_group("Move to...").await else {
             return;
         };
 
@@ -383,6 +381,12 @@ impl FilePane {
         self.remove_records(positions);
         self.append_records_to(dest.last().as_ref(), &records);
         self.emit_file_changed();
+    }
+
+    async fn select_group(&self, window_title: &str) -> Option<TypedListStore<RecordNode>> {
+        let window = self.root().and_downcast::<gtk::Window>()?;
+        let model = make_groups_model(&self.file());
+        select_group(&window, window_title, model).await
     }
 
     async fn action_edit(&self) {

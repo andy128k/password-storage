@@ -230,7 +230,7 @@ mod imp {
 
         async fn expand_path(&self, path: &[RecordNode]) -> bool {
             for record_node in path {
-                let Some((_, row)) = self.obj().find_record(&record_node) else {
+                let Some((_, row)) = self.obj().find_record(record_node) else {
                     return false;
                 };
                 row.set_expanded(true);
